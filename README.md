@@ -13,7 +13,10 @@ This repository reconstructs the application's source from an inherited binary
 releases. The functional behavior and branding are intentionally identical to
 the original `original/EagleBoardScheduler_20190618.jar` until stability is
 proven; see the issue tracker for planned changes (multi-district support,
-dependency upgrades).
+dependency upgrades). The inherited binary itself is not in the repository —
+it embeds an API key — and is kept offline by the maintainer, authenticated
+by the SHA-256 in `PROVENANCE.md`. Behavioral equivalence between it and this
+source tree is proven mechanically by `scripts/verify-parity.sh`.
 
 ## Requirements
 

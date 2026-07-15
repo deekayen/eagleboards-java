@@ -32,5 +32,11 @@ parity/
 .DS_Store
 .claude/
 
-# Untracked runtime copy of the original jar (the tracked copy is original/)
+# The inherited binary stays out of git entirely: it embeds a SignUpGenius
+# API key in its web resources. Local copies live at the repo root (runtime)
+# and in original/ (archival); PROVENANCE.md records its SHA-256.
 /EagleBoardScheduler_20190618.jar
+original/
+
+# maven-shade-plugin build artifact
+dependency-reduced-pom.xml

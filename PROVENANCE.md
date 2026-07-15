@@ -7,9 +7,17 @@ compiled JAR below.
 
 ## Original artifact
 
+**The original jar is intentionally NOT committed** — its bundled
+`signup_genius_api.js` embeds a live SignUpGenius API key, so the binary is
+kept only on the maintainer's machine (`original/`, gitignored). The checksum
+below authenticates any offline copy. The copy of `signup_genius_api.js`
+under `src/main/resources` has that key replaced with the placeholder
+`REPLACE_WITH_SIGNUP_GENIUS_KEY`; nothing references the file at runtime (the
+server-side integration takes the key from the `-sugkey` option instead).
+
 | | |
 |---|---|
-| File | `original/EagleBoardScheduler_20190618.jar` |
+| File | `original/EagleBoardScheduler_20190618.jar` (kept offline) |
 | SHA-256 | `5d88ea0107e48c89b8994f2a4a711ad3423c1f3dda41b04a689bf7f820adbebd` |
 | Size | 3,318,944 bytes |
 | Manifest | `Main-Class: shkc.core.EagleBoardScheduler`, `Created-By: 1.7.0_09 (Oracle Corporation)` |

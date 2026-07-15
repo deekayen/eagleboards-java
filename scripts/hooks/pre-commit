@@ -23,13 +23,17 @@ for f in $staged; do
         *Board_Results*|Master_AdultHistory*|LOGIN_INFO*|RunScheduler.sh|RunScheduler.bat|.env)
             echo "BLOCKED: $f — contains PII or credentials" >&2
             fail=1 ;;
+        *EagleBoardScheduler_20190618.jar|original/*)
+            echo "BLOCKED: $f — the inherited binary embeds an API key; keep it out of git" >&2
+            fail=1 ;;
     esac
 done
 
-# Block a real SignUpGenius API key in staged content: any -sugkey followed by
-# a long base64-like literal (placeholders like "dummy" or "$SUG_KEY" pass).
-if git diff --cached -G'-sugkey +[A-Za-z0-9+/=]{16,}' --name-only | grep -q .; then
-    echo "BLOCKED: staged content contains a -sugkey value; use the SUG_KEY env var instead" >&2
+# Block a real SignUpGenius API key in staged content: a -sugkey argument or
+# SIGNUP_GENIUS_KEY assignment followed by a long base64-like literal
+# (placeholders like "dummy", "$SUG_KEY", or REPLACE_WITH_... pass).
+if git diff --cached -G'(-sugkey +|SIGNUP_GENIUS_KEY *= *")[A-Za-z0-9+/=]{16,}' --name-only | grep -q .; then
+    echo "BLOCKED: staged content contains a SignUpGenius key; use the SUG_KEY env var instead" >&2
     fail=1
 fi
 

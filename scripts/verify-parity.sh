@@ -42,8 +42,8 @@ echo "== 1. structural comparison (javap declared members) =="
 WORK=$(mktemp -d)
 trap 'rm -rf "$WORK"; kill $PID_A $PID_B 2>/dev/null' EXIT
 mkdir -p "$WORK/orig" "$WORK/new"
-unzip -qo "$ORIG_JAR" 'shkc/*' 'monfox/*' -x 'shkc/core/WEBROOT/*' -d "$WORK/orig"
-unzip -qo "$NEW_JAR"  'shkc/*' 'monfox/*' -x 'shkc/core/WEBROOT/*' -d "$WORK/new"
+unzip -qo "$ORIG_JAR" 'shkc/*' 'monfox/*' -d "$WORK/orig"
+unzip -qo "$NEW_JAR"  'shkc/*' 'monfox/*' -d "$WORK/new"
 
 # Compiler-internal artifacts with no behavior of their own; javac 25 emits
 # them differently than javac 7 did (nestmates replaced access$ bridges).
@@ -82,14 +82,21 @@ done < <(find "$WORK/orig" -name '*.class')
 [ "$missing" -eq 0 ] && note "all classes present"
 note "signature comparison complete"
 
-# WEBROOT resources must be byte-identical (CVS/ checkout residue in the
-# original is intentionally not re-bundled).
-webdiff=$(diff -r "$WORK/orig/shkc/core" "$WORK/new/shkc/core" 2>/dev/null \
-    | grep -v '/CVS' | grep -vE '\.class'  | grep -v '^Common' || true)
+# WEBROOT resources must be byte-identical. Two intentional exceptions:
+#  - CVS/ checkout residue in the original is not re-bundled
+#  - signup_genius_api.js: the original embeds a live SignUpGenius API key;
+#    the rebuild ships a placeholder. Dead code — no page references it.
+webdiff=$(diff -rq "$WORK/orig/shkc/core" "$WORK/new/shkc/core" 2>/dev/null \
+    | grep -vE '/CVS|: CVS$' | grep -vE '\.class' | grep -v signup_genius_api.js | grep -v '^Common' || true)
 if [ -n "$webdiff" ]; then
     fail "WEBROOT resources differ:"; echo "$webdiff" | head -10
 else
-    note "WEBROOT resources byte-identical"
+    note "WEBROOT resources byte-identical (modulo documented exceptions)"
+fi
+if grep -q 'REPLACE_WITH_SIGNUP_GENIUS_KEY' "$WORK/new/shkc/core/WEBROOT/signup_genius_api.js"; then
+    note "rebuilt jar carries the key placeholder, not a real key"
+else
+    fail "rebuilt signup_genius_api.js does not contain the expected placeholder"
 fi
 
 # -------------------------------------------------------------- 2/3. runtime
