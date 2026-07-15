@@ -122,7 +122,7 @@ public class EagleBoardScheduler {
    public static void usage() {
       System.out
          .println(
-            "\n\n\n   USAGE\n\n          java -jar eagle-board-scheduler.jar <options>\n\n      OPTIONS\n\n         -w[indows]                     : popup dialog for config info\n         -v[erbose]                     : print verbose messages\n         -h[elp]                        : print this message\n\n         -d[ir]    <data-directory>     : directory where data files live\n\n         -a[dult]  <adult-history-file> : file containing adult auto-fill data\n         -c[onfig] <config-file>        : scheduler config file\n         -p[rereg] <etowah-prereg-file> : preregistration data file (csv) from etowah website\n         -sugkey <signup-genius-key>    : SignupGenius API KEY\n         -sugid  <signup-id>            : SignupGenius Eagle Board Signup ID (optional)\n\n"
+            "\n\n\n   USAGE\n\n          java -jar eagle-board-scheduler.jar <options>\n\n      OPTIONS\n\n         -w[indows]                     : popup dialog for config info\n         -v[erbose]                     : print verbose messages\n         -h[elp]                        : print this message\n\n         -d[ir]    <data-directory>     : directory where data files live\n\n         -a[dult]  <adult-history-file> : file containing adult auto-fill data\n         -c[onfig] <config-file>        : scheduler config file\n         -p[rereg] <prereg-file>        : preregistration data file (csv) from district website\n         -sugkey <signup-genius-key>    : SignupGenius API KEY\n         -sugid  <signup-id>            : SignupGenius Eagle Board Signup ID (optional)\n\n"
          );
    }
 

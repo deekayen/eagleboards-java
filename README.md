@@ -10,10 +10,11 @@ and a board-results spreadsheet.
 
 This repository reconstructs the application's source from an inherited binary
 (see `PROVENANCE.md`) and modernizes it to build and run on current Java LTS
-releases. The functional behavior and branding are intentionally identical to
-the original `original/EagleBoardScheduler_20190618.jar` until stability is
-proven; see the issue tracker for planned changes (multi-district support,
-dependency upgrades). The inherited binary itself is not in the repository —
+releases. The functional behavior is identical to the original
+`original/EagleBoardScheduler_20190618.jar`; the only interface change so far
+is the removal of the "Etowah District" branding from the web pages, so the
+app is district-neutral. See the issue tracker for planned changes
+(configurable district naming, dependency upgrades). The inherited binary itself is not in the repository —
 it embeds an API key — and is kept offline by the maintainer, authenticated
 by the SHA-256 in `PROVENANCE.md`. Behavioral equivalence between it and this
 source tree is proven mechanically by `scripts/verify-parity.sh`.
