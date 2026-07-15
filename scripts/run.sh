@@ -19,6 +19,15 @@ if [ -z "$JAR" ]; then
     JAR=$(ls target/eagleboardscheduler-*.jar | grep -v original- | head -1)
 fi
 
-exec java -jar "$JAR" -verbose -w \
+# -w pops up the Swing window with the check-in URL. The app force-disables
+# java.awt.headless, so on a machine with no display (e.g. a headless
+# Raspberry Pi) -w would crash at startup — only add it when a display exists.
+W_FLAG="-w"
+if [ "$(uname)" != "Darwin" ] && [ -z "${DISPLAY:-}" ] && [ -z "${WAYLAND_DISPLAY:-}" ]; then
+    W_FLAG=""
+    echo "No display detected — skipping the URL popup window (-w)."
+fi
+
+exec java -jar "$JAR" -verbose $W_FLAG \
     -a Master_AdultHistory.csv -c config.csv -port 8080 \
     ${SUG_KEY:+-sugkey "$SUG_KEY"}
