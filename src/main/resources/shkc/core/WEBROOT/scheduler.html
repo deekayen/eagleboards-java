@@ -1,0 +1,1130 @@
+<html>
+   <head>
+      <title>Scheduler: Eagle Board </title>
+
+      <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+      <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
+      <link rel="stylesheet" type="text/css" href="/dhtmlx/dhtmlx.css"/>
+      <link rel="stylesheet" type="text/css" href="/dhtmlx/skins/terrace/dhtmlx.css"/>
+      <link rel="stylesheet" type="text/css" href="scheduler.css"/>
+
+      <script src="/dhtmlx/dhtmlx.js"></script>
+      <script src="scheduler_config.js"></script>
+      <script src="process_verify.js"></script>
+      <script src="process_seat.js"></script>
+      <script src="process_inprogress.js"></script>
+      <script src="process_complete.js"></script>
+      <script src="process_postpone.js"></script>
+      <script src="process_reset.js"></script>
+      <script src="scheduler_grid.js"></script>
+      <script src="scheduler_scout_grid.js"></script>
+      <script src="scheduler_board_grid.js"></script>
+      <script src="scheduler_adult_grid.js"></script>
+
+      <style type="text/css">
+         .dhtmlx-OK{
+            font-weight:bold !important;
+            color:black !important;
+            background-color: #eeffee !important;
+         }
+         .dhtmlx-ERR {
+            font-weight:bold !important;
+            color: black !important;
+            opacity: 0.7;
+            background-color: #F3B50C !important;
+         }
+         .dhtmlx-autoselect-error {
+            font-weight:bold !important;
+            color: black !important;
+            opacity: 0.70;
+            background-color: #F3B50C !important;
+         }
+         .dhtmlx-autoselect-ok {
+            font-weight:bold !important;
+            color: black !important;
+            opacity: 0.7;
+            background-color: #0DB800 !important;
+         }
+         .dhtmlx-leader-select {
+            color:  black !important;
+            /*opacity: 1.0;*/
+            background-color: #CFD3C4 !important;
+         }
+         .dhtmlx-leader-none {
+            color:black !important;
+            /*opacity: 1.0;*/
+            background-color: #F3B50C !important;
+         }
+
+         .dhtmlx-timer-notice {
+            color: black !important;
+            opacity: 0.7;
+            background-color: #ffff99 !important;
+         }
+         .dhtmlx-timer-Seated {
+            color: black !important;
+            /*opacity: 0.7;*/
+            background-color: #ccffff !important;
+         }
+
+         .dhtmlx-timer-InProgress {
+            color: black !important;
+            /*opacity: 0.7;*/
+            background-color: #ccffcc !important;
+         }
+
+         .borderless .dhx_dataview_default_item {
+            border-bottom: none !important;
+            border-right: none !important;
+            margin-left: 0px  !important;
+            margin-right: 0px  !important;
+            background-color: #ffff99;
+         }
+
+         .borderless .dhx_dataview_default_item_selected {
+            border-bottom: none !important;
+            border-right: none !important;
+            background-color: #ffff99 !important;
+         }
+
+         .dhx_dataview .dhx_dataview_default_item {
+
+            background-color: cornsilk;
+         }
+
+         .dhx_dataview .dhx_dataview_default_item_selected {
+
+            background-color: #ffff99;
+         }
+
+      </style>
+   </head>
+   <body onresize="resize_all()">
+      <!--
+      <h1>Etowah District: Eagle Board Scheduler</h1>
+      <p>
+         <a href="/admin.html">Admin Page</a>
+      </p>      
+      -->
+      <div id="layoutObj" style="border:0px solid #A4BED4; background-color:white;width:100%; height:100%;">
+      </div>
+
+      <!-- <table width="100%">
+          <tr>
+             <td id="layoutObjx" style="border:1px solid #A4BED4; background-color:white;width:100%; height:100%;">
+             </td>
+          </tr>
+       </table>  -->
+
+      <script>
+
+
+
+
+         var myLayout = new dhtmlXLayoutObject({
+            parent: "layoutObj",
+            pattern: "4F"
+         });
+         myLayout.setSkin("dhx_terrace");
+         myLayout.setAutoSize("a;b;c;d", "a;b;c;d");
+
+         function resize_all()
+         {
+            myLayout.setSizes();
+         }
+
+         schedulerToolbar = myLayout.attachToolbar();
+         schedulerToolbar.setIconsPath("/images/32x32/");
+         //leaderToobar.addButton("reload", 1, "", "open.gif", "open_dis.gif");
+         schedulerToolbar.addButton("Refresh", 2, "Refresh", "view-refresh-7.png", "view-refresh-7.png");
+         schedulerToolbar.addSeparator("sep1", 3);
+         schedulerToolbar.addButton("Settings", 4, "Settings", "applications-system-5.png", "applications-system-5.png");
+         schedulerToolbar.addSeparator("sep2", 5);
+
+         schedulerToolbar.addButton("CSV", 6, "CSV", "application-vnd.ms-excel.png", "application-vnd.ms-excel.png");
+         schedulerToolbar.addButton("XML", 7, "XML", "text-xml.png", "text-xml.png");
+         schedulerToolbar.addSeparator("sep4", 8);
+
+         schedulerToolbar.setItemToolTip("Refresh", "Refresh All Data");
+         schedulerToolbar.setItemToolTip("Settings", "Configure Settings");
+         schedulerToolbar.setItemToolTip("CSV", "Generate CSV Report");
+         schedulerToolbar.setItemToolTip("XML", "Generate XML Report");
+
+
+
+         //schedulerToolbar.addInput("AlertTime", 5, "20", 40);
+
+         //schedulerToolbar.addSlider("RefreshTime", 5, 100, 5, 60, SCHEDULER_refreshTime, "RefreshTm: 6s", "60s", null);
+         schedulerToolbar.addButton("Admin", 9, "Admin", "view-process-system.png", "view-process-system.png");
+         schedulerToolbar.addButton("Login", 10, "Login", "user-new-3.png", "user-new-3.png");
+         schedulerToolbar.addButton("Help", 11, "Help", "help-about-3.png", "help-about-3.png");
+         schedulerToolbar.setItemToolTip("Admin", "Table Admin Page");
+         schedulerToolbar.setItemToolTip("Login", "Scout/Adult Login Page");
+         schedulerToolbar.setItemToolTip("Help", "Administrator Help Page");
+
+
+         schedulerToolbar.addSeparator("sep5", 12);
+         schedulerToolbar.addButton("AddRoom", 13, "Room", "list-add-5.png", "list-add-5.png");
+         schedulerToolbar.addButton("RemoveRoom", 14, "Room", "list-remove-5.png", "list-remove-5.png");
+         schedulerToolbar.addButton("ChangeRoom", 15, "Room", "change-room.png", "change-room.png");
+
+         schedulerToolbar.setItemToolTip("AddRoom", "Add New Room");
+         schedulerToolbar.setItemToolTip("RemoveRoom", "Remove Room");
+         schedulerToolbar.setItemToolTip("ChangeRoom", "Change/Swap Rooms");
+
+
+         schedulerToolbar.addText("Title", 15, "<span style='font-size: large;'>&nbsp;&nbsp;&nbsp;<b>EB SCHEDULER</b></span>");
+
+
+         schedulerToolbar.addSpacer("Title");
+
+         // schedulerToolbar.addSpacer("Help")
+         // schedulerToolbar.attachEvent("onValueChange", function(id, val) {
+         //    if (id == "RefreshTime")
+         //   {
+         //       SCHEDULER_refreshTime = val;
+         //       console.log("setting refreshTime: " + SCHEDULER_refreshTime);
+         //    }
+         // });
+
+         // schedulerToolbar.attachEvent("onEnter", function(id, val) {
+         //    if (id == "AlertTime")
+         //    {
+         //       if ((val < 1) || (val > 30))
+         //       {
+         //          alert("Invalid Alert Time")
+         //       }
+         //      else
+         //      {
+         //         SCHEDULER_alertTime = val;
+         //         console.log("setting alertTime " + SCHEDULER_alertTime);
+         //      }
+         //   }
+         //});
+
+         function     refresh_all()
+         {
+            schedulerScoutGrid.refresh();
+            schedulerLeaderGrid.refresh();
+            schedulerBoardGrid.refresh();
+            room_refresh();
+         }
+
+         function     refresh_scouts()
+         {
+            schedulerScoutGrid.refresh();
+            schedulerBoardGrid.refresh();
+         }
+
+
+
+         schedulerToolbar.attachEvent("onClick", function (id) {
+            if (id == "RemoveRoom")
+            {
+               PerformRemoveRoomAction();
+            } else if (id == "AddRoom")
+            {
+               // PerformRemoveRoomAction();
+            } else if (id == "ChangeRoom")
+            {
+               // See changeRoomPopup
+            } else if (id == "CSV")
+            {
+               window.location.href = "/scout-cells?cols=RegNum,Last,First,Phone,Email,BoardType,DOB,UnitType,Unit,Leader,Status,Result,AdultScoutRatio,BoardChair,BoardMembers,Notes&fmt=csv&filename=Report.csv";
+               // scoutGrid.loadXML("/scout-cells?cols=RegTime,Last,First,DOB,UnitType,Unit,Leader,Email,Phone,BoardType,Room,Status");
+            } else if (id == "XML")
+            {
+               window.location.href = "/scout-cells?cols=RegNum,Last,First,Phone,Email,BoardType,DOB,UnitType,Unit,Leader,Status,Result,AdultScoutRatio,BoardChair,BoardMembers,Notes&fmt=data&filename=Report.xml";
+               // scoutGrid.loadXML("/scout-cells?cols=RegTime,Last,First,DOB,UnitType,Unit,Leader,Email,Phone,BoardType,Room,Status");
+            } else if (id === "Admin")
+            {
+               window.location.href = "/admin";
+            } else if (id === "Help")
+            {
+               window.location.href = "/help";
+            } else if (id === "Login")
+            {
+               window.location.href = "/";
+            } else if (id === "Settings")
+            {
+               window.location.href = "/configure";
+            } else if (id === "Refresh")
+            {
+               //scoutGrid.loadXML("/scout-cells?cols=RegTime,Last,First,DOB,UnitType,Unit,Leader,Email,Phone,BoardType,Room,Status");
+               refresh_all();
+            } else
+            {
+               completePopup.hide();
+
+               var s_id = schedulerScoutGrid.getSelectedRowId(); // scoutGrid.getSelectedRowId();
+               if (!s_id)
+               {
+                  //alert("No Scout Selected !!");
+                  dhtmlx.alert({
+                     title: "Error",
+                     type: "alert-error",
+                     text: "No Scout Selected !!"
+                  });
+                  return;
+               }
+
+               if (id === "Verify")
+               {
+                  ProcessVerifyBoard(s_id);
+               } else if (id === "Seat")
+               {
+                  ProcessSeatBoard(s_id);
+               } else if (id === "InProgress")
+               {
+                  ProcessInProgressBoard(s_id);
+               } else if (id === "Complete")
+               {
+                  ProcessCompleteBoard(s_id);
+               }
+
+            }
+         }
+         )
+                 ;
+
+         //  scoutGrid = myLayout.cells("a").attachGrid();
+
+         schedulerScoutGrid = new SchedulerScoutGrid(myLayout.cells("a"), "Scouts/Candidates");
+         schedulerScoutGrid.load();
+
+
+
+         schedulerLeaderGrid = new SchedulerAdultGrid(myLayout.cells("b"), "Adult Board Members");
+         schedulerLeaderGrid.load();
+
+         InitializeCompleteBoard();
+         //InitializeVerifyBoard();
+         //InitializeInProgressBoard();
+
+         roomView = myLayout.cells("c").attachDataView({
+            type: {
+               // template: "<span style='font-size: medium'>RM: <b>#Room#</b> (#BoardType#)</span><br/>S: <span style='font-size: medium'><b>#Scout#</b></span><br/>L: <b>#Leaders#</b>",
+               template: function (obj)
+               {
+                  return "<span style='font-size: medium;'>RM: <b>" + obj.Room + "</b> ("
+                          + obj.BoardType + ") </span><span style='font-size: medium; color:" + (obj.color || "#000000") + "'>" + (obj.RoomTime || "") + (obj.Icon || "") + "</span><br/>S: <span style='font-size: medium'><b>"
+                          + obj.Scout + "</b></span><br/>L: <b>"
+                          + obj.Leaders + "</b>";
+                  //  return "<div style='height:100%;white-space:nowrap; margin: -8px -8px -8px -8px; padding: 5px 5px 5px 5px; overflow:hidden;'><span style='font-size: medium;'>RM: <b>" + obj.Room + "</b> ("
+                  //        + obj.BoardType + ") </span><span style='font-size: medium; color:" + (obj.color || "#000000") + "'>[" + (obj.RoomTime || "") + "]</span><br/>S: <span style='font-size: medium'><b>"
+                  //        + obj.Scout + "</b></span><br/>L: <b>"
+                  //        + obj.Leaders + "</b></div>";
+               },
+               height: 100,
+               width: 200
+            },
+            skin: "dhx_terrace"
+         });
+
+         myLayout.cells("c").setHeight(200);
+         myLayout.cells("c").setText("Available Rooms");
+
+         this.roomToolbar = myLayout.cells("c").attachToolbar();
+         this.roomToolbar.setIconsPath("/images/32x32/");
+         this.roomToolbar.setIconSize(24);
+         //this.toolbar.addButton("Locate", 1, "Locate", "edit-find-user.png", "edit-find-user.png");
+
+         this.roomToolbar.addText("Filter", 1, "Filter", "", "");
+         this.roomToolbar.addInput("filter", 2, "", 150);
+         this.roomToolbar.addButton("Clear", 3, "Clear", null, null);
+
+         this.roomToolbar.attachEvent("onEnter", function (id, in_value) {
+            roomView.filter(function (obj, value) {
+               if ((obj.Scout.indexOf(value) >= 0)
+                       || (obj.Leaders.indexOf(value) >= 0)
+                       || (obj.Room.indexOf(value) >= 0))
+                  return true;
+               return false;
+            }, in_value);
+         })
+         
+         this.roomToolbar.attachEvent("onClick", function (id) {
+            roomView.filter("");
+         })
+
+
+
+
+         roomView.attachEvent("onAfterSelect", function (id)
+         {
+            var rm_data = roomView.get(id);
+            if (rm_data.Scout.length > 0)
+            {
+               SCHEDULER_selectAllForRoom(rm_data.Room);
+            }
+            schedulerBoardGrid.highlight();
+            schedulerScoutGrid.highlight();
+
+            // boardGrid_highlight();
+            // scoutGrid_highlight();
+         });
+
+         function SCHEDULER_RoomTimerUpdate(s_room, mins, status)
+         {
+            // alert("timer update: " + s_room);
+            var id = "ROOM:" + s_room;
+            var rm_data = roomView.get(id);
+            if (rm_data)
+            {
+               rm_data.RoomTime = "[" + mins + "m]";
+               if (status === "alert")
+               {
+                  rm_data.color = "orange";
+                  rm_data.Icon = "&nbsp;<img style='vertical-align: middle' src='/images/16x16/dialog-warning-4.png'/>";
+               } else if (status === "reminder")
+               {
+                  rm_data.color = "red";
+                  rm_data.Icon = "&nbsp;<img style='vertical-align: middle' src='/images/16x16/dialog-warning-4.png'/>";
+               } else
+               {
+                  rm_data.color = "black";
+               }
+               roomView.refresh(id);
+            }
+         }
+         //data.setImagePath("/dhtmlx/skins/terrace/imgs/dhxdataview_terrace/");
+         function room_refresh()
+         {
+            roomView.load("/room-cells?cols=Room,BoardType,Scout,Leaders&fmt=data",
+                    function ()
+                    {
+                       schedulerScoutGrid.setRoomTimerUpdateFunction(SCHEDULER_RoomTimerUpdate);
+
+                       setTimeout(function () {
+                          schedulerScoutGrid.checkTimers();
+                       }, 1000);
+
+
+                    });
+         }
+
+         room_refresh();
+
+
+
+
+
+
+
+         // roomToolbar = myLayout.cells("c").attachToolbar();
+
+         // roomToolbar.setIconsPath("/images/32x32/");
+         //leaderToobar.addButton("reload", 1, "", "open.gif", "open_dis.gif");
+         // roomToolbar.addButton("Refresh", 1, "Refresh", "view-refresh-7.png", "view-refresh-7.png");
+         // roomToolbar.addButton("CSV", 2, "CSV", "application-vnd.ms-excel.png", "application-vnd.ms-excel.png");
+         // roomToolbar.addButton("XML", 3, "XML", "text-xml.png", "text-xml.png");
+
+         // roomToolbar.addSpacer("XML");
+
+         //roomToolbar.addInput("AddRoom", 2, "Room", "80");
+         // roomToolbar.addButton("Add", 1, "Add", "list-add-5.png", "list-add-5.png");
+         // roomToolbar.addButton("Remove", 3, "Remove", "list-remove-5.png", "list-remove-5.png");
+         // roomToolbar.addSpacer("Add");
+
+
+
+         // roomToolbar.attachEvent("onClick", function(id) {
+         //    if (id == "Remove")
+         //    {
+         //       PerformRemoveRoomAction();
+         //    }
+         // });
+
+
+         function PerformRemoveRoomAction()
+         {
+            var rid = roomView.getSelected();
+            if (rid)
+            {
+               var rm_data = roomView.get(rid);
+
+               var room = rm_data.Room;
+               var type = rm_data.BoardType;
+               var scout = rm_data.Scout;
+
+               if (scout && scout !== "")
+               {
+                  dhtmlx.alert({
+                     title: "Remove Room Error",
+                     type: "alert-error",
+                     text: "Room '" + room + "' is currently in use, cannot remove."
+                  });
+                  return;
+               } else
+               {
+                  dhtmlx.confirm({
+                     title: "Confirm Remove Room",
+                     //type: "alert-error",
+                     text: "Remove Room '" + room + "' ?",
+                     callback: function (result)
+                     {
+                        if (result)
+                        {
+                           ProcessRemoveRoom(room);
+                        }
+                     }
+                  });
+                  //  var res = window.confirm("Are you sure you want to remove room '" + room + "' ?");
+                  //  if (res)
+                  //  {
+                  //     roomView.delete(rid);
+                  //  }
+               }
+            } else
+            {
+               dhtmlx.alert({
+                  title: "Remove Room Error",
+                  type: "alert-error",
+                  text: "No Room Selected"
+               });
+               return;
+            }
+         }
+
+         roomAddPopup = new dhtmlXPopup({toolbar: schedulerToolbar, id: "AddRoom"});
+
+         roomAddForm = roomAddPopup.attachForm([
+            {type: "settings", position: "label-left", labelWidth: 80, inputWidth: 90},
+            {type: "input", label: "Room #:", name: "Room", validate: "NotEmpty", required: true},
+            {type: "select", label: "BoardType:", name: "BoardType", required: true, options: [
+                  {value: "Final", text: "Final"},
+                  {value: "Project", text: "Project"},
+               ]},
+            {type: "button", name: "AddButton", value: "Add", width: 150}
+
+         ]);
+
+         roomAddForm.enableLiveValidation(true);
+         roomAddForm.attachEvent("onButtonClick", function (id)
+         {
+            var room = roomAddForm.getItemValue("Room");
+            var type = roomAddForm.getItemValue("BoardType");
+            if (room == "")
+            {
+               roomAddForm.validate();
+               return;
+            }
+            var id = "ROOM:" + room;
+
+            var rm_data = roomView.get(id);
+
+            if (rm_data)
+            {
+               dhtmlx.alert({
+                  title: "Add Rool Error",
+                  type: "alert-error",
+                  text: "Room '" + rm_data.Room + "' Already Exists."
+               });
+            }
+
+            // if (idx >= 0)
+            // {
+            //    alert("Room '" + room + "' Already Exists");
+            // }
+            // else
+            // {
+            //    roomGrid.addRow(id, [room, type, "", ""]);
+            // }
+            ProcessAddRoom(room, type);
+            roomAddPopup.hide();
+         });
+
+         roomAddPopup.attachEvent("onShow", function () {
+            roomAddForm.setFocusOnFirstActive();
+         });
+
+
+         roomChangePopup = new dhtmlXPopup({toolbar: schedulerToolbar, id: "ChangeRoom"});
+
+         roomChangeForm = roomChangePopup.attachForm([
+            {type: "settings", position: "label-left", labelWidth: 80, inputWidth: 90},
+            {type: "input", name: "Rm1", label: "1st Room : ", value: "", inputWidth: 200, required: true},
+            {type: "hidden", name: "RmID1", value: "", inputWidth: 50, required: true},
+            {type: "select", name: "RmID2", label: "2nd Room :", required: true, options: [
+               ]},
+            {type: "button", name: "ChangeButton", value: "Change/Swap", width: 150}
+
+         ]);
+
+         roomChangeForm.enableLiveValidation(true);
+         roomChangeForm.attachEvent("onButtonClick", function (id)
+         {
+            var rmid1 = roomChangeForm.getItemValue("RmID1");
+            var rmid2 = roomChangeForm.getItemValue("RmID2");
+
+            if (rmid2 == "")
+            {
+               roomChangeForm.validate();
+               return;
+            }
+
+            var rm1 = roomView.get(rmid1);
+            var rm2 = roomView.get(rmid2);
+
+
+            if (!rm1)
+            {
+               dhtmlx.alert({
+                  title: "Change Room Error",
+                  type: "alert-error",
+                  text: "No Such Room: " + rmid1
+               });
+               return;
+            }
+
+            if (!rm2)
+            {
+               dhtmlx.alert({
+                  title: "Change Room Error",
+                  type: "alert-error",
+                  text: "No Such Room: " + rmid2
+               });
+               return;
+            }
+
+            if (rm1.BoardType !== rm2.BoardType)
+            {
+               dhtmlx.confirm({
+                  title: "Change Room ",
+                  //type: "alert-error",
+                  text: "Room " + rm1.Room + " is a " + rm1.BoardType + " room and Room "
+                          + rm2.Room + " is a " + rm2.BoardType + " room. Is this Okay ?",
+                  callback: function (result)
+                  {
+                     if (result)
+                     {
+                        ProcessChangeRoom(rmid1, rmid2);
+                        roomChangePopup.hide();
+
+                     } else
+                     {
+                        roomChangePopup.hide();
+                     }
+                  }
+               });
+            } else
+            {
+               ProcessChangeRoom(rmid1, rmid2);
+               roomChangePopup.hide();
+            }
+
+            //var rmid1 = "ROOM:" + rm1;
+
+            // if (idx >= 0)
+            // {
+            //    alert("Room '" + room + "' Already Exists");
+            // }
+            // else
+            // {
+            //    roomGrid.addRow(id, [room, type, "", ""]);
+            // }
+
+         });
+
+         roomChangePopup.attachEvent("onShow", function ()
+         {
+
+            var selected_id = roomView.getSelected();
+
+            if (!selected_id)
+            {
+               dhtmlx.alert({
+                  title: "Change Room Error",
+                  type: "alert-error",
+                  text: "No Room Selected"
+               });
+               return;
+            }
+            roomChangeForm.reloadOptions("RmID2", []);
+            var selected = roomView.get(selected_id);
+
+            var scout = "";
+            if (selected.Scout)
+            {
+               scout = " [" + selected.Scout + "]"
+            }
+            roomChangeForm.setItemValue("Rm1", selected.Room + scout);
+            roomChangeForm.setItemValue("RmID1", selected_id);
+
+
+            // var rm1_opts = roomChangeForm.getOptions("Rm1");
+            var rm2_opts = roomChangeForm.getOptions("RmID2");
+
+            // Need to get the selected Room and flag if no board is in room... also list other available rooms to swap with/move-to.
+
+            var rm_id = roomView.first();
+            while (rm_id)
+            {
+               if (rm_id !== selected_id)
+               {
+                  var data = roomView.get(rm_id);
+                  if (data.Scout)
+                  {
+                     scout = " [" + data.Scout + "]";
+                  } else
+                  {
+                     scout = "";
+                  }
+                  // rm1_opts.add(new Option(data.Room + "/" + data.Scout, rm_id));
+                  rm2_opts.add(new Option(data.Room + scout, rm_id));
+               }
+               rm_id = roomView.next(rm_id);
+            }
+
+            roomChangeForm.setFocusOnFirstActive();
+         });
+
+
+         schedulerBoardGrid = new SchedulerBoardGrid(myLayout.cells("d"), "Active/Completed Boards");
+         schedulerBoardGrid.load();
+
+
+         function SCHEDULER_refreshAll()
+         {
+            schedulerScoutGrid.refresh();
+            schedulerLeaderGrid.refresh();
+            schedulerBoardGrid.refresh();
+
+            //leader_refresh();
+            room_refresh();
+            //board_refresh();
+            //alert("all refreshed !!");
+         }
+
+         function SCHEDULER_selectScout(s_id)
+         {
+            SCHEDULER_autoSelect(s_id);
+         }
+
+
+         function SCHEDULER_autoSelect(s_id)
+         {
+
+            var s_last = schedulerScoutGrid.getColumnValue(s_id, "Last");
+            var s_first = schedulerScoutGrid.getColumnValue(s_id, "First");
+            var s_btype = schedulerScoutGrid.getColumnValue(s_id, "BoardType");
+            var s_room = schedulerScoutGrid.getColumnValue(s_id, "Room");
+            var s_status = schedulerScoutGrid.getColumnValue(s_id, "Status");
+
+            schedulerLeaderGrid.clearSelection();
+            schedulerLeaderGrid.uncheckAll();
+            roomView.unselectAll();
+            schedulerBoardGrid.clearSelection();
+            //scout_highlight(scoutGrid, 7);
+            //scoutGrid_highlight();
+            schedulerScoutGrid.highlight();
+
+            if (s_status == "Seated")
+            {
+               SCHEDULER_selectAllForRoom(s_room);
+               // SCHEDULER_locateAdults(s_id, false);
+            } else if (s_status == "InProgress")
+            {
+               SCHEDULER_selectAllForRoom(s_room);
+               //  SCHEDULER_locateAdults(s_id, true);
+            } else if (s_status == "Registered")
+            {
+
+            } else if (s_status == "Verified")
+            {
+               schedulerLeaderGrid.uncheckAll();
+
+               // look through leadersGrid and highlight same rows
+               var errors = [];
+               var chair_arr = SCHEDULER_findBoardMembers(s_id, s_btype, ["Chair"], 1, []);
+               if (chair_arr.length === 0)
+               {
+                  errors.push("No " + s_btype + " Chairs Available.");
+                  dhtmlx.message({
+                     title: "Auto Select Error",
+                     type: "autoselect-error",
+                     text: "<span style='font-size: small'>No " + s_btype + " Chairs Available."
+                  });
+               }
+
+               var cnt = (s_btype == "Final") ? 2 : 1;
+               var members_arr = SCHEDULER_findBoardMembers(s_id, s_btype, ["Member"], cnt, chair_arr);
+               if (members_arr.length < cnt)
+               {
+                  var new_members_arr = SCHEDULER_findBoardMembers(s_id, s_btype, ["Member", "Chair"],
+                          cnt - members_arr.length,
+                          chair_arr.concat(members_arr));
+                  members_arr = members_arr.concat(new_members_arr);
+                  if (members_arr.length < cnt)
+                  {
+                     errors.push("Not enough " + s_btype + " Members Available");
+                     dhtmlx.message({
+                        title: "Auto Select Error",
+                        type: "autoselect-error",
+                        text: "<span style='font-size: small'>Only " + members_arr.length + " " + s_btype + " Members Available</span>"
+
+                     });
+                  }
+               }
+
+               var rm_id = roomView.first();
+               while (rm_id)
+               {
+                  var data = roomView.get(rm_id);
+                  if ((data.Scout == "" || data.Scout == "-")
+                          && (data.BoardType == s_btype))
+                  {
+                     roomView.select(rm_id);
+                     break;
+                  }
+                  rm_id = roomView.next(rm_id);
+               }
+
+               if (!rm_id)
+               {
+                  errors.push("No " + s_btype + " rooms available...");
+                  dhtmlx.message({
+                     title: "Auto Select Error",
+                     type: "autoselect-error",
+                     text: "<span style='font-size: small'>No " + s_btype + " Rooms Available</span>"
+                  });
+               }
+
+               if (errors.length > 0)
+               {
+                  var msg = "<p style='text-align: left; font-size: small;'>";
+                  for (i = 0; i < errors.length; i++)
+                  {
+                     msg += "&nbsp;&nbsp;&nbsp;&nbsp; - " + errors[i] + "<br/>";
+                  }
+                  return;
+               } else
+               {
+                  dhtmlx.message({
+                     title: "Auto Select OK",
+                     type: "autoselect-ok",
+                     text: "<span style='font-size: medium'>Ready to Seat: </span><br/> <b>" + s_last + ", " + s_first
+                  });
+               }
+            } else
+            {
+               if ((s_room.length > 0) && (s_room !== "N/A"))
+               {
+                  SCHEDULER_selectAllForRoom(s_room);
+               } else //if (boardGrid.doesRowExist(s_id))
+               {
+                  schedulerBoardGrid.selectById(s_id);
+                  //boardGrid.selectRowById(s_id, true, true, false);
+               }
+               schedulerBoardGrid.highlight();
+            }
+         }
+
+         function SCHEDULER_selectAllForRoom(room_num)
+         {
+            if (room_num == "" || room_num == "N/A")
+            {
+               return;
+            }
+
+            schedulerLeaderGrid.uncheckAll();
+            schedulerLeaderGrid.selectForRoom(room_num);
+            schedulerBoardGrid.selectForRoom(room_num);
+            schedulerScoutGrid.selectForRoom(room_num);
+
+            var rm_id = roomView.getSelected();
+            if ((rm_id) && roomView.get(rm_id).Room == room_num)
+            {
+
+            } else
+            {
+               var rm_id = roomView.first();
+               while (rm_id)
+               {
+                  var data = roomView.get(rm_id);
+                  if (data.Room == room_num)
+                  {
+                     roomView.select(rm_id);
+                     break;
+                  }
+                  rm_id = roomView.next(rm_id);
+               }
+            }
+         }
+
+         function SCHEDULER_findBoardMembers(s_id, btype, member_type_arr, cnt, omit_ids)
+         {
+            // alert("SCHEDULER_findBoardMembers " + s_id);
+
+            // SCOUT: In,Last,First,UType,Unit,F/P,RM#,Status
+            var s_uname = schedulerScoutGrid.getColumnValue(s_id, "UnitName");
+            //var s_btype = schedulerScoutGrid.getColumnValue(s_id, "BoardType");
+            //var s_room = schedulerScoutGrid.getColumnValue(s_id, "Room");
+            //var s_status = schedulerScoutGrid.getColumnValue(s_id, "Status");
+
+            return schedulerLeaderGrid.findBoardMembers(s_uname, btype, member_type_arr, cnt, omit_ids);
+         }
+
+         //    leaderGrid.forEachRow(function(l_id)
+         //    {
+         //       if (omit_ids.indexOf(l_id) >= 0)
+         //       {
+         //          return;
+         //       }
+         //       //ADULT: Last,First,UType,Unit,Final,Project, RM#
+         //       var l_utype = leaderGrid.cells(l_id, 2).getValue();
+         //       var l_unit = leaderGrid.cells(l_id, 3).getValue();
+         //       var l_final = leaderGrid.cells(l_id, 4).getValue();
+         //       var l_project = leaderGrid.cells(l_id, 5).getValue();
+         //       var l_room = leaderGrid.cells(l_id, 6).getValue();
+//alert("checking leader: " + l_id + ", unit="+ l_unit + ", project=" + l_project + "final=", l_final)
+         //      if (l_room == "" || l_room == "-") // Not occupied
+         //      {
+         //         if ((l_unit != s_unit) || (l_utype != s_utype))
+         //         //{
+
+         // Okay to select...
+         //            if (((s_btype == "Final") && (member_type_arr.indexOf(l_final) >= 0))
+         //                    || ((s_btype == "Project") && (member_type_arr.indexOf(l_project) >= 0))
+         //                    )
+         //            {
+         //               if (member_arr.length < cnt)
+         //               {
+         //                  leaderGrid.selectRowById(l_id, true, true, false);
+         //                 member_arr.push(l_id);
+         //                // alert("len=" + member_arr.length + " ?= " + cnt + ": " + member_arr.toString());
+         //                 return;
+         //              }
+         //           //}
+
+         //}
+         //    }
+         //  });
+         //          return member_arr;
+         //  }
+
+         function SCHEDULER_locateAdults(s_id, parents)
+         {
+            // SCOUT: In,Last,First,UType,Unit,F/P,RM#,Status
+            var member_arr = [];
+            var s_last = schedulerScoutGrid.getColumnValue(s_id, "Last");
+            var s_first = schedulerScoutGrid.getColumnValue(s_id, "First");
+            var s_uname = schedulerScoutGrid.getColumnValue(s_id, "UnitName");
+            var s_btype = schedulerScoutGrid.getColumnValue(s_id, "BoardType");
+            var s_room = schedulerScoutGrid.getColumnValue(s_id, "Room");
+            var s_status = schedulerScoutGrid.getColumnValue(s_id, "Status");
+            var s_leader = schedulerScoutGrid.getColumnValue(s_id, "Leader");
+
+            var s_last_lower = s_last.toLowerCase();
+            var s_leader_lower = s_leader.toLowerCase();
+
+            var leader_match = [];
+            var parent_match = [];
+
+            schedulerLeaderGrid.forEachRow(function (l_id)
+            {
+               var l_last = schedulerLeaderGrid.getColumnValue(l_id, "Last");
+               var l_first = schedulerLeaderGrid.getColumnValue(l_id, "First");
+               var l_uname = schedulerLeaderGrid.getColumnValue(l_id, "UnitName");
+               var l_final = schedulerLeaderGrid.getColumnValue(l_id, "FinalBoard");
+               var l_project = schedulerLeaderGrid.getColumnValue(l_id, "ProjectReview");
+               var l_room = schedulerLeaderGrid.getColumnValue(l_id, "Room");
+
+               var l_last_lower = l_last.toLowerCase();
+               var l_first_lower = l_first.toLowerCase();
+
+               var found = false;
+               if (s_leader_lower.indexOf(l_last_lower) >= 0)
+               {
+                  // Name Matches
+                  if (s_uname === l_uname)
+                  {
+                     leader_match.push(l_id);
+                     found = true;
+                  } else if (s_leader_lower.indexOf(l_first_lower) >= 0)
+                  {
+                     leader_match.push(l_id);
+                  }
+               }
+
+               if ((found === false) && (l_uname === s_uname))
+               {
+                  if (s_last_lower === l_last_lower)
+                  {
+                     parent_match.push(l_id);
+                     // window.alert(parent_match);
+                  }
+               }
+            });
+
+            if ((leader_match.length) > 0 && (parents === false))
+            {
+               parent_match = [];
+            }
+
+            // SCHEDULER_adultMessage(leader_match, parent_match, s_first.charAt(0) + " " +s_last, s_leader);
+
+            var adult_list = leader_match.concat(parent_match);
+
+            if (adult_list.length == 0)
+            {
+               dhtmlx.alert({
+                  title: "Cannot Locate",
+                  //type: "leader-none",
+                  type: "alert-warning",
+                  text: "Scout : <b>" + s_first.charAt(0) + " " + s_last + "</b><br/>Leader(s): '" + s_leader + "' <b>not registered.</b>",
+                  expire: 3000
+               });
+               return;
+            }
+
+            var text = "Scout : <b>" + s_first + " " + s_last + " [" + s_room + "]</b>";
+            for (i = 0; i < adult_list.length; i++)
+            {
+               var l_id = adult_list[i];
+
+               var l_last = schedulerLeaderGrid.getColumnValue(l_id, "Last");
+               var l_first = schedulerLeaderGrid.getColumnValue(l_id, "First");
+               var l_uname = schedulerLeaderGrid.getColumnValue(l_id, "UnitName");
+               var l_final = schedulerLeaderGrid.getColumnValue(l_id, "FinalBoard");
+               var l_project = schedulerLeaderGrid.getColumnValue(l_id, "ProjectReview");
+               var l_room = schedulerLeaderGrid.getColumnValue(l_id, "Room");
+
+
+               if (l_room == "")
+               {
+                  l_room = "Main"
+               }
+               if (leader_match.indexOf(l_id) >= 0)
+               {
+                  text = text + "<br/>Leader: <b>" + l_first + " " + l_last + " [" + l_room + "] </b>";
+               } else
+               {
+                  text = text + "<br/>Parent: <b>" + l_first + " " + l_last + " [" + l_room + "] </b>";
+               }
+            }
+
+            dhtmlx.alert({
+               title: "Located",
+               //type: "leader-select",
+               type: "<span style='text-align: left; font-size: medium;'>" + alert + "</span>",
+               text: text,
+               expire: 60000
+            });
+         }
+
+         function refresh_polling()
+         {
+            refresh_scouts();
+            console.log("refresh-timeout: " + SCHEDULER_refreshTime + "s")
+            setTimeout(refresh_polling, SCHEDULER_refreshTime * 1000);
+         }
+
+         setTimeout(refresh_polling, SCHEDULER_refreshTime * 1000);
+
+
+         InitializeVerifyBoard();
+
+         function ProcessAddRoom(room, board_type)
+         {
+            var this_obj = this;
+
+
+            //   var l_last = .getColumnValue(l_id, "Last");
+            //   var l_first = this_obj.getColumnValue(l_id, "First");
+
+            var xmlHttp = new XMLHttpRequest();
+            xmlHttp.onreadystatechange = function () {
+               if (xmlHttp.readyState === 4) {
+                  if (xmlHttp.status === 200) {
+
+                  } else {
+                     dhtmlx.alert({
+                        title: "Add Room Error",
+                        type: "alert-error",
+                        text: " Add Room '" + room + "' Failed."
+                     });
+                  }
+               }
+               setTimeout(function () {
+                  refresh_all();
+               }, 500);
+            }
+
+            xmlHttp.open("GET", "/room-update?editing=true&!nativeeditor_status=inserted&gr_id=ROOM:" + room + "&Room=" + room + "&BoardType=" + board_type, false);
+            xmlHttp.send(null);
+         }
+
+         function ProcessRemoveRoom(room)
+         {
+            var this_obj = this;
+
+            //   var l_last = .getColumnValue(l_id, "Last");
+            //   var l_first = this_obj.getColumnValue(l_id, "First");
+
+            var xmlHttp = new XMLHttpRequest();
+            xmlHttp.onreadystatechange = function () {
+               if (xmlHttp.readyState === 4) {
+                  if (xmlHttp.status === 200) {
+                     roomView.remove("ROOM:" + room);
+                     roomView.refresh();
+
+                  } else {
+                     dhtmlx.alert({
+                        title: "Remove Room Error",
+                        type: "alert-error",
+                        text: " Remove Room '" + room + "' Failed."
+                     });
+                  }
+               }
+               setTimeout(function () {
+                  refresh_all();
+               }, 500);
+            }
+
+            xmlHttp.open("GET", "/room-update?editing=true&!nativeeditor_status=deleted&gr_id=ROOM:" + room, false);
+            xmlHttp.send(null);
+         }
+
+         function ProcessChangeRoom(rmid1, rmid2)
+         {
+            var this_obj = this;
+
+            //   var l_last = .getColumnValue(l_id, "Last");
+            //   var l_first = this_obj.getColumnValue(l_id, "First");
+
+            var xmlHttp = new XMLHttpRequest();
+            xmlHttp.onreadystatechange = function () {
+               if (xmlHttp.readyState === 4) {
+                  if (xmlHttp.status === 200) {
+                     //roomView.remove("ROOM:" + room);
+                     roomView.refresh();
+
+                  } else {
+                     dhtmlx.alert({
+                        title: "Change Room Error",
+                        type: "alert-error",
+                        text: " Remove Room '" + rmid1 + " <==> " + rmid2 + "' Failed."
+                     });
+                  }
+               }
+               setTimeout(function () {
+                  refresh_all();
+               }, 500);
+            }
+
+            //alert("/room-change?RmID1=" + rmid1 + "&RmID2=" + rmid2);
+
+            xmlHttp.open("GET", "/room-change?RmID1=" + rmid1 + "&RmID2=" + rmid2, false);
+            xmlHttp.send(null);
+         }
+
+         dhtmlx.alert({
+            title: "Collect Statistics !!!",
+            type: "alert-error",
+            text: "Collect Project Cost+ BSA Hours + Other Hours"
+         });
+      </script>
+
+   </body>
+</html>

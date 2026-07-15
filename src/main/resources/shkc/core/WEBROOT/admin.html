@@ -1,0 +1,645 @@
+<html>
+   <head>
+      <title>Etowah District: Eagle Board Admin Page</title>
+
+      <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+      <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
+      <link rel="stylesheet" type="text/css" href="/dhtmlx/dhtmlx.css"/>
+      <link rel="stylesheet" type="text/css" href="/dhtmlx/skins/terrace/dhtmlx.css"/>
+      <link rel="stylesheet" type="text/css" href="scheduler.css"/>
+
+      <script src="/dhtmlx/dhtmlx.js"></script>
+   </head>
+   <body>
+      <h1>Etowah District: Eagle Board Admin Page</h1>
+      <p>
+         <a href="/scheduler">Scheduler Page</a>
+      </p>
+      <div id="layoutObj" style="border:1px solid #A4BED4; background-color:white;width:100%; height:100%;">
+      </div>
+      <table width="100%">
+         <tr>
+            <td>
+               <div id="gridbox3" style="width:600px;height:270px;background-color:white;"></div>
+            </td>
+         </tr>
+      </table>
+      <script>
+         var myTabbar = new dhtmlXTabBar("layoutObj");
+         myTabbar.setSkin("dhx_terrace");
+         myTabbar.enableAutoReSize();
+         myTabbar.setSizes();
+         //myTabbar.enableAutoSize();
+         //myTabbar.enableScroll();
+
+         myTabbar.addTab("boards", "Boards", null, null, true);
+         myTabbar.addTab("scouts", "Scouts");
+         myTabbar.addTab("scheduled", "Scouts Scheduled");
+         myTabbar.addTab("adults", "Adults");
+         myTabbar.addTab("history", "Adult History");
+
+         myTabbar.addTab("rooms", "Rooms");
+
+
+         scoutToolbar = myTabbar.cells("scouts").attachToolbar();
+         scoutGrid = myTabbar.cells("scouts").attachGrid();
+
+         scoutToolbar.setIconsPath("/images/32x32/");
+         //leaderToobar.addButton("reload", 1, "", "open.gif", "open_dis.gif");
+         scoutToolbar.addButton("Refresh", 1, "Refresh", "view-refresh-7.png", "view-refresh-7.png");
+         //leaderToolbar.addButton("Save", 2, "Save", "document-save-5.png", "document-save-5.png");
+         scoutToolbar.addButton("CSV", 2, "CSV", "application-vnd.ms-excel.png", "application-vnd.ms-excel.png");
+         scoutToolbar.addButton("XML", 3, "XML", "text-xml.png", "text-xml.png");
+
+         scoutToolbar.addSpacer("XML");
+
+         scoutToolbar.addButton("Delete", 4, "Delete", "edit-delete-6.png", "edit-delete-6.png");
+
+         scoutToolbar.attachEvent("onClick", function (id) {
+            if (id == "Refresh")
+            {
+               scoutGrid.updateFromXML("/scout-cells?cols=RegTime,Last,First,DOB,UnitType,Unit,Leader,Email,Phone,BoardType,Room,Status,Result", true, true);
+            } else if (id == "CSV")
+            {
+               window.location.href = "/scout-cells?cols=RegTime,Last,First,DOB,UnitType,Unit,Leader,Email,Phone,BoardType,Room,Status,Result&fmt=csv&filename=Scouts.csv";
+               // scoutGrid.loadXML("/scout-cells?cols=RegTime,Last,First,DOB,UnitType,Unit,Leader,Email,Phone,BoardType,Room,Status");
+            } else if (id == "XML")
+            {
+               window.location.href = "/scout-cells?cols=RegTime,Last,First,DOB,UnitType,Unit,Leader,Email,Phone,BoardType,Room,Status,Result&fmt=data&filename=Scouts.xml";
+               // scoutGrid.loadXML("/scout-cells?cols=RegTime,Last,First,DOB,UnitType,Unit,Leader,Email,Phone,BoardType,Room,Status");
+            } else if (id == "Delete")
+            {
+               var rid = scoutGrid.getSelectedRowId();
+               var last = scoutGrid.cells(rid, 1).getValue();
+               var first = scoutGrid.cells(rid, 2).getValue();
+
+               var res = window.confirm("Are you sure you want to delete: " + last + ", " + first + " ?");
+               if (res)
+               {
+                  scoutGrid.deleteRow(rid);
+               }
+            }
+         });
+
+
+         //mygrid = new dhtmlXGridObject('gridbox3');
+         scoutGrid.selMultiRows = false;
+         scoutGrid.setImagePath("/dhtmlx/skins/terrace/imgs/dhxgrid_terrace/");
+         scoutGrid.setHeader("In,Last,First,DOB,UType,Unit,Leader,Email,Phone,Board,Room,Status,Result");
+         scoutGrid.setColumnIds("RegTime,Last,First,DOB,UnitType,Unit,Leader,Email,Phone,BoardType,Room,Status,Result");
+
+         scoutGrid.setInitWidths("60,120,120,80,70,60,150,*,150,80,80,100,100");
+         scoutGrid.setColAlign("center,left,left,left,left,left,left,left,left,left,left,left,left,");
+         scoutGrid.setColTypes("ro,ed,ed,ed,coro,ed,ed,ed,ed,coro,ed,coro,coro");
+         scoutGrid.setColSorting("time, str,str,str,str,str,str,str,str,str,str,str,str,str");
+         scoutGrid.attachHeader("#text_filter,#text_filter,#text_filter,#select_filter,#select_filter,#select_filter,#text_filter,#text_filter,#text_filter,#select_filter,#select_filter,#select_filter,#select_filter,#select_filter");
+
+
+         var unit_combo = scoutGrid.getCombo(4);
+         unit_combo.put("Troop", "Troop");
+         unit_combo.put("Team", "Team");
+         unit_combo.put("Crew", "Crew");
+         unit_combo.put("Ship", "Ship");
+         unit_combo.put("Pack", "Pack");
+
+         var board_combo = scoutGrid.getCombo(9);
+         board_combo.put("Project", "Project");
+         board_combo.put("Final", "Final");
+
+         var status_combo = scoutGrid.getCombo(11);
+         status_combo.put("Waiting", "Waiting");
+         status_combo.put("InProgress", "InProgress");
+         status_combo.put("Completed", "Completed");
+         status_combo.put("Postponed", "Postponed");
+
+         var result_combo = scoutGrid.getCombo(12);
+         result_combo.put("Approved", "Approved");
+         result_combo.put("Suspended", "Suspended");
+         result_combo.put("NotApproved", "NotApproved");
+         result_combo.put("Postponed", "Postponed");
+
+
+         scoutGrid.setMultiLine(false);
+         scoutGrid.enableDragAndDrop(false);
+         scoutGrid.init();
+
+         scoutGrid.loadXML("/scout-cells?cols=RegTime,Last,First,DOB,UnitType,Unit,Leader,Email,Phone,BoardType,Room,Status,Result");
+
+         // scoutGrid.attachEvent("onEditCell", function(stage, rId, cInd, nValue, oValue) {
+         //    if (stage == 2)
+         //    {
+         //       var res = window.confirm("Are you sure you want to change\n\n    " + oValue + " => " + nValue + "?");
+         //       return oValue;
+         //    }
+         //    return true;
+         // });
+
+         scoutGridProcessor = new dataProcessor("/scout-update"); //lock feed url
+         scoutGridProcessor.init(scoutGrid); //link dataprocessor to the grid
+         scoutGridProcessor.setTransactionMode("GET", false);
+         scoutGridProcessor.enableDataNames(true);
+         scoutGridProcessor.enablePartialDataSend(true);
+
+
+         leaderToolbar = myTabbar.cells("adults").attachToolbar();
+         leaderGrid = myTabbar.cells("adults").attachGrid();
+
+         leaderToolbar.setIconsPath("/images/32x32/");
+         //leaderToobar.addButton("reload", 1, "", "open.gif", "open_dis.gif");
+         leaderToolbar.addButton("Refresh", 1, "Refresh", "view-refresh-7.png", "view-refresh-7.png");
+         //leaderToolbar.addButton("Save", 2, "Save", "document-save-5.png", "document-save-5.png");
+         leaderToolbar.addButton("CSV", 2, "CSV", "application-vnd.ms-excel.png", "application-vnd.ms-excel.png");
+         leaderToolbar.addButton("XML", 3, "XML", "text-xml.png", "text-xml.png");
+
+         leaderToolbar.addSpacer("XML");
+
+         leaderToolbar.addButton("Delete", 4, "Delete", "edit-delete-6.png", "edit-delete-6.png");
+
+         leaderToolbar.attachEvent("onClick", function (id) {
+            if (id == "Refresh")
+            {
+               leaderGrid.updateFromXML("/adult-cells?cols=RegTime,Last,First,UnitType,Unit,Email,Phone,FinalBoard,ProjectReview,Room", true, true);
+            } else if (id == "CSV")
+            {
+               window.location.href = "/adult-cells?cols=RegTime,Last,First,UnitType,Unit,Email,Phone,FinalBoard,ProjectReview,Room&fmt=csv&filename=Adults.csv";
+               // scoutGrid.loadXML("/scout-cells?cols=RegTime,Last,First,DOB,UnitType,Unit,Leader,Email,Phone,BoardType,Room,Status");
+            } else if (id == "XML")
+            {
+               window.location.href = "/adult-cells?cols=RegTime,Last,First,UnitType,Unit,Email,Phone,FinalBoard,ProjectReview,Room&fmt=data&filename=Adults.xml";
+               // scoutGrid.loadXML("/scout-cells?cols=RegTime,Last,First,DOB,UnitType,Unit,Leader,Email,Phone,BoardType,Room,Status");
+            } else if (id == "Delete")
+            {
+               var rid = leaderGrid.getSelectedRowId();
+               var last = leaderGrid.cells(rid, 1).getValue();
+               var first = leaderGrid.cells(rid, 2).getValue();
+
+               var res = window.confirm("Are you sure you want to delete: " + last + ", " + first + " ?");
+               if (res)
+               {
+                  leaderGrid.deleteRow(rid);
+               }
+            }
+         });
+
+
+
+
+         //mygrid = new dhtmlXGridObject('gridbox3');
+         leaderGrid.selMultiRows = false;
+         leaderGrid.setImagePath("/dhtmlx/skins/terrace/imgs/dhxgrid_terrace/");
+         leaderGrid.setHeader("In, Last, First, UnitType, Unit, Email, Phone, Final, Project, Room");
+         leaderGrid.setColumnIds("RegTime,Last,First,UnitType,Unit,Email,Phone,FinalBoard,ProjectReview,Room");
+
+         leaderGrid.setInitWidths("80,120,120,100,100,*,100,100,100,100");
+         leaderGrid.setColAlign("center,left,left,left,left,left,left,left,left,left");
+         leaderGrid.setColTypes("ro,ed,ed,coro,ed,ed,ed,coro,coro,ed");
+         leaderGrid.setColSorting("time, str,str,str,str,str,str,str,str,str");
+         leaderGrid.attachHeader("#text_filter,#text_filter,#text_filter,#select_filter,#select_filter,#text_filter,#text_filter,#select_filter,#select_filter,#select_filter");
+
+
+         leaderGrid.setMultiLine(false);
+         leaderGrid.enableDragAndDrop(false);
+         leaderGrid.init();
+
+         var final_combo = leaderGrid.getCombo(7);
+         final_combo.put("Chair", "Chair");
+         final_combo.put("Member", "Member");
+         final_combo.put("Unavailable", "Unavailable");
+
+         var project_combo = leaderGrid.getCombo(8);
+         project_combo.put("Chair", "Chair");
+         project_combo.put("Member", "Member");
+         project_combo.put("Unavailable", "Unavailable");
+
+         var ut_combo = leaderGrid.getCombo(3);
+         ut_combo.put("Troop", "Troop");
+         ut_combo.put("Team", "Team");
+         ut_combo.put("Crew", "Crew");
+         ut_combo.put("Ship", "Ship");
+         ut_combo.put("Pack", "Pack");
+
+         leaderGrid.loadXML("/adult-cells?cols=RegTime,Last,First,UnitType,Unit,Email,Phone,FinalBoard,ProjectReview,Room");
+         leaderGridProcessor = new dataProcessor("/adult-update"); //lock feed url
+         leaderGridProcessor.init(leaderGrid); //link dataprocessor to the grid
+         leaderGridProcessor.setTransactionMode("GET", false);
+         leaderGridProcessor.enableDataNames(true);
+         leaderGridProcessor.enablePartialDataSend(true);
+         // leaderGridProcessor.sendData();
+
+         //  leaderGrid.attachEvent("onEditCell", function(stage, rId, cInd, nValue, oValue) {
+         //     var colLabel = leaderGrid.getColLabel(cInd);
+         //      alert("edited: " + rId + ":" + colLabel + ": " + nValue);
+         //      // your code here
+         //   });
+
+
+         roomToolbar = myTabbar.cells("rooms").attachToolbar();
+         roomGrid = myTabbar.cells("rooms").attachGrid();
+
+         roomToolbar.setIconsPath("/images/32x32/");
+         //leaderToobar.addButton("reload", 1, "", "open.gif", "open_dis.gif");
+         roomToolbar.addButton("Refresh", 1, "Refresh", "view-refresh-7.png", "view-refresh-7.png");
+         roomToolbar.addButton("CSV", 2, "CSV", "application-vnd.ms-excel.png", "application-vnd.ms-excel.png");
+         roomToolbar.addButton("XML", 3, "XML", "text-xml.png", "text-xml.png");
+
+         roomToolbar.addSpacer("XML");
+
+         //roomToolbar.addInput("AddRoom", 2, "Room", "80");
+         roomToolbar.addButton("Add", 4, "Add", "list-add-5.png", "list-add-5.png");
+         roomToolbar.addSeparator("sep1", 5);
+         roomToolbar.addButton("Remove", 6, "Remove", "list-remove-5.png", "list-remove-5.png");
+
+
+
+         roomToolbar.attachEvent("onClick", function (id) {
+            if (id == "Refresh")
+            {
+               roomGrid.updateFromXML("/room-cells?cols=Room,BoardType,Scout,Leaders", true, true);
+            } else if (id == "CSV")
+            {
+               window.location.href = "/room-cells?cols=Room,BoardType,Scout,Leaders&fmt=csv&filename=Rooms.csv";
+               // scoutGrid.loadXML("/scout-cells?cols=RegTime,Last,First,DOB,UnitType,Unit,Leader,Email,Phone,BoardType,Room,Status");
+            } else if (id == "XML")
+            {
+               window.location.href = "/room-cells?cols=Room,BoardType,Scout,Leaders&fmt=data&filename=Rooms.xml";
+               // scoutGrid.loadXML("/scout-cells?cols=RegTime,Last,First,DOB,UnitType,Unit,Leader,Email,Phone,BoardType,Room,Status");
+            } else if (id == "Remove")
+            {
+               var rid = roomGrid.getSelectedRowId();
+               if (rid)
+               {
+                  var room = roomGrid.cells(rid, 0).getValue();
+                  var type = roomGrid.cells(rid, 1).getValue();
+                  var scout = roomGrid.cells(rid, 2).getValue();
+
+                  if (scout && scout !== "")
+                  {
+                     alert("Room '" + room + "' is currently in use, cannot remove.");
+                     return;
+                  } else
+                  {
+                     var res = window.confirm("Are you sure you want to remove room '" + room + "' ?");
+                     if (res)
+                     {
+                        roomGrid.deleteRow(rid);
+                     }
+                  }
+               }
+            }
+         });
+
+
+
+         //mygrid = new dhtmlXGridObject('gridbox3');
+         roomGrid.selMultiRows = false;
+         roomGrid.setImagePath("/dhtmlx/skins/terrace/imgs/dhxgrid_terrace/");
+         roomGrid.setHeader("Room, BoardType, Scout, Leaders");
+         roomGrid.setColumnIds("Room,BoardType,Scout,Leaders");
+
+         roomGrid.setInitWidths("80,120,250,*");
+         roomGrid.setColAlign("center,left,left,left");
+         roomGrid.setColTypes("ro,ed,ro,ro,");
+         roomGrid.setColSorting("int, str,str,str");
+
+         roomGrid.setMultiLine(false);
+         roomGrid.enableDragAndDrop(false);
+         roomGrid.init();
+
+         // var combo = roomGrid.getColumnCombo(1);
+
+         // combo.addOption([["Final","Final"],["Project","Project"]]);
+
+
+         roomGrid.loadXML("/room-cells?cols=Room,BoardType,Scout,Leaders");
+
+         roomGridProcessor = new dataProcessor("/room-update"); //lock feed url
+         roomGridProcessor.init(roomGrid); //link dataprocessor to the grid
+         roomGridProcessor.setTransactionMode("GET", false);
+         roomGridProcessor.enableDataNames(true);
+         //roomGridProcessor.enablePartialDataSend(true);
+
+         roomAddPopup = new dhtmlXPopup({toolbar: roomToolbar, id: "Add"});
+
+         roomAddForm = roomAddPopup.attachForm([
+            {type: "settings", position: "label-left", labelWidth: 80, inputWidth: 90},
+            {type: "input", label: "Room #:", name: "Room", validate: "NotEmpty", required: true},
+            {type: "select", label: "BoardType:", name: "BoardType", required: true, options: [
+                  {value: "Final", text: "Final"},
+                  {value: "Project", text: "Project"},
+               ]},
+            {type: "button", name: "AddButton", value: "Add", width: 150}
+
+         ]);
+         roomAddForm.enableLiveValidation(true);
+         roomAddForm.attachEvent("onButtonClick", function (id)
+         {
+            var room = roomAddForm.getItemValue("Room");
+            var type = roomAddForm.getItemValue("BoardType");
+            if (room == "")
+            {
+               roomAddForm.validate();
+               return;
+            }
+            var id = "ROOM:" + room;
+
+            var idx = roomGrid.getRowIndex(id);
+
+            if (idx >= 0)
+            {
+               alert("Room '" + room + "' Already Exists");
+            } else
+            {
+               roomGrid.addRow(id, [room, type, "", ""]);
+            }
+
+            roomAddPopup.hide();
+         });
+
+         roomAddPopup.attachEvent("onShow", function () {
+            roomAddForm.setFocusOnFirstActive();
+         });
+
+
+         boardToolbar = myTabbar.cells("boards").attachToolbar();
+         boardGrid = myTabbar.cells("boards").attachGrid();
+
+         boardToolbar.setIconsPath("/images/32x32/");
+         //leaderToobar.addButton("reload", 1, "", "open.gif", "open_dis.gif");
+         boardToolbar.addButton("Refresh", 1, "Refresh", "view-refresh-7.png", "view-refresh-7.png");
+         //leaderToolbar.addButton("Save", 2, "Save", "document-save-5.png", "document-save-5.png");
+         boardToolbar.addButton("CSV", 2, "CSV", "application-vnd.ms-excel.png", "application-vnd.ms-excel.png");
+         boardToolbar.addButton("XML", 3, "XML", "text-xml.png", "text-xml.png");
+
+         boardToolbar.addSpacer("XML");
+
+         boardToolbar.addButton("Delete", 4, "Delete", "edit-delete-6.png", "edit-delete-6.png");
+
+         boardToolbar.attachEvent("onClick", function (id) {
+            if (id == "Refresh")
+            {
+               boardGrid.updateFromXML("/scout-cells?cols=Last,First,Phone,Email,BoardType,DOB,UnitType,Unit,Leader,Status,Result,BoardChair,BoardMembers,Notes", true, true);
+            } else if (id == "CSV")
+            {
+               window.location.href = "/scout-cells?cols=Last,First,Phone,Email,BoardType,DOB,UnitType,Unit,Leader,Status,Result,BoardChair,BoardMembers,Notes&fmt=csv&filename=Report.csv";
+               // scoutGrid.loadXML("/scout-cells?cols=RegTime,Last,First,DOB,UnitType,Unit,Leader,Email,Phone,BoardType,Room,Status");
+            } else if (id == "XML")
+            {
+               window.location.href = "/scout-cells?cols=Last,First,Phone,Email,BoardType,DOB,UnitType,Unit,Leader,Status,Result,BoardChair,BoardMembers,Notes&fmt=data&filename=Report.xml";
+               // scoutGrid.loadXML("/scout-cells?cols=RegTime,Last,First,DOB,UnitType,Unit,Leader,Email,Phone,BoardType,Room,Status");
+            } else if (id == "Delete")
+            {
+               var rid = boardGrid.getSelectedRowId();
+               var last = boardGrid.cells(rid, 1).getValue();
+               var first = boardGrid.cells(rid, 2).getValue();
+
+               var res = window.confirm("Are you sure you want to delete: " + last + ", " + first + " ?");
+               if (res)
+               {
+                  boardGrid.deleteRow(rid);
+               }
+            }
+         });
+
+
+         //mygrid = new dhtmlXGridObject('gridbox3');
+         boardGrid.selMultiRows = false;
+         boardGrid.setImagePath("/dhtmlx/skins/terrace/imgs/dhxgrid_terrace/");
+         boardGrid.setHeader("Last,First,Phone,Email,Board,DOB,UnitType,Unit,Leader,Status,Result,Chair,Members,Notes");
+         boardGrid.setColumnIds("Last,First,Phone,Email,BoardType,DOB,UnitType,Unit,Leader,Status,Result,BoardChair,BoardMembers,Notes");
+
+         boardGrid.setInitWidths("100,100,100,120,70,80,80,60,90,80,80,120,200,*");
+         boardGrid.setColAlign("center,left,left,left,left,left,left,left,left,left,left,left,left,left");
+         boardGrid.setColTypes("ed,ed,ed,ed,coro,ed,coro,ed,ed,coro,coro,ed,ed,txttxt");
+         boardGrid.setColSorting("str,str,str,str,str,str,str,str,str,str,str,str,str,str");
+         boardGrid.attachHeader("#text_filter,#text_filter,#text_filter,#text_filter,#select_filter,#text_filter,#select_filter,#select_filter,#text_filter,#select_filter,#select_filter,#text_filter,#text_filter,#text_filter");
+
+
+         var bunit_combo = boardGrid.getCombo(6);
+         bunit_combo.put("Troop", "Troop");
+         bunit_combo.put("Team", "Team");
+         bunit_combo.put("Crew", "Crew");
+         bunit_combo.put("Ship", "Ship");
+         bunit_combo.put("Pack", "Pack");
+
+         var board_combo = boardGrid.getCombo(4);
+         board_combo.put("Project", "Project");
+         board_combo.put("Final", "Final");
+
+         var status_combo = boardGrid.getCombo(9);
+         status_combo.put("Waiting", "Waiting");
+         status_combo.put("InProgress", "InProgress");
+         status_combo.put("Completed", "Completed");
+         status_combo.put("Postponed", "Postponed");
+
+         var result_combo = boardGrid.getCombo(10);
+         result_combo.put("Approved", "Approved");
+         result_combo.put("Suspended", "Suspended");
+         result_combo.put("NotApproved", "NotApproved");
+         result_combo.put("Postponed", "Postponed");
+
+
+         boardGrid.setMultiLine(false);
+         boardGrid.enableDragAndDrop(false);
+         boardGrid.init();
+
+         boardGrid.loadXML("/scout-cells?cols=Last,First,Phone,Email,BoardType,DOB,UnitType,Unit,Leader,Status,Result,BoardChair,BoardMembers,Notes");
+
+         // boardGrid.attachEvent("onEditCell", function(stage, rId, cInd, nValue, oValue) {
+         //    if (stage == 2)
+         //    {
+         //       var res = window.confirm("Are you sure you want to change\n\n    " + oValue + " => " + nValue + "?");
+         //       return oValue;
+         //    }
+         //    return true;
+         // });
+
+         boardGridProcessor = new dataProcessor("/scout-update"); //lock feed url
+         boardGridProcessor.init(boardGrid); //link dataprocessor to the grid
+         boardGridProcessor.setTransactionMode("GET", false);
+         boardGridProcessor.enableDataNames(true);
+         boardGridProcessor.enablePartialDataSend(true);
+
+         adultHistoryToolbar = myTabbar.cells("history").attachToolbar();
+         adultHistoryGrid = myTabbar.cells("history").attachGrid();
+
+         adultHistoryToolbar.setIconsPath("/images/32x32/");
+         //adultHistoryToobar.addButton("reload", 1, "", "open.gif", "open_dis.gif");
+         adultHistoryToolbar.addButton("Refresh", 1, "Refresh", "view-refresh-7.png", "view-refresh-7.png");
+         //adultHistoryToolbar.addButton("Save", 2, "Save", "document-save-5.png", "document-save-5.png");
+         adultHistoryToolbar.addButton("CSV", 2, "CSV", "application-vnd.ms-excel.png", "application-vnd.ms-excel.png");
+         adultHistoryToolbar.addButton("XML", 3, "XML", "text-xml.png", "text-xml.png");
+
+         adultHistoryToolbar.addSpacer("XML");
+
+         adultHistoryToolbar.addButton("Delete", 4, "Delete", "edit-delete-6.png", "edit-delete-6.png");
+
+         adultHistoryToolbar.attachEvent("onClick", function (id) {
+            if (id == "Refresh")
+            {
+               adultHistoryGrid.updateFromXML("/adult-history-cells?cols=RegTime,Last,First,UnitType,Unit,Email,Phone,FinalBoard,ProjectReview", true, true);
+            } else if (id == "CSV")
+            {
+               window.location.href = "/adult-history-cells?cols=RegTime,Last,First,UnitType,Unit,Email,Phone,FinalBoard,ProjectReview&fmt=csv&filename=AdultHistory.csv";
+               // scoutGrid.loadXML("/scout-cells?cols=RegTime,Last,First,DOB,UnitType,Unit,Leader,Email,Phone,BoardType,Room,Status");
+            } else if (id == "XML")
+            {
+               window.location.href = "/adult-history-cells?cols=RegTime,Last,First,UnitType,Unit,Email,Phone,FinalBoard,ProjectReview&fmt=data&filename=AdultHistory.xml";
+               // scoutGrid.loadXML("/scout-cells?cols=RegTime,Last,First,DOB,UnitType,Unit,Leader,Email,Phone,BoardType,Room,Status");
+            } else if (id == "Delete")
+            {
+               var rid = adultHistoryGrid.getSelectedRowId();
+               var last = adultHistoryGrid.cells(rid, 1).getValue();
+               var first = adultHistoryGrid.cells(rid, 2).getValue();
+
+               var res = window.confirm("Are you sure you want to delete: " + last + ", " + first + " ?");
+               if (res)
+               {
+                  adultHistoryGrid.deleteRow(rid);
+               }
+            }
+         });
+
+
+
+
+         //mygrid = new dhtmlXGridObject('gridbox3');
+         adultHistoryGrid.selMultiRows = false;
+         adultHistoryGrid.setImagePath("/dhtmlx/skins/terrace/imgs/dhxgrid_terrace/");
+         adultHistoryGrid.setHeader("In,Last,First,UnitType,Unit,Email,Phone,Final,Project");
+         adultHistoryGrid.setColumnIds("RegTime,Last,First,UnitType,Unit,Email,Phone,FinalBoard,ProjectReview");
+
+         adultHistoryGrid.setInitWidths("80,120,120,100,100,*,110,100,100");
+         adultHistoryGrid.setColAlign("center,left,left,left,left,left,left,left,left");
+         adultHistoryGrid.setColTypes("ro,ed,ed,coro,ed,ed,ed,coro,coro");
+         adultHistoryGrid.setColSorting("str,str,str,str,str,str,str,str,str");
+         adultHistoryGrid.attachHeader("#text_filter,#text_filter,#text_filter,#select_filter,#select_filter,#text_filter,#text_filter,#select_filter,#select_filter");
+
+
+         adultHistoryGrid.setMultiLine(false);
+         adultHistoryGrid.enableDragAndDrop(false);
+         adultHistoryGrid.init();
+
+         var final_combo = adultHistoryGrid.getCombo(7);
+         final_combo.put("Chair", "Chair");
+         final_combo.put("Member", "Member");
+         final_combo.put("Unavailable", "Unavailable");
+
+         var project_combo = adultHistoryGrid.getCombo(8);
+         project_combo.put("Chair", "Chair");
+         project_combo.put("Member", "Member");
+         project_combo.put("Unavailable", "Unavailable");
+
+         var ut_combo = adultHistoryGrid.getCombo(3);
+         ut_combo.put("Troop", "Troop");
+         ut_combo.put("Team", "Team");
+         ut_combo.put("Crew", "Crew");
+         ut_combo.put("Ship", "Ship");
+         ut_combo.put("Pack", "Pack");
+
+         adultHistoryGrid.loadXML("/adult-history-cells?cols=RegTime,Last,First,UnitType,Unit,Email,Phone,FinalBoard,ProjectReview");
+         adultHistoryGridProcessor = new dataProcessor("/adult-history-update"); //lock feed url
+         adultHistoryGridProcessor.init(adultHistoryGrid); //link dataprocessor to the grid
+         adultHistoryGridProcessor.setTransactionMode("GET", false);
+         adultHistoryGridProcessor.enableDataNames(true);
+         adultHistoryGridProcessor.enablePartialDataSend(true);
+         // adultHistoryGridProcessor.sendData();
+
+         //  adultHistoryGrid.attachEvent("onEditCell", function(stage, rId, cInd, nValue, oValue) {
+         //     var colLabel = adultHistoryGrid.getColLabel(cInd);
+         //      alert("edited: " + rId + ":" + colLabel + ": " + nValue);
+         //      // your code here
+         //   });
+
+
+         scoutsScheduledToolbar = myTabbar.cells("scheduled").attachToolbar();
+         scoutsScheduledGrid = myTabbar.cells("scheduled").attachGrid();
+
+         scoutsScheduledToolbar.setIconsPath("/images/32x32/");
+         //leaderToobar.addButton("reload", 1, "", "open.gif", "open_dis.gif");
+         scoutsScheduledToolbar.addButton("Refresh", 1, "Refresh", "view-refresh-7.png", "view-refresh-7.png");
+         //leaderToolbar.addButton("Save", 2, "Save", "document-save-5.png", "document-save-5.png");
+         scoutsScheduledToolbar.addButton("CSV", 2, "CSV", "application-vnd.ms-excel.png", "application-vnd.ms-excel.png");
+         scoutsScheduledToolbar.addButton("XML", 3, "XML", "text-xml.png", "text-xml.png");
+
+         scoutsScheduledToolbar.addSpacer("XML");
+
+         scoutsScheduledToolbar.addButton("Delete", 4, "Delete", "edit-delete-6.png", "edit-delete-6.png");
+
+         scoutsScheduledToolbar.attachEvent("onClick", function (id) {
+            if (id == "Refresh")
+            {
+               scoutsScheduledGrid.updateFromXML("/scouts-scheduled-cells?cols=Last,First,DOB,UnitType,Unit,Leader,Email,Phone,BoardType", true, true);
+            } else if (id == "CSV")
+            {
+               window.location.href = "/scouts-scheduled-cells?cols=Last,First,DOB,UnitType,Unit,Leader,Email,Phone,BoardType&fmt=csv&filename=Scouts.csv";
+               // scoutsScheduledGrid.loadXML("/scoutsScheduled-cells?cols=RegTime,Last,First,DOB,UnitType,Unit,Leader,Email,Phone,BoardType,Room,Status");
+            } else if (id == "XML")
+            {
+               window.location.href = "/scouts-scheduled-cells?cols=Last,First,DOB,UnitType,Unit,Leader,Email,Phone,BoardType&fmt=data&filename=Scouts.xml";
+               // scoutsScheduledGrid.loadXML("/scoutsScheduled-cells?cols=RegTime,Last,First,DOB,UnitType,Unit,Leader,Email,Phone,BoardType,Room,Status");
+            } else if (id == "Delete")
+            {
+               var rid = scoutsScheduledGrid.getSelectedRowId();
+               var last = scoutsScheduledGrid.cells(rid, 1).getValue();
+               var first = scoutsScheduledGrid.cells(rid, 2).getValue();
+
+               var res = window.confirm("Are you sure you want to delete: " + last + ", " + first + " ?");
+               if (res)
+               {
+                  scoutsScheduledGrid.deleteRow(rid);
+               }
+            }
+         });
+
+
+         //mygrid = new dhtmlXGridObject('gridbox3');
+         scoutsScheduledGrid.selMultiRows = false;
+         scoutsScheduledGrid.setImagePath("/dhtmlx/skins/terrace/imgs/dhxgrid_terrace/");
+         scoutsScheduledGrid.setHeader("Last,First,DOB,UType,Unit,Leader,Email,Phone,Board");
+         scoutsScheduledGrid.setColumnIds("Last,First,DOB,UnitType,Unit,Leader,Email,Phone,BoardType");
+
+         scoutsScheduledGrid.setInitWidths("100,100,80,70,60,100,*,110,100");
+         scoutsScheduledGrid.setColAlign("left,left,left,left,left,left,left,left,left");
+         scoutsScheduledGrid.setColTypes("ed,ed,ed,coro,ed,ed,ed,ed,coro");
+         scoutsScheduledGrid.setColSorting("str,str,str,str,str,str,str,str,str");
+         scoutsScheduledGrid.attachHeader("#text_filter,#text_filter,#text_filter,#select_filter,#select_filter,#text_filter,#text_filter,#text_filter,#select_filter");
+
+         var unit_combo = scoutsScheduledGrid.getCombo(3);
+         unit_combo.put("Troop", "Troop");
+         unit_combo.put("Team", "Team");
+         unit_combo.put("Crew", "Crew");
+         unit_combo.put("Ship", "Ship");
+         unit_combo.put("Pack", "Pack");
+
+         var board_combo = scoutsScheduledGrid.getCombo(8);
+         board_combo.put("Project", "Project");
+         board_combo.put("Final", "Final");
+
+
+         scoutsScheduledGrid.setMultiLine(false);
+         scoutsScheduledGrid.enableDragAndDrop(false);
+         scoutsScheduledGrid.init();
+
+         scoutsScheduledGrid.loadXML("/scouts-scheduled-cells?cols=Last,First,DOB,UnitType,Unit,Leader,Email,Phone,BoardType");
+
+         // scoutsScheduledGrid.attachEvent("onEditCell", function(stage, rId, cInd, nValue, oValue) {
+         //    if (stage == 2)
+         //    {
+         //       var res = window.confirm("Are you sure you want to change\n\n    " + oValue + " => " + nValue + "?");
+         //       return oValue;
+         //    }
+         //    return true;
+         // });
+
+         scoutsScheduledGridProcessor = new dataProcessor("/scouts-scheduled-update"); //lock feed url
+         scoutsScheduledGridProcessor.init(scoutsScheduledGrid); //link dataprocessor to the grid
+         scoutsScheduledGridProcessor.setTransactionMode("GET", false);
+         scoutsScheduledGridProcessor.enableDataNames(true);
+         scoutsScheduledGridProcessor.enablePartialDataSend(true);
+
+
+
+      </script>
+
+   </body>
+</html>

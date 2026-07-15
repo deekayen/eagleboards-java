@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html>
+   <head>
+      <title>Condifiguration: Scheduler</title>
+      <link rel="stylesheet" type="text/css" href="/dhtmlx/dhtmlx.css">
+      <script src="/dhtmlx/dhtmlx.js"></script>
+      <link rel="stylesheet" type="text/css" href="scheduler.css"/>
+   </head>
+   <body >
+      <table align="center" style="border:0px solid red; background-color: #ffffff;">
+         <tr>
+            <td width="50" height="20">&nbsp</td>
+            <td width="860" height="20" >&nbsp</td>
+            <td width="50" height="20">&nbsp</td>
+
+         </tr>
+         <tr>
+            <td>&nbsp</td>
+            <td align="center"><span class="page-header">Scheduler Configuration</span><br/>
+               <br/></td>
+
+            <td>&nbsp</td>
+         </tr>
+         <tr>
+            <td>&nbsp</td>
+            <td style="border:0px solid red; vertical-align: bottom">
+               <div id="myForm" align="center"  style="width: 760px; height:500px;"></div>
+            </td>
+            <td>&nbsp</td>
+
+         </tr>
+      </table>
+      <script>
+         var myForm, formData;
+         // {type: "combo", name: "Name", label: "Name", value: "DEFAULT", tooltip: "Enter Config Name", required: true},
+
+         formData = [
+            {type: "settings", position: "label-left", offsetLeft: 10, labelWidth: 150, inputWidth: 90},
+            {type: "fieldset", label: "<b>Configuration Manager</b>", labelWidth: 80, width: 800, list: [
+                  {type: "fieldset", label: "Settings", position: "label-right", width: 300, labelWidth: 200, inputWidth: 70, list: [
+                        {type: "input", name: "RefreshTimeSecs", label: "Refresh Time (secs): ", value: "10", inputWidth: 50, required: true},
+                        {type: "input", name: "SeatedAlertTimeMins", label: "Seated Alert  (mins):", value: "", inputWidth: 50, required: true},
+                        {type: "input", name: "SeatedReminderTimeMins", label: "Seated Reminder (mins):", inputWidth: 50, value: "", required: true},
+                        {type: "input", name: "InProgressAlertTimeMins", label: "InProgress Alert (mins):", value: "", inputWidth: 50, required: true},
+                        {type: "input", name: "InProgressReminderTimeMins", label: "InProgress Reminder (mins):", inputWidth: 50, value: "", required: true},
+                     ]},
+                  {type: "hidden", name: "Name", value: "DEFAULT"},
+                  {type: "newcolumn"},
+                  {type: "fieldset", label: "Normal Colors", position: "label-right", width: 200, labelWidth: 90, list: [
+                        {type: 'colorpicker', name: 'RegisteredColor', label: 'Registered:', value: "#ffcccc",
+                           enableCustomColors: "1", imagePath: "../dhtmlxColorPicker/codebase/imgs/",
+                           customColors: "#ffcccc,#345ABC,#F36F5A,#F33B0B,#F3A394"},
+                        {type: 'colorpicker', name: 'VerifiedColor', label: 'Verified:', value: "#ffffcc",
+                           enableCustomColors: "1", imagePath: "../dhtmlxColorPicker/codebase/imgs/",
+                           customColors: "#ffffcc,#345ABC,#f3b50c,#F3D700,#F3EA96"},
+                        {type: 'colorpicker', name: 'SeatedColor', label: 'Seated:', value: "#ccffff",
+                           enableCustomColors: "1", imagePath: "../dhtmlxColorPicker/codebase/imgs/",
+                           customColors: "#ccffff,#56B0F0,#0097F0,#96C7F0"},
+                        {type: 'colorpicker', name: 'InProgressColor', label: 'InProgress:', value: "#ccffcc",
+                           enableCustomColors: "1", imagePath: "../dhtmlxColorPicker/codebase/imgs/",
+                           customColors: "#ccffcc,#349F49,#029F24,#5D9F75"},
+                        {type: 'colorpicker', name: 'CompletedColor', label: 'Completed:', value: "#345ABC",
+                           enableCustomColors: "1", imagePath: "../dhtmlxColorPicker/codebase/imgs/",
+                           customColors: "#ffffff,#909090,#D1FFD7"},
+                        {type: 'colorpicker', name: 'PostponedColor', label: 'Postponed:', value: "#345ABC",
+                           enableCustomColors: "1", imagePath: "../dhtmlxColorPicker/codebase/imgs/",
+                           customColors: "#909090,#909090,#f0f0f0"}]},
+                  {type: "newcolumn"},
+                  {type: "fieldset", label: "Highlighed Colors", position: "label-right", width: 200, labelWidth: 90, list: [
+                        {type: 'colorpicker', name: 'RegisteredHiColor', label: 'Registered:', value: "#ff6666",
+                           enableCustomColors: "1", imagePath: "../dhtmlxColorPicker/codebase/imgs/",
+                           customColors: "#ff6666,#F36F5A,#F33B0B,#F3A394"},
+                        {type: 'colorpicker', name: 'VerifiedHiColor', label: 'Verified:', value: "#ffff66",
+                           enableCustomColors: "1", imagePath: "../dhtmlxColorPicker/codebase/imgs/",
+                           customColors: "#ff6666,#F3E44A,#F3D700,#F3EA96"},
+                        {type: 'colorpicker', name: 'SeatedHiColor', label: 'Seated:', value: "#66ffff",
+                           enableCustomColors: "1", imagePath: "../dhtmlxColorPicker/codebase/imgs/",
+                           customColors: "#ff6666,#56B0F0,#0097F0,#96C7F0"},
+                        {type: 'colorpicker', name: 'InProgressHiColor', label: 'InProgress:', value: "#66ff66",
+                           enableCustomColors: "1", imagePath: "../dhtmlxColorPicker/codebase/imgs/",
+                           customColors: "#66ff66,#349F49,#029F24,#5D9F75"},
+                        {type: 'colorpicker', name: 'CompletedHiColor', label: 'Completed:', value: "#345ABC",
+                           enableCustomColors: "1", imagePath: "../dhtmlxColorPicker/codebase/imgs/",
+                           customColors: "#ffffff,#909090,#D1FFD7"},
+                        {type: 'colorpicker', name: 'PostponedHiColor', label: 'Postponed:', value: "#345ABC",
+                           enableCustomColors: "1", imagePath: "../dhtmlxColorPicker/codebase/imgs/",
+                           customColors: "#909090,#909090,#f0f0f0"}
+                     ]}
+               ]},
+            {type: "block", labelWidth: 80, inputWidth: 700, list: [
+                  {type: "button", name: "store", className: "register_button", width: 120, offsetLeft: 55, value: "<b>Store</b>"},
+                  {type: "newcolumn"},
+                  {type: "button", name: "cancel", width: 120, offsetLeft: 280, value: "<b>Cancel</b>"}
+               ]}
+         ];
+         myForm = new dhtmlXForm("myForm", formData);
+
+
+         //    var name_combo = myForm.getCombo("Name");
+         //    name_combo.load("/config-autofill");
+
+         //    name_combo.enableAutocomplete(true);
+         //    name_combo.enableFilteringMode(true);
+
+         //    var last_name = "";
+         //    myForm.attachEvent("onChange", function(name, value) {
+
+         //      if (name === "Name")
+         //      {
+         //  if (last_name != value)
+         //alert("attempting change: '" + last_name + "' ? '" + value + "'");
+         //         if (value && (last_name !== value) && (value != "NONE") && (value != "none"))
+         //         {
+         //            myForm.setItemValue("ID", "");
+         //            last_name = value;
+         //            //alert("Email changed to: " + value);
+         //            myForm.load("/config-autofill?Name=" + value, "json");
+         //         }
+         //      }
+         //      return true;
+         //   });
+
+         //myForm.setItemValue("Name", "DEFAULT");
+         myForm.load("/config-autofill?Name=DEFAULT", "json");
+
+
+         // myForm.loadStruct(formData, "json");
+         myForm.attachEvent("onButtonClick", function(id) {
+
+            if (id == "store") //defines addition
+            {
+               //             var name = myForm.getItemValue("Email");
+//alert("submit: '" + name +"'");
+               myForm.send("update-config", function(loader, response) {
+                  window.location.href = "/scheduler";
+               });
+               //window.location.href = "/";
+            }
+            else if (id == "cancel") //defines subtraction
+            {
+               dhtmlx.confirm({
+                  title: "Close",
+                  type: "confirm-warning",
+                  text: "Are you sure you want to Cancel ?",
+                  ok: "Yes",
+                  cancel: "No",
+                  callback: function(val)
+                  {
+                     if (val)
+                     {
+                        window.location.href = "/scheduler";
+                     }
+                  }
+               });
+               // var r = window.confirm("Are you sure you want to Cancel ?");
+               // if (r) {
+               //    window.location.href = "/";
+               // } else {
+               //    // DO NOTHING
+               // }
+            }
+         });
+
+         var r = window.dhx4.ajax.getSync("/config-autofill?Name=DEFAULT&fmt=json");
+         var t = window.dhx4.s2j(r.xmlDoc.responseText); // convert response to json object); // script will wait for response
+
+         console.log(t);
+
+      </script>
+      <!--
+      ,
+                        {type: "checkbox", labelWidth: 100, position: "label-right", name: "final_ch", label: "Final Board <br/><b>Member</b>   ", checked: true},
+                        {type: "newcolumn"},
+                        {type: "checkbox", labelWidth: 100, position: "label-right", name: "project_ch", label: "Project Review <br/><b>Member</b>    ", checked: true},
+                        {type: "newcolumn"},
+                        {type: "checkbox", labelWidth: 100, position: "label-right", ame: "chair_ch", label: "Final Board <br/><b>Chair</b>   ", checked: false},
+                        {type: "newcolumn"},
+                        {type: "checkbox", labelWidth: 100, position: "label-right", ame: "chair_ch", label: "Project Review <br/><b>Chair</b>   ", checked: false}
+
+      -->
+   </body>
+</html>

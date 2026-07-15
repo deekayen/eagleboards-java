@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html>
+   <head>
+      <link rel="stylesheet" type="text/css" href="/dhtmlx/dhtmlx.css">
+      <script src="/dhtmlx/dhtmlx.js"></script>
+      <link rel="stylesheet" type="text/css" href="scheduler.css"/>
+
+
+      <!--
+     
+      -->
+   </head>
+   <body style="border:0px solid red; background-color: #ffffff;">
+      <table align="center" style="border:0px solid red;">
+         <tr>
+            <td width="50" height="20">&nbsp</td>
+            <td width="680" height="20" >&nbsp</td>
+            <td width="50" height="20">&nbsp</td>
+         </tr>
+         <tr>
+            <td>&nbsp</td>
+            <td align="center"><span class="page-header">Etowah District Eagle Board</span><br/>
+               <span class="page-subheader"><font color="#000099">Scout/Candidate Sign-In</font></span>
+               <br/>
+               <br/></td>
+            <td>&nbsp</td>
+         </tr>
+         <tr>
+            <td>&nbsp</td>
+            <td style="border:0px solid red; vertical-align: bottom">
+               <div id="myForm" align="center"  style="width: 600px; height:500px;"></div>
+            </td>
+            <td>&nbsp</td>
+
+         </tr>
+      </table>
+      <script>
+         var myForm, formData;
+         formData = [
+            {type: "settings", position: "label-left", offsetLeft: 10, labelWidth: 80, inputWidth: 160},
+            {type: "fieldset", label: "<b>Scout Registration</b>", labelWidth: 80, inputWidth: 640, list: [
+                  {type: "block", width: 600, list: [
+                        {type: "combo", name: "Email", label: "Email:", value: "", tooltip: "Enter Email. If none, enter NONE.", required: true},
+                        {type: "hidden", name: "ID", value: ""}, 
+                        {type: "input", name: "Last", label: "Last:", value: "", required: true},
+                        {type: "input", name: "First", label: "First:", value: "", required: true},
+                        {type: "input", name: "Phone", label: "Phone:", value: "", required: true},
+                        {type: "newcolumn"},
+                        {type: "input", name: "DOB", label: "Birthdate:", value: "", required: true},
+                        {type: "select", name: "UnitType", label: "Unit Type:", required: true, options: [
+                              {text: "Troop", value: "Troop"},
+                              {text: "Team", value: "Team"},
+                              {text: "Crew", value: "Crew"},
+                              {text: "Ship", value: "Ship"},
+                           ]},
+                        {type: "input", name: "Unit", label: "Unit #:", value: "", validate: "ValidInteger", required: true},
+                     ]},
+                  {type: "fieldset", label: "Board Information", width: 600, list: [
+                        {type: "select", inputWidth: 140, name: "BoardType", label: "Board Type: ", options: [
+                              {text: "Final Eagle Board", value: "Final"},
+                              {text: "Project Review", value: "Project"},
+                           ]},
+                        {type: "newcolumn"},
+                        {type: "input", labelWidth: 120, position: "label-left", name: "Leader", label: "Leader Name: ", value: ""},
+                     ]},
+               ]},
+            {type: "block", labelWidth: 80, inputWidth: 600, list: [
+                  {type: "button", name: "register", className: "register_button", width: 120, offsetLeft: 30, value: "<b>Register</b>"},
+                  {type: "newcolumn"},
+                  {type: "button", name: "cancel", width: 120, offsetLeft: 210, value: "<b>Cancel</b>"}
+               ]}
+         ];
+         myForm = new dhtmlXForm("myForm", formData);
+         
+          var email_combo = myForm.getCombo("Email");
+         email_combo.load("/scout-autofill");
+
+         email_combo.enableAutocomplete(true);
+         email_combo.enableFilteringMode(true);
+
+         var last_email = "";
+         myForm.attachEvent("onChange", function(name, value) {
+
+            if (name === "Email")
+            {
+               //  if (last_email != value)
+               //alert("attempting change: '" + last_email + "' ? '" + value + "'");
+               if (value && (last_email !== value) && (value != "NONE") && (value != "none"))
+               {
+                  myForm.setItemValue("ID", "");
+                  last_email = value;
+                  //alert("Email changed to: " + value);
+                  myForm.load("/scout-autofill?Email=" + value, "json");
+               }
+            }
+            return true;
+         });
+
+         myForm.attachEvent("onButtonClick", function(id) {
+
+            if (id == "register") //defines addition
+            {
+               myForm.send("register-scout", function(loader, response) {
+                  window.location.href = "/";
+               });
+            }
+            else if (id == "cancel") //defines subtraction
+            {
+               dhtmlx.confirm({
+                  title: "Close",
+                  type: "confirm-warning",
+                  text: "Are you sure you want to Cancel ?",
+                  ok: "Yes",
+                  cancel: "No",
+                  callback: function(val)
+                  {
+                     if (val)
+                     {
+                        window.location.href = "/";
+                     }
+                  }
+               }
+               );
+            }
+         });
+         // or
+         // myForm.loadStruct(formData, "json");
+      </script>
+   </body>
+</html>
