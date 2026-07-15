@@ -1,0 +1,33 @@
+# ============================================================
+# PII / participant data — NEVER commit.
+# The application's data lives beside the code in this folder:
+#   - Master_AdultHistory.csv        (names, emails, phones)
+#   - 20??-??-??/ dated run folders  (adults/scouts/rooms CSVs, incl. minors)
+#   - *Board_Results* spreadsheets   (board outcomes with names)
+# ============================================================
+*.csv
+!config.csv
+*.xls
+*.xlsx
+*.xlsm
+*.ods
+20??-??-??/
+*Board_Results*
+Master_AdultHistory*
+
+# ============================================================
+# Secrets — NEVER commit.
+#   - LOGIN_INFO.txt                 (account credentials)
+#   - RunScheduler.sh / .bat         (embed the SignUpGenius API key)
+#   - .env                           (local secrets for scripts/run.sh)
+# ============================================================
+LOGIN_INFO*
+RunScheduler.sh
+RunScheduler.bat
+.env
+
+# Build output and local scratch
+target/
+parity/
+.DS_Store
+.claude/
