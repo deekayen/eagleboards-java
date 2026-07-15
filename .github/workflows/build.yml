@@ -7,12 +7,12 @@ on:
 
 jobs:
   build:
-    # Runtime proof across platforms the app is deployed on. All runners are
-    # amd64; arm64 is covered by the maintainer's machines (macOS/Raspberry Pi).
+    # Runtime proof across platforms the app is deployed on:
+    # amd64 Linux + Windows, and arm64 Linux (Raspberry Pi deployment target).
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest]
+        os: [ubuntu-latest, windows-latest, ubuntu-24.04-arm]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
