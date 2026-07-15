@@ -27,9 +27,13 @@ jobs:
       - name: Structural check
         shell: bash
         run: |
+          # Files instead of pipes: grep -q into a pipe SIGPIPEs the producer
+          # under this shell's pipefail. jar (from the JDK) exists everywhere.
           NEW_JAR=$(ls target/eagleboardscheduler-*.jar | grep -v original- | head -1)
-          unzip -l "$NEW_JAR" | grep -q "shkc/core/EagleBoardScheduler.class"
-          unzip -p "$NEW_JAR" META-INF/MANIFEST.MF | grep -q "Main-Class: shkc.core.EagleBoardScheduler"
+          jar tf "$NEW_JAR" > jar-contents.txt
+          grep -q "shkc/core/EagleBoardScheduler.class" jar-contents.txt
+          jar xf "$NEW_JAR" META-INF/MANIFEST.MF
+          grep -q "Main-Class: shkc.core.EagleBoardScheduler" META-INF/MANIFEST.MF
       - name: Runtime smoke test (start server, exercise endpoints)
         shell: bash
         run: |
@@ -46,8 +50,10 @@ jobs:
             if [ "$i" = 30 ]; then echo "server never became ready"; cat server.log; exit 1; fi
           done
           set -e
-          curl -sf http://127.0.0.1:18099/index.html | grep -q "Welcome to the Eagle Board."
-          curl -sf http://127.0.0.1:18099/admin.html | grep -qi "Eagle Board Admin Page"
+          curl -sf http://127.0.0.1:18099/index.html -o index.out
+          grep -q "Welcome to the Eagle Board." index.out
+          curl -sf http://127.0.0.1:18099/admin.html -o admin.out
+          grep -qi "Eagle Board Admin Page" admin.out
           curl -sf -o /dev/null http://127.0.0.1:18099/scout-cells
           curl -sf -o /dev/null http://127.0.0.1:18099/room-cells
           curl -sf -X POST --data "Last=Smoke&First=Test&Email=s@example.org&UnitType=Troop&Unit=1" http://127.0.0.1:18099/register-scout -o /dev/null
