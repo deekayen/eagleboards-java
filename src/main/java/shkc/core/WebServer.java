@@ -1,26 +1,20 @@
 package shkc.core;
 
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServlet;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import java.io.DataInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.MalformedURLException;
 import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.Map;
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import org.eclipse.jetty.server.Handler;
-import org.eclipse.jetty.server.Request;
+import org.eclipse.jetty.ee11.servlet.ServletContextHandler;
+import org.eclipse.jetty.ee11.servlet.ServletHolder;
 import org.eclipse.jetty.server.Server;
-import org.eclipse.jetty.server.handler.AbstractHandler;
-import org.eclipse.jetty.server.handler.HandlerList;
-import org.eclipse.jetty.server.handler.ResourceHandler;
-import org.eclipse.jetty.server.session.HashSessionManager;
-import org.eclipse.jetty.server.session.SessionHandler;
-import org.eclipse.jetty.util.resource.Resource;
 
 public class WebServer {
    private static final int CHUNK_SIZE = 131072;
@@ -61,29 +55,16 @@ public class WebServer {
    }
 
    public void start() throws Exception {
+      // Jetty 12 (ee11/jakarta) equivalent of the original Jetty 8 setup.
+      // The Jetty 8 version also stacked a filesystem ResourceHandler in
+      // front of the dispatcher, but LocalDefaultHandler's sendResponseFile
+      // already checks the filesystem before the classpath, so all serving
+      // behavior is preserved by the single dispatcher servlet.
       Server var1 = new Server(this.getPort());
-      ResourceHandler var2 = new ResourceHandler() {
-         public Resource getResource(String var1) throws MalformedURLException {
-            EagleBoardScheduler.verbose("getResource: " + var1);
-            File var2x = new File(WebServer.this._htmlDirectory, var1);
-
-            try {
-               Resource var3 = Resource.newResource(var2x);
-               EagleBoardScheduler.verbose("RESOURCE: " + var3);
-               return var3;
-            } catch (IOException var4) {
-               return null;
-            }
-         }
-      };
-      var2.setDirectoriesListed(false);
-      var2.setWelcomeFiles(new String[]{"index.html"});
-      var2.setResourceBase(".");
-      HandlerList var3 = new HandlerList();
-      var3.setHandlers(new Handler[]{var2, new WebServer.LocalDefaultHandler()});
-      SessionHandler var4 = new SessionHandler(new HashSessionManager());
-      var4.setHandler(var3);
-      var1.setHandler(var4);
+      ServletContextHandler var2 = new ServletContextHandler(ServletContextHandler.SESSIONS);
+      var2.setContextPath("/");
+      var2.addServlet(new ServletHolder(new WebServer.LocalDefaultHandler()), "/*");
+      var1.setHandler(var2);
       var1.start();
       var1.join();
    }
@@ -201,10 +182,12 @@ public class WebServer {
       _contentTypeMap.put("json", "application/json");
    }
 
-   public class LocalDefaultHandler extends AbstractHandler {
+   public class LocalDefaultHandler extends HttpServlet {
       File _baseDir = new File(".");
 
-      public void handle(String var1, Request var2, HttpServletRequest var3, HttpServletResponse var4) throws IOException, ServletException {
+      @Override
+      protected void service(HttpServletRequest var3, HttpServletResponse var4) throws IOException, ServletException {
+         String var1 = var3.getRequestURI();
          EagleBoardScheduler.verbose("LocalDefaultHandler: target=" + var1);
          EagleBoardScheduler.verbose("context-path=" + var3.getContextPath());
          WebServer.WebHandler var5 = null;
@@ -227,15 +210,13 @@ public class WebServer {
             if (var5 != null) {
                EagleBoardScheduler.verbose("FOUND: " + var1 + "." + var6);
                var5.handle(var1, var3, var4);
-               var2.setHandled(true);
             } else if (!WebServer.this.sendResponseFile(WebServer.this._htmlDirectory, var1, var4)) {
                if (WebServer.this.sendResponseFile(WebServer.this._htmlDirectory, var1 + ".html", var4)) {
                   return;
                }
 
                EagleBoardScheduler.verbose("NOT FOUND: " + var1);
-               var4.setStatus(404);
-               var2.setHandled(false);
+               var4.sendError(404);
             }
          }
       }

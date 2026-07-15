@@ -19,13 +19,13 @@
   </properties>
 
   <dependencies>
-    <!-- Same Jetty version as bundled in the original jar (class dates match
-         the 8.1.11.v20130520 release). Pulls jetty-http/io/util/continuation
-         and the javax.servlet 3.0 orbit artifact transitively. -->
+    <!-- Current supported Jetty (the original bundled EOL Jetty 8; the
+         rebuild was proven against it, then migrated — see PROVENANCE.md).
+         Pulls jetty-server core and the jakarta.servlet API transitively. -->
     <dependency>
-      <groupId>org.eclipse.jetty</groupId>
-      <artifactId>jetty-server</artifactId>
-      <version>8.1.11.v20130520</version>
+      <groupId>org.eclipse.jetty.ee11</groupId>
+      <artifactId>jetty-ee11-servlet</artifactId>
+      <version>12.1.11</version>
     </dependency>
   </dependencies>
 

@@ -42,7 +42,11 @@ minimally hand-fixed until they compile; the git tag `decompiled-raw` marks the
 unmodified decompiler output, so every hand edit is visible as a diff from that
 tag. Static resources under `src/main/resources` were extracted from the JAR
 byte-for-byte. Jetty and the Servlet API are consumed as ordinary Maven
-dependencies at the same versions rather than being decompiled.
+dependencies rather than being decompiled: the rebuild was first proven
+behaviorally identical against the same Jetty 8.1.11 the binary bundled,
+then migrated to current, supported Jetty 12 (jakarta.servlet) —
+`WebServer.java` is the only class that changed, and
+`scripts/verify-parity.sh` still passes against the original binary.
 
 ## Licensing note
 
