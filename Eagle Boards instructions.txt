@@ -1,0 +1,9 @@
+1. Open the Eagle Boards shortcut on the desktop.
+2. Java may prompt to allow local or public access; click allow.
+3. Two windows will open, one black, the other grey. The grey window has an address to put into a web browser on the check-in station.
+
+== PEOPLE MANAGEMENT ==
+On the administration computer (this one) add /admin to the address shown in the grey box.
+
+== ROOM ASSIGNMENTS ==
+On the administration computer (this one) add /scheduler to the address shown in the grey box.

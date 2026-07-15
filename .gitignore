@@ -31,3 +31,6 @@ target/
 parity/
 .DS_Store
 .claude/
+
+# Untracked runtime copy of the original jar (the tracked copy is original/)
+/EagleBoardScheduler_20190618.jar
