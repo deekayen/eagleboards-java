@@ -912,15 +912,15 @@ public class EagleBoardScheduler {
                   String var10 = var8.getLeaders();
                   String var11 = var7.getScout();
                   String var12 = var8.getScout();
-                  List var13 = EagleBoardScheduler.this._scoutRecords.get("Room", var7.getRoom());
-                  List var14 = EagleBoardScheduler.this._scoutRecords.get("Room", var8.getRoom());
+                  List<ScoutRecord> var13 = EagleBoardScheduler.this._scoutRecords.get("Room", var7.getRoom());
+                  List<ScoutRecord> var14 = EagleBoardScheduler.this._scoutRecords.get("Room", var8.getRoom());
                   if (var13.size() > 1) {
                      this.sendError("ERROR: Room assigned to multiple scouts: " + var7.getRoom(), var3);
                   } else if (var14.size() > 1) {
                      this.sendError("ERROR: Room assigned to multiple scouts: " + var8.getRoom(), var3);
                   } else {
-                     List var15 = EagleBoardScheduler.this._adultRecords.get("Room", var7.getRoom());
-                     List var16 = EagleBoardScheduler.this._adultRecords.get("Room", var8.getRoom());
+                     List<AdultRecord> var15 = EagleBoardScheduler.this._adultRecords.get("Room", var7.getRoom());
+                     List<AdultRecord> var16 = EagleBoardScheduler.this._adultRecords.get("Room", var8.getRoom());
                      var7.setLeaders(var10);
                      var8.setLeaders(var9);
                      var7.setScout(var12);
@@ -1014,7 +1014,7 @@ public class EagleBoardScheduler {
                   this.sendError("ERROR: Scout Already Assigned Room: " + var10.getRoom(), var3);
                } else {
                   AdultRecord var11 = EagleBoardScheduler.this._adultRecords.get(var7);
-                  ArrayList var12 = new ArrayList();
+                  ArrayList<AdultRecord> var12 = new ArrayList<>();
                   StringBuffer var13 = new StringBuffer();
                   StringBuffer var14 = new StringBuffer();
                   StringTokenizer var15 = new StringTokenizer(var8, ",", false);

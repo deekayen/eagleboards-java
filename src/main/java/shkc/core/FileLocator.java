@@ -75,7 +75,8 @@ public class FileLocator {
       if (var3 == null) {
          this._log.detailed("-- relative path, checking search path");
 
-         for (String var5 : this._searchPathList) {
+         for (Object var5Obj : this._searchPathList) {
+            String var5 = (String)var5Obj;
             String var6 = var5 + var1;
             if (this._log.isDetailedEnabled()) {
                this._log.detailed("   path-elem: " + var5);
@@ -197,7 +198,8 @@ public class FileLocator {
 
       var1 = this._nameUtil.resolveVars(var1);
       if (this._resolverList.size() > 0) {
-         for (FileLocator.Resolver var3 : this._resolverList) {
+         for (Object var3Obj : this._resolverList) {
+            FileLocator.Resolver var3 = (FileLocator.Resolver)var3Obj;
             try {
                InputStream var4 = var3.getInputStream(var1);
                if (var4 != null) {
@@ -236,7 +238,8 @@ public class FileLocator {
       if (!var1.startsWith("http:") && !var1.startsWith("ftp:") && !var1.startsWith("file:") && !var1.startsWith("jar:") && !var1.startsWith("https:")) {
          this._log.detailed("-- relative path, checking search path");
 
-         for (String var10 : this._searchPathList) {
+         for (Object var10Obj : this._searchPathList) {
+            String var10 = (String)var10Obj;
             String var11 = var10 + var1;
             if (this._log.isDetailedEnabled()) {
                this._log.detailed("   path-elem: " + var10);

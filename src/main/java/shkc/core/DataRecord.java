@@ -20,7 +20,8 @@ public class DataRecord extends HashMap<String, String> {
       this._columns = var2;
       this.put("Type", var1);
       if (var3 != null) {
-         for (String var6 : var3.keySet()) {
+         for (Object var6Obj : var3.keySet()) {
+            String var6 = (String)var6Obj;
             Object var7 = var3.get(var6);
             if (var7 instanceof String[]) {
                try {

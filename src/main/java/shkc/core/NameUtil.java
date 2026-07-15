@@ -22,7 +22,8 @@ public class NameUtil {
    }
 
    public void addAll(Map var1) {
-      for (String var3 : var1.keySet()) {
+      for (Object var3Obj : var1.keySet()) {
+         String var3 = (String)var3Obj;
          Object var4 = var1.get(var3);
          this._props.put(var3.toLowerCase(), var4);
       }
