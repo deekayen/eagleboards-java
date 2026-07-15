@@ -1,5 +1,7 @@
 package shkc.core;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -7,9 +9,6 @@ import java.io.InputStreamReader;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
-import shkc.json.simple.JSONArray;
-import shkc.json.simple.JSONObject;
-import shkc.json.simple.JSONValue;
 
 public class SignUpGeniusPlugin {
    private String _key;
@@ -62,21 +61,21 @@ public class SignUpGeniusPlugin {
          throw new Exception("error connecting to SignUpGenius server (" + var22.getMessage());
       }
 
-      JSONObject var23 = (JSONObject)JSONValue.parseWithException(new InputStreamReader(var2));
+      JsonNode var23 = new ObjectMapper().readTree(new InputStreamReader(var2));
       SimpleDateFormat var4 = new SimpleDateFormat("yyyy-MM");
       String var5 = var4.format(new Date());
-      JSONObject var6 = (JSONObject)var23.get("data");
-      JSONArray var7 = (JSONArray)var6.get("signup");
+      JsonNode var6 = var23.get("data");
+      JsonNode var7 = var6.get("signup");
 
       for (int var8 = 0; var8 < var7.size(); var8++) {
-         JSONObject var9 = (JSONObject)var7.get(var8);
-         String var10 = var9.get("startdatestring").toString();
+         JsonNode var9 = var7.get(var8);
+         String var10 = var9.get("startdatestring").asText();
          if (var10.startsWith(var5)) {
-            String var11 = var9.get("firstname").toString();
-            String var12 = var9.get("lastname").toString();
-            String var13 = var9.get("item").toString();
-            String var14 = var9.get("email").toString();
-            JSONArray var15 = (JSONArray)var9.get("customfields");
+            String var11 = var9.get("firstname").asText();
+            String var12 = var9.get("lastname").asText();
+            String var13 = var9.get("item").asText();
+            String var14 = var9.get("email").asText();
+            JsonNode var15 = var9.get("customfields");
             String var16 = this.getCustomField(var15, 0);
             String var17 = this.getCustomField(var15, 1);
             String var18 = this.getCustomField(var15, 2);
@@ -127,10 +126,10 @@ public class SignUpGeniusPlugin {
       this._scoutsScheduledRecords.store();
    }
 
-   private String getCustomField(JSONArray var1, int var2) {
+   private String getCustomField(JsonNode var1, int var2) {
       try {
-         JSONObject var3 = (JSONObject)var1.get(var2);
-         return var3.get("value").toString();
+         JsonNode var3 = var1.get(var2);
+         return var3.get("value").asText();
       } catch (Exception var4) {
          return "";
       }
@@ -146,17 +145,17 @@ public class SignUpGeniusPlugin {
          throw new Exception("error connecting to SignUpGenius server (" + var13.getMessage());
       }
 
-      JSONObject var3 = (JSONObject)JSONValue.parseWithException(new InputStreamReader(var2));
+      JsonNode var3 = new ObjectMapper().readTree(new InputStreamReader(var2));
       SimpleDateFormat var4 = new SimpleDateFormat("yyyy-MM-dd");
       String var5 = var4.format(new Date());
-      JSONArray var6 = (JSONArray)var3.get("data");
+      JsonNode var6 = var3.get("data");
 
       for (int var7 = 0; var7 < var6.size(); var7++) {
-         JSONObject var8 = (JSONObject)var6.get(var7);
-         String var9 = var8.get("signupid").toString();
-         String var10 = var8.get("enddatestring").toString();
-         String var11 = var8.get("title").toString();
-         String var12 = var8.get("startdatestring").toString();
+         JsonNode var8 = var6.get(var7);
+         String var9 = var8.get("signupid").asText();
+         String var10 = var8.get("enddatestring").asText();
+         String var11 = var8.get("title").asText();
+         String var12 = var8.get("startdatestring").asText();
          if (var5.compareTo(var10) <= 0 && var5.compareTo(var12) >= 0 && var11.toLowerCase().contains("board") && var11.toLowerCase().contains("eagle")) {
             System.out
                .println(

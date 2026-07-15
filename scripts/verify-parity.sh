@@ -43,7 +43,7 @@ WORK=$(mktemp -d)
 trap 'rm -rf "$WORK"; kill $PID_A $PID_B 2>/dev/null' EXIT
 mkdir -p "$WORK/orig" "$WORK/new"
 unzip -qo "$ORIG_JAR" 'shkc/*' 'monfox/*' -d "$WORK/orig"
-unzip -qo "$NEW_JAR"  'shkc/*' 'monfox/*' -d "$WORK/new"
+unzip -qo "$NEW_JAR"  'shkc/*' 'monfox/*' -d "$WORK/new" 2>/dev/null  # monfox/* absent post-swap
 
 # Compiler-internal artifacts with no behavior of their own; javac 25 emits
 # them differently than javac 7 did (nestmates replaced access$ bridges).
@@ -56,6 +56,11 @@ KNOWN_SYNTHETIC='monfox/log/SimpleLogger[$]1[.]class|shkc/core/NegaPreRegAdultRe
 # HttpServlet). Their runtime behavior is still fully covered by sections
 # 2-4; signature comparison against the Jetty 8 original is meaningless.
 MIGRATED='shkc/core/WebServer[.]class|shkc/core/WebServer[$]LocalDefaultHandler[.]class'
+
+# Vendored third-party code the original binary carried, replaced by
+# supported libraries: shkc.json.simple (json-simple 1.1, frozen 2012) ->
+# Jackson; monfox.log -> java.util.logging.
+REMOVED_VENDORED='^shkc/json/simple/|^monfox/'
 
 sig() { # normalized member signatures for one class file
     # Filtered as compiler-internal (verified behaviorally equivalent in the
@@ -70,7 +75,8 @@ sig() { # normalized member signatures for one class file
     # still compare meaningfully.
     javap -p "$1" 2>/dev/null \
       | grep -vE 'access[$][0-9]+|[$]SwitchMap[$]|Compiled from|private static .*[$]values\(\)|val[$]|final .* this[$]0;|[a-zA-Z0-9_.]+[$]1\);|^ *static \{\};' \
-      | sed -E "s/[$][0-9]+\((, )?[a-zA-Z0-9_.$]+(, [a-zA-Z0-9_.$]+)*\);/\$N(CAPTURES);/; s/[$][0-9]+\(\);/\$N(CAPTURES);/; s/(javax|jakarta)\.servlet/SERVLET_API/g" \
+      | sed -E "s/[$][0-9]+\((, )?[a-zA-Z0-9_.$]+(, [a-zA-Z0-9_.$]+)*\);/\$N(CAPTURES);/; s/[$][0-9]+\(\);/\$N(CAPTURES);/; s/(javax|jakarta)\.servlet/SERVLET_API/g; s/(shkc\.json\.simple\.JSONArray|com\.fasterxml\.jackson\.databind\.JsonNode)/JSON_TREE/g; s/(monfox\.log|java\.util\.logging)\.Logger/LOGGER/g" \
+      | grep -v '_debugLogger' \
       | sed 's/[[:space:]]\+/ /g' | sort
 }
 
@@ -79,6 +85,7 @@ while IFS= read -r cls; do
     rel=${cls#"$WORK/orig/"}
     if echo "$rel" | grep -qE "$KNOWN_SYNTHETIC"; then continue; fi
     if echo "$rel" | grep -qE "$MIGRATED"; then continue; fi
+    if echo "$rel" | grep -qE "$REMOVED_VENDORED"; then continue; fi
     if [ ! -f "$WORK/new/$rel" ]; then
         fail "class missing from rebuilt jar: $rel"
         missing=1

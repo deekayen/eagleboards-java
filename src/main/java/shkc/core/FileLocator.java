@@ -8,14 +8,15 @@ import java.net.URL;
 import java.util.List;
 import java.util.StringTokenizer;
 import java.util.Vector;
-import monfox.log.Logger;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class FileLocator {
    private List _searchPathList = null;
    private String _searchPath = null;
    private NameUtil _nameUtil = new NameUtil();
    private List _resolverList = new Vector();
-   private Logger _log = Logger.getInstance("DOSI", "DOSI-UTIL", "FileLocator");
+   private Logger _log = Logger.getLogger(FileLocator.class.getName());
 
    public FileLocator() {
    }
@@ -33,18 +34,18 @@ public class FileLocator {
    }
 
    public File getFile(String var1, boolean var2) throws IOException {
-      this._log = Logger.getInstance("DOSI", "DOSI-UTIL", "FileLocator");
+      this._log = Logger.getLogger(FileLocator.class.getName());
       if (var1 == null) {
          throw new IOException("null filename");
       }
 
-      if (this._log.isDetailedEnabled()) {
-         this._log.detailed("getFile: file=" + var1 + ", must-exist=" + var2);
+      if (this._log.isLoggable(Level.FINER)) {
+         this._log.finer("getFile: file=" + var1 + ", must-exist=" + var2);
       }
 
       var1 = this._nameUtil.resolveVars(var1);
-      if (this._log.isDetailedEnabled()) {
-         this._log.detailed("  -- vars resolved: " + var1);
+      if (this._log.isLoggable(Level.FINER)) {
+         this._log.finer("  -- vars resolved: " + var1);
       }
 
       if (!var2) {
@@ -53,33 +54,33 @@ public class FileLocator {
 
       File var3 = null;
       if (this._searchPathList == null || this._searchPathList.size() == 0) {
-         this._log.detailed("-- no search path");
+         this._log.finer("-- no search path");
          var3 = new File(var1);
       } else if (var1.startsWith("/")) {
-         this._log.detailed("-- absolute file path");
+         this._log.finer("-- absolute file path");
          var3 = new File(var1);
       } else if (var1.startsWith("\\")) {
-         this._log.detailed("-- absolute DOS file path");
+         this._log.finer("-- absolute DOS file path");
          var3 = new File(var1);
       } else if (var1.length() > 2 && var1.charAt(1) == ':') {
-         this._log.detailed("-- absolute DOS drive file path");
+         this._log.finer("-- absolute DOS drive file path");
          var3 = new File(var1);
       } else if (var1.startsWith("file:")) {
          URL var4 = new URL(var1);
          var3 = new File(var4.getFile());
       } else if (var1.startsWith("http:") || var1.startsWith("ftp:") || var1.startsWith("jar:")) {
-         this._log.detailed("-- absolute url path: not valid");
+         this._log.finer("-- absolute url path: not valid");
          throw new IOException("location must be a filesystem path not a URL: " + var1);
       }
 
       if (var3 == null) {
-         this._log.detailed("-- relative path, checking search path");
+         this._log.finer("-- relative path, checking search path");
 
          for (Object var5Obj : this._searchPathList) {
             String var5 = (String)var5Obj;
             String var6 = var5 + var1;
-            if (this._log.isDetailedEnabled()) {
-               this._log.detailed("   path-elem: " + var5);
+            if (this._log.isLoggable(Level.FINER)) {
+               this._log.finer("   path-elem: " + var5);
             }
 
             try {
@@ -97,7 +98,7 @@ public class FileLocator {
             return var3;
          }
 
-         this._log.error("no such file: " + var1);
+         this._log.severe("no such file: " + var1);
          throw new IOException("no such file: " + var1);
       }
    }
@@ -107,9 +108,9 @@ public class FileLocator {
    }
 
    public File getDirectory(String var1, boolean var2) throws IOException {
-      this._log = Logger.getInstance("DOSI", "DOSI-UTIL", "FileLocator");
-      if (this._log.isDetailedEnabled()) {
-         this._log.detailed("getDirectory: dirname=" + var1);
+      this._log = Logger.getLogger(FileLocator.class.getName());
+      if (this._log.isLoggable(Level.FINER)) {
+         this._log.finer("getDirectory: dirname=" + var1);
       }
 
       if (var1 == null) {
@@ -130,7 +131,7 @@ public class FileLocator {
       var1 = this._nameUtil.resolveVars(var1);
       this._searchPathList = this.parseSearchPath(var1);
       this._searchPath = var1;
-      this._log.debug("setSearchPath: '" + var1 + "'");
+      this._log.fine("setSearchPath: '" + var1 + "'");
    }
 
    public void addSearchPath(String var1) {
@@ -144,8 +145,8 @@ public class FileLocator {
       }
 
       this._searchPath = this._searchPath + File.pathSeparator + var1;
-      this._log.debug("addSearchPath: adding='" + var1 + "'");
-      this._log.debug("addSearchPath: result='" + this._searchPath + "'");
+      this._log.fine("addSearchPath: adding='" + var1 + "'");
+      this._log.fine("addSearchPath: result='" + this._searchPath + "'");
    }
 
    public List getSearchPathList() {
@@ -153,9 +154,9 @@ public class FileLocator {
    }
 
    private InputStream localGetInputStream(String var1) throws IOException {
-      this._log = Logger.getInstance("DOSI", "DOSI-UTIL", "FileLocator");
-      if (this._log.isDetailedEnabled()) {
-         this._log.detailed("localGetInputStream: file=" + var1);
+      this._log = Logger.getLogger(FileLocator.class.getName());
+      if (this._log.isLoggable(Level.FINER)) {
+         this._log.finer("localGetInputStream: file=" + var1);
       }
 
       InputStream var2 = null;
@@ -175,7 +176,7 @@ public class FileLocator {
       }
 
       if (var2 == null) {
-         this._log.debug("getResourceAsStream: " + var1);
+         this._log.fine("getResourceAsStream: " + var1);
          var2 = FileLocator.class.getResourceAsStream(var1);
       }
 
@@ -187,13 +188,13 @@ public class FileLocator {
    }
 
    public InputStream getInputStream(String var1) throws IOException {
-      this._log = Logger.getInstance("DOSI", "DOSI-UTIL", "FileLocator");
+      this._log = Logger.getLogger(FileLocator.class.getName());
       if (var1 == null) {
          throw new IOException("null filename");
       }
 
-      if (this._log.isDetailedEnabled()) {
-         this._log.detailed("getInputStream: file=" + var1);
+      if (this._log.isLoggable(Level.FINER)) {
+         this._log.finer("getInputStream: file=" + var1);
       }
 
       var1 = this._nameUtil.resolveVars(var1);
@@ -206,43 +207,43 @@ public class FileLocator {
                   return var4;
                }
             } catch (Exception var7) {
-               this._log.error("exception in FileLocator.Resolver.getInputStream(" + var1 + ")", var7);
+               this._log.log(Level.SEVERE, "exception in FileLocator.Resolver.getInputStream(" + var1 + ")", var7);
             }
          }
       }
 
-      if (this._log.isDetailedEnabled()) {
-         this._log.detailed("  -- vars resolved: " + var1);
+      if (this._log.isLoggable(Level.FINER)) {
+         this._log.finer("  -- vars resolved: " + var1);
       }
 
       if (this._searchPathList == null || this._searchPathList.size() == 0) {
-         this._log.detailed("-- no search path");
+         this._log.finer("-- no search path");
          return this.localGetInputStream(var1);
       }
 
       if (var1.startsWith("/")) {
-         this._log.detailed("-- absolute file path");
+         this._log.finer("-- absolute file path");
          return this.localGetInputStream(var1);
       }
 
       if (var1.startsWith("\\")) {
-         this._log.detailed("-- absolute DOS file path");
+         this._log.finer("-- absolute DOS file path");
          return this.localGetInputStream(var1);
       }
 
       if (var1.length() > 2 && var1.charAt(1) == ':') {
-         this._log.detailed("-- absolute DOS drive file path");
+         this._log.finer("-- absolute DOS drive file path");
          return this.localGetInputStream(var1);
       }
 
       if (!var1.startsWith("http:") && !var1.startsWith("ftp:") && !var1.startsWith("file:") && !var1.startsWith("jar:") && !var1.startsWith("https:")) {
-         this._log.detailed("-- relative path, checking search path");
+         this._log.finer("-- relative path, checking search path");
 
          for (Object var10Obj : this._searchPathList) {
             String var10 = (String)var10Obj;
             String var11 = var10 + var1;
-            if (this._log.isDetailedEnabled()) {
-               this._log.detailed("   path-elem: " + var10);
+            if (this._log.isLoggable(Level.FINER)) {
+               this._log.finer("   path-elem: " + var10);
             }
 
             try {
@@ -256,13 +257,13 @@ public class FileLocator {
 
          throw new IOException("no such resource ' " + var1 + "' in search path '" + this._searchPath + "'");
       } else {
-         this._log.detailed("-- absolute url path");
+         this._log.finer("-- absolute url path");
          return this.localGetInputStream(var1);
       }
    }
 
    private List parseSearchPath(String var1) {
-      this._log = Logger.getInstance("DOSI", "DOSI-UTIL", "FileLocator");
+      this._log = Logger.getLogger(FileLocator.class.getName());
       if (var1 == null) {
          return null;
       }

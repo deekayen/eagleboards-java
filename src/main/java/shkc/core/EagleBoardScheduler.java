@@ -15,14 +15,19 @@ import java.util.StringTokenizer;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import monfox.log.Logger;
-import monfox.log.SimpleLogger;
+import java.util.logging.FileHandler;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import java.util.logging.SimpleFormatter;
 
 public class EagleBoardScheduler {
    private static final String[] SCOUT_REG_FIELDS = new String[]{"First", "Last", "DOB", "Unit", "UnitType", "Email", "Phone", "Leader"};
    private static final String[] ADULT_REG_FIELDS = new String[]{"First", "Last", "Unit", "UnitType", "Email", "Phone", "ProjectReview", "FinalBoard"};
    private SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd");
    private static boolean _verbose = false;
+   // Strong reference so the -debug logger configuration survives GC
+   // (java.util.logging holds loggers weakly).
+   private static Logger _debugLogger = null;
    private Object LOCK = new Object();
    private File _dataRoot;
    private File _scoutFile;
@@ -54,7 +59,12 @@ public class EagleBoardScheduler {
       }
 
       if (var5.hasFlag("debug")) {
-         Logger.setProvider(new SimpleLogger.Provider("eagle-board-scheduler.log", SimpleLogger.LEVEL.DEBUG));
+         FileHandler var26 = new FileHandler("eagle-board-scheduler.log");
+         var26.setFormatter(new SimpleFormatter());
+         var26.setLevel(Level.ALL);
+         _debugLogger = Logger.getLogger("shkc");
+         _debugLogger.setLevel(Level.ALL);
+         _debugLogger.addHandler(var26);
          System.out.println("DEBUGGING ENABLED");
       }
 
