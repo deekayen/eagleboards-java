@@ -51,11 +51,14 @@ unzip -qo "$NEW_JAR"  'shkc/*' 'monfox/*' -d "$WORK/new" 2>/dev/null  # monfox/*
 # shkc/core/, where the class loader could never have loaded it.
 KNOWN_SYNTHETIC='monfox/log/SimpleLogger[$]1[.]class|shkc/core/NegaPreRegAdultRecordConverter[$]1[.]class|shkc/core/NetTest[.]class|shkc/core/WebServer[$]1[.]class'
 
-# Deliberately rewritten during the Jetty 8 -> 12 migration (the only class
-# that touches Jetty APIs, plus its dispatcher inner class, which became an
-# HttpServlet). Their runtime behavior is still fully covered by sections
-# 2-4; signature comparison against the Jetty 8 original is meaningless.
-MIGRATED='shkc/core/WebServer[.]class|shkc/core/WebServer[$]LocalDefaultHandler[.]class'
+# Deliberately rewritten past the original binary and no longer expected to
+# match it by signature:
+#  - WebServer + its dispatcher inner class: ported from Jetty 8 to Jetty 12
+#    (ServletContextHandler / HttpServlet). Runtime behavior covered by 2-4.
+#  - PopupDialog: the startup URL window was enhanced (centered text + a
+#    clickable "open the scheduler" browser link). It only appears with -w,
+#    is not part of the web protocol, and is checked visually, not here.
+MIGRATED='shkc/core/WebServer[.]class|shkc/core/WebServer[$]LocalDefaultHandler[.]class|shkc/core/PopupDialog[.]class'
 
 # Vendored third-party code the original binary carried, replaced by
 # supported libraries: shkc.json.simple (json-simple 1.1, frozen 2012) ->
