@@ -56,8 +56,17 @@ jobs:
           grep -qi "Eagle Board Admin Page" admin.out
           curl -sf -o /dev/null http://127.0.0.1:18099/scout-cells
           curl -sf -o /dev/null http://127.0.0.1:18099/room-cells
-          curl -sf -X POST --data "Last=Smoke&First=Test&Email=s@example.org&UnitType=Troop&Unit=1" http://127.0.0.1:18099/register-scout -o /dev/null
+          curl -sf -X POST --data "Last=Smoke&First=Test&Email=s@example.org&UnitType=Troop&Unit=1&BoardType=Final" http://127.0.0.1:18099/register-scout -o /dev/null
           test -f smokerun/scouts.csv && grep -q "Smoke" smokerun/scouts.csv
+          # Regression guard: seating a board with no members must NOT crash
+          # the server (was a NullPointerException -> 500 in SeatBoardHandler).
+          curl -sf -X POST --data '!nativeeditor_status=inserted&gr_id=ROOM:1&Room=1&BoardType=Final' http://127.0.0.1:18099/room-update -o /dev/null
+          curl -sf -X POST --data "ScoutID=SCOUT:Smoke:Test:1" http://127.0.0.1:18099/verify-board -o /dev/null
+          seat_code=$(curl -s -o /dev/null -w '%{http_code}' -X POST --data "RoomID=ROOM:1&ScoutID=SCOUT:Smoke:Test:1&ChairID=X" http://127.0.0.1:18099/seat-board)
+          if [ "$seat_code" = "500" ]; then echo "REGRESSION: seat-board 500 on missing members"; cat server.log; exit 1; fi
+          # And the server must still serve pages afterward (no wedge).
+          curl -sf -o /dev/null http://127.0.0.1:18099/index.html
+          curl -sf -o /dev/null http://127.0.0.1:18099/scout-cells
           kill $SRV
           echo "runtime smoke passed on ${{ matrix.os }}"
       - name: SignUpGenius live API check

@@ -4,7 +4,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import java.io.DataInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -110,18 +110,18 @@ public class WebServer {
       EagleBoardScheduler.verbose("sendResponseFile:" + var1);
 
       try {
-         DataInputStream var4 = new DataInputStream(var2);
-         byte[] var5 = new byte[0];
+         // Read the resource fully, then write it. Uses a growable stream
+         // instead of reallocating+copying the whole buffer on every chunk
+         // (the original was O(n^2) in memory churn, a needless GC/OOM risk).
+         ByteArrayOutputStream var12 = new ByteArrayOutputStream(131072);
          byte[] var6 = new byte[131072];
-         int var7 = 0;
+         int var7;
 
-         while ((var7 = var4.read(var6)) >= 0) {
-            byte[] var8 = new byte[var5.length + var7];
-            System.arraycopy(var5, 0, var8, 0, var5.length);
-            System.arraycopy(var6, 0, var8, var5.length, var7);
-            var5 = var8;
+         while ((var7 = var2.read(var6)) >= 0) {
+            var12.write(var6, 0, var7);
          }
 
+         byte[] var5 = var12.toByteArray();
          var3.setContentLength(var5.length);
          EagleBoardScheduler.verbose("size:" + var5.length);
          String var13 = "txt";
@@ -206,17 +206,35 @@ public class WebServer {
             }
          }
 
-         if (var5 != null || var6 == null || !WebServer.this.sendResponseFile(WebServer.this._htmlDirectory, var6 + ".html", var4)) {
-            if (var5 != null) {
-               EagleBoardScheduler.verbose("FOUND: " + var1 + "." + var6);
-               var5.handle(var1, var3, var4);
-            } else if (!WebServer.this.sendResponseFile(WebServer.this._htmlDirectory, var1, var4)) {
-               if (WebServer.this.sendResponseFile(WebServer.this._htmlDirectory, var1 + ".html", var4)) {
-                  return;
-               }
+         // Safety net: contain any failure of a single request handler here.
+         // The app's SLF4J backend is a no-op, so without this an exception
+         // (or an Error such as OutOfMemoryError from a large response) is a
+         // silent 500 with no diagnostics, and could disrupt later requests.
+         // Catching Throwable logs a full stack trace and returns a clean 500
+         // for THIS request only, so one bad request can never wedge the
+         // server for subsequent page loads.
+         try {
+            if (var5 != null || var6 == null || !WebServer.this.sendResponseFile(WebServer.this._htmlDirectory, var6 + ".html", var4)) {
+               if (var5 != null) {
+                  EagleBoardScheduler.verbose("FOUND: " + var1 + "." + var6);
+                  var5.handle(var1, var3, var4);
+               } else if (!WebServer.this.sendResponseFile(WebServer.this._htmlDirectory, var1, var4)) {
+                  if (WebServer.this.sendResponseFile(WebServer.this._htmlDirectory, var1 + ".html", var4)) {
+                     return;
+                  }
 
-               EagleBoardScheduler.verbose("NOT FOUND: " + var1);
-               var4.sendError(404);
+                  EagleBoardScheduler.verbose("NOT FOUND: " + var1);
+                  var4.sendError(404);
+               }
+            }
+         } catch (Throwable var10) {
+            System.out.println("ERROR handling request " + var1 + ": " + var10);
+            var10.printStackTrace(System.out);
+            if (!var4.isCommitted()) {
+               var4.reset();
+               var4.setStatus(500);
+               var4.setContentType("text/plain");
+               var4.getOutputStream().write(("ERROR: " + var10).getBytes());
             }
          }
       }

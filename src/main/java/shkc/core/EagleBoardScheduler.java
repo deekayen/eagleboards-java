@@ -1022,6 +1022,10 @@ public class EagleBoardScheduler {
                   this.sendError("ERROR: Invalid Status '" + var10.getStatus() + "', expected '" + "Verified" + "'", var3);
                } else if (!"".equals(var10.getRoom()) && !var10.getRoom().equals(var9.getRoom())) {
                   this.sendError("ERROR: Scout Already Assigned Room: " + var10.getRoom(), var3);
+               } else if (var8 == null || var8.trim().length() == 0) {
+                  // No board members: reject cleanly instead of crashing on
+                  // StringTokenizer(null) or silently seating an empty board.
+                  this.sendError("ERROR: No board members selected", var3);
                } else {
                   AdultRecord var11 = EagleBoardScheduler.this._adultRecords.get(var7);
                   ArrayList<AdultRecord> var12 = new ArrayList<>();

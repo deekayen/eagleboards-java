@@ -302,6 +302,10 @@ public class DataRecord extends HashMap<String, String> {
          for (String var13 : var3) {
             var1.append("<userdata name=\"").append(var13).append("\">");
             String var14 = this.getValue(var13);
+            if (var14 == null) {
+               var14 = "";
+            }
+
             htmlify(var1, var14);
             var1.append("</userdata>");
          }
