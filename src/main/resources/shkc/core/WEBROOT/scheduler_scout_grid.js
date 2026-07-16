@@ -34,7 +34,7 @@ function SchedulerScoutGrid(container_id, toolbar_id, title) {
 
    this.toolbar = document.getElementById(toolbar_id);
    this.buttons = {};
-   var names = ["Verify", "Seat", "InProgress", "Complete", "Locate", "Filter", "Reset", "Postpone"];
+   var names = ["Verify", "Seat", "Complete", "Locate", "Filter", "Reset", "Postpone"];
    for (var i = 0; i < names.length; i++) {
       this.buttons[names[i]] = this.toolbar.querySelector("[data-action='" + names[i] + "']");
    }
@@ -63,8 +63,6 @@ function SchedulerScoutGrid(container_id, toolbar_id, title) {
          ProcessVerifyBoard(s_id);
       } else if (id === "Seat") {
          ProcessSeatBoard(s_id);
-      } else if (id === "InProgress") {
-         ProcessInProgressBoard(s_id);
       } else if (id === "Complete") {
          ProcessCompleteBoard(s_id);
       } else if (id === "Postpone") {
@@ -130,46 +128,43 @@ SchedulerScoutGrid.prototype.updateHidden = function (state) {
    this.table.refreshFilter();
 };
 
-SchedulerScoutGrid.prototype.getStatusAlertTime = function (status) {
-   if (status == "Seated") {
-      return SCHEDULER_SeatedAlertTime;
-   } else if (status == "InProgress") {
-      return SCHEDULER_InProgressAlertTime;
+// Minutes-since-seated at which an active board's room card turns yellow
+// (warning) then red (overdue). Board-type specific; configurable via
+// config.csv (see SCHEDULER_*Mins in scheduler_config.js).
+SchedulerScoutGrid.prototype.getYellowTime = function (status, btype) {
+   if (status != "Seated" && status != "InProgress") {
+      return 0;
    }
-   return 0;
+   return (btype == "Final") ? SCHEDULER_FinalYellowTime : SCHEDULER_ProjectYellowTime;
 };
 
-SchedulerScoutGrid.prototype.getStatusReminderTime = function (status) {
-   if (status == "Seated") {
-      return SCHEDULER_SeatedReminderTime;
-   } else if (status == "InProgress") {
-      return SCHEDULER_InProgressReminderTime;
+SchedulerScoutGrid.prototype.getRedTime = function (status, btype) {
+   if (status != "Seated" && status != "InProgress") {
+      return 0;
    }
-   return 0;
+   return (btype == "Final") ? SCHEDULER_FinalRedTime : SCHEDULER_ProjectRedTime;
 };
 
 SchedulerScoutGrid.prototype.checkTimers = function () {
    var this_obj = this;
    this.forEachRow(function (r_id) {
       var status = this_obj.getColumnValue(r_id, "Status");
-      var alert_time = this_obj.getStatusAlertTime(status);
-      var reminder_time = this_obj.getStatusReminderTime(status);
+      var btype = this_obj.getColumnValue(r_id, "BoardType");
+      var yellow_time = this_obj.getYellowTime(status, btype);
+      var red_time = this_obj.getRedTime(status, btype);
 
-      if (alert_time > 0) {
-         var mins = this_obj.getColumnValue(r_id, "MinsSinceLastUpdate");
+      if (yellow_time > 0) {
+         var mins = parseInt(this_obj.getColumnValue(r_id, "MinsSinceLastUpdate"), 10);
          var s_room = this_obj.getColumnValue(r_id, "Room");
 
-         if (parseInt(mins) >= parseInt(alert_time)) {
-            if (typeof this_obj.roomTimerUpdateFunction === "function") {
+         if (typeof this_obj.roomTimerUpdateFunction === "function") {
+            if (red_time > 0 && mins >= red_time) {
                this_obj.lastNotice[r_id] = "" + mins;
-               if (mins < (parseInt(alert_time) + parseInt(reminder_time))) {
-                  this_obj.roomTimerUpdateFunction(s_room, mins, "alert");
-               } else {
-                  this_obj.roomTimerUpdateFunction(s_room, mins, "reminder");
-               }
-            }
-         } else {
-            if (typeof this_obj.roomTimerUpdateFunction === "function") {
+               this_obj.roomTimerUpdateFunction(s_room, mins, "reminder");
+            } else if (mins >= yellow_time) {
+               this_obj.lastNotice[r_id] = "" + mins;
+               this_obj.roomTimerUpdateFunction(s_room, mins, "alert");
+            } else {
                this_obj.roomTimerUpdateFunction(s_room, mins, "okay");
             }
          }
@@ -199,9 +194,9 @@ SchedulerScoutGrid.prototype.updateButtonStatus = function (s_id) {
       this.setButtonStatus(["Verify", "Postpone", "Locate", "Filter"]);
    } else if (status === "Verified") {
       this.setButtonStatus(["Seat", "Reset", "Postpone", "Locate", "Filter"]);
-   } else if (status === "Seated") {
-      this.setButtonStatus(["Reset", "InProgress", "Postpone", "Locate", "Filter"]);
-   } else if (status === "InProgress") {
+   } else if (status === "Seated" || status === "InProgress") {
+      // Seat and Start are merged: seating goes straight to InProgress.
+      // Legacy "Seated" records (if any) are treated the same as active.
       this.setButtonStatus(["Reset", "Complete", "Locate", "Filter"]);
    } else if (status === "Completed") {
       this.setButtonStatus(["Locate", "Filter"]);

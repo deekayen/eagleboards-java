@@ -1064,7 +1064,10 @@ public class EagleBoardScheduler {
                   var9.setScout(var10.getFullName());
                   var9.setLeaders(var22);
                   var10.setRoom(var9.getRoom());
-                  var10.setStatus("Seated");
+                  // Seat and Start are merged: seating a board makes it active
+                  // ("InProgress") in one step. The separate Seated state and
+                  // the Start button were redundant and have been removed.
+                  var10.setStatus("InProgress");
                   var10.setBoardMembers(var23);
                   var10.setBoardMemberIDs(var8);
                   if (var11 != null) {

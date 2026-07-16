@@ -94,14 +94,14 @@
                      <legend>Settings</legend>
                      <div class="cfg-row"><label for="RefreshTimeSecs">Refresh Time (secs):</label>
                         <input type="number" min="1" id="RefreshTimeSecs" name="RefreshTimeSecs" value="10" required/></div>
-                     <div class="cfg-row"><label for="SeatedAlertTimeMins">Seated Alert (mins):</label>
-                        <input type="number" min="0" id="SeatedAlertTimeMins" name="SeatedAlertTimeMins" value="10" required/></div>
-                     <div class="cfg-row"><label for="SeatedReminderTimeMins">Seated Reminder (mins):</label>
-                        <input type="number" min="0" id="SeatedReminderTimeMins" name="SeatedReminderTimeMins" value="10" required/></div>
-                     <div class="cfg-row"><label for="InProgressAlertTimeMins">InProgress Alert (mins):</label>
-                        <input type="number" min="0" id="InProgressAlertTimeMins" name="InProgressAlertTimeMins" value="20" required/></div>
-                     <div class="cfg-row"><label for="InProgressReminderTimeMins">InProgress Reminder (mins):</label>
-                        <input type="number" min="0" id="InProgressReminderTimeMins" name="InProgressReminderTimeMins" value="10" required/></div>
+                     <div class="cfg-row"><label for="ProjectYellowMins">Project Yellow (mins):</label>
+                        <input type="number" min="0" id="ProjectYellowMins" name="ProjectYellowMins" value="25" required/></div>
+                     <div class="cfg-row"><label for="ProjectRedMins">Project Red (mins):</label>
+                        <input type="number" min="0" id="ProjectRedMins" name="ProjectRedMins" value="40" required/></div>
+                     <div class="cfg-row"><label for="FinalYellowMins">Final Yellow (mins):</label>
+                        <input type="number" min="0" id="FinalYellowMins" name="FinalYellowMins" value="40" required/></div>
+                     <div class="cfg-row"><label for="FinalRedMins">Final Red (mins):</label>
+                        <input type="number" min="0" id="FinalRedMins" name="FinalRedMins" value="50" required/></div>
                   </fieldset>
                   <fieldset>
                      <legend>Normal Colors</legend>
@@ -160,8 +160,8 @@
 
          var form = document.getElementById("cfg-form");
 
-         var TIME_FIELDS = ["RefreshTimeSecs", "SeatedAlertTimeMins", "SeatedReminderTimeMins",
-            "InProgressAlertTimeMins", "InProgressReminderTimeMins"];
+         var TIME_FIELDS = ["RefreshTimeSecs", "ProjectYellowMins", "ProjectRedMins",
+            "FinalYellowMins", "FinalRedMins"];
          var COLOR_FIELDS = ["RegisteredColor", "VerifiedColor", "SeatedColor", "InProgressColor",
             "CompletedColor", "PostponedColor", "RegisteredHiColor", "VerifiedHiColor",
             "SeatedHiColor", "InProgressHiColor", "CompletedHiColor", "PostponedHiColor"];

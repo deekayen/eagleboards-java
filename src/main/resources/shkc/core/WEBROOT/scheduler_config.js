@@ -10,10 +10,15 @@
 // ------------------------------------------------------------------------
 
 var SCHEDULER_refreshTime = 10;
-var SCHEDULER_SeatedAlertTime = 10;
-var SCHEDULER_SeatedReminderTime = 5;
-var SCHEDULER_InProgressAlertTime = 20;
-var SCHEDULER_InProgressReminderTime = 10;
+
+// Board-type room-card warning thresholds, in minutes since a board was
+// seated. Yellow = warning, Red = overdue. Defaults below; override in
+// config.csv with columns ProjectYellowMins / ProjectRedMins /
+// FinalYellowMins / FinalRedMins.
+var SCHEDULER_ProjectYellowTime = 25;
+var SCHEDULER_ProjectRedTime = 40;
+var SCHEDULER_FinalYellowTime = 40;
+var SCHEDULER_FinalRedTime = 50;
 
 var SCHEDULER_Config = null;
 
@@ -59,10 +64,10 @@ var SCHEDULER_configReady = fetch("/config-autofill?Name=DEFAULT&fmt=json")
       SCHEDULER_Config = ebParseLooseJSON(text);
       if (SCHEDULER_Config) {
          SCHEDULER_refreshTime = parseInt(SCHEDULER_Config.RefreshTimeSecs, 10) || SCHEDULER_refreshTime;
-         SCHEDULER_SeatedAlertTime = parseInt(SCHEDULER_Config.SeatedAlertTimeMins, 10) || 0;
-         SCHEDULER_SeatedReminderTime = parseInt(SCHEDULER_Config.SeatedReminderTimeMins, 10) || 0;
-         SCHEDULER_InProgressAlertTime = parseInt(SCHEDULER_Config.InProgressAlertTimeMins, 10) || 0;
-         SCHEDULER_InProgressReminderTime = parseInt(SCHEDULER_Config.InProgressReminderTimeMins, 10) || 0;
+         SCHEDULER_ProjectYellowTime = parseInt(SCHEDULER_Config.ProjectYellowMins, 10) || SCHEDULER_ProjectYellowTime;
+         SCHEDULER_ProjectRedTime = parseInt(SCHEDULER_Config.ProjectRedMins, 10) || SCHEDULER_ProjectRedTime;
+         SCHEDULER_FinalYellowTime = parseInt(SCHEDULER_Config.FinalYellowMins, 10) || SCHEDULER_FinalYellowTime;
+         SCHEDULER_FinalRedTime = parseInt(SCHEDULER_Config.FinalRedMins, 10) || SCHEDULER_FinalRedTime;
 
          status2StyleMap["Registered"] = SCHEDULER_Config.RegisteredColor || status2StyleMap["Registered"];
          status2StyleMap["Verified"] = SCHEDULER_Config.VerifiedColor || status2StyleMap["Verified"];

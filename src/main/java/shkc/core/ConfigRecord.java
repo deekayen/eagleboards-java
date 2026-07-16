@@ -26,10 +26,10 @@ public class ConfigRecord extends DataRecord {
       "ID",
       "Name",
       "RefreshTimeSecs",
-      "SeatedAlertTimeMins",
-      "SeatedReminderTimeMins",
-      "InProgressAlertTimeMins",
-      "InProgressReminderTimeMins",
+      "ProjectYellowMins",
+      "ProjectRedMins",
+      "FinalYellowMins",
+      "FinalRedMins",
       "RegisteredColor",
       "VerifiedColor",
       "SeatedColor",
@@ -51,10 +51,12 @@ public class ConfigRecord extends DataRecord {
    public ConfigRecord(Map var1) {
       super("CONFIG", COLUMNS, var1);
       this.setIfNotSet("RefreshTimeSecs", "30");
-      this.setIfNotSet("SeatedAlertTimeMins", "10");
-      this.setIfNotSet("SeatedReminderTimeMins", "10");
-      this.setIfNotSet("InProgressAlertTimeMins", "20");
-      this.setIfNotSet("InProgressReminderTimeMins", "10");
+      // Minutes since a board was seated at which its room card turns yellow
+      // (warning) then red (overdue), per board type.
+      this.setIfNotSet("ProjectYellowMins", "25");
+      this.setIfNotSet("ProjectRedMins", "40");
+      this.setIfNotSet("FinalYellowMins", "40");
+      this.setIfNotSet("FinalRedMins", "50");
       this.setIfNotSet("RegisteredColor", "#ffcccc");
       this.setIfNotSet("VerifiedColor", "#ffffcc");
       this.setIfNotSet("SeatedColor", "#ccffff");

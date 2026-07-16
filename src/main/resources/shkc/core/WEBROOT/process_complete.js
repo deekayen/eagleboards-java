@@ -23,7 +23,7 @@ function ProcessCompleteBoard(s_id) {
          + "<option value='Suspended'>Suspended</option>"
          + "<option value='NotApproved'>NotApproved</option>"
          + "</select></label><br/><br/>"
-         + "<label>Notes:<br/><textarea name='Notes' rows='4' style='width: 300px;'>Completion Notes...</textarea></label>",
+         + "<label>Notes:<br/><textarea name='Notes' rows='4' style='width: 300px;'></textarea></label>",
          [{ name: "Complete", label: "Complete" }, { name: "Cancel", label: "Cancel" }],
          function (name, body) {
             if (name == "Complete") {
