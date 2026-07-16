@@ -60,3 +60,37 @@ jobs:
           test -f smokerun/scouts.csv && grep -q "Smoke" smokerun/scouts.csv
           kill $SRV
           echo "runtime smoke passed on ${{ matrix.os }}"
+      - name: SignUpGenius live API check
+        # One leg only, push only: secrets are absent on fork/Dependabot PRs,
+        # and one API call per commit is plenty.
+        if: matrix.os == 'ubuntu-latest' && github.event_name == 'push'
+        shell: bash
+        env:
+          SUG_KEY: ${{ secrets.SUG_KEY }}
+        run: |
+          if [ -z "$SUG_KEY" ]; then
+            echo "SUG_KEY secret not set — skipping live API check."
+            exit 0
+          fi
+          # PII rule: the API returns real registrant names/emails. The app is
+          # run WITHOUT -verbose (per-registrant log lines are verbose-gated)
+          # and the raw log is never printed — only these coarse markers.
+          # GitHub also masks the secret value in any log output.
+          NEW_JAR=$(ls target/eagleboardscheduler-*.jar | grep -v original- | head -1)
+          echo 'Type,ID,Last,First,Email,Phone,UnitType,Unit,UnitName,ProjectReview,FinalBoard,RegTime,Room,Flags,Sel,BoardHistory' > SugAdults.csv
+          java -jar "$NEW_JAR" -a SugAdults.csv -c config.csv -port 18098 -d sugrun -sugkey "$SUG_KEY" > sug.log 2>&1 &
+          SRV=$!
+          verdict=""
+          for i in $(seq 1 60); do
+            if grep -q "SignupID :" sug.log; then verdict=imported; break; fi
+            if grep -q "no valid" sug.log; then verdict=none-active; break; fi
+            if grep -qE "error connecting to SignUpGenius|Exception" sug.log; then verdict=error; break; fi
+            sleep 1
+          done
+          kill $SRV 2>/dev/null || true
+          case "$verdict" in
+            imported)    echo "PASS: API key valid; active signup found and registrations imported." ;;
+            none-active) echo "PASS: API key valid and response parsed; no Eagle Board signup currently in date range." ;;
+            error)       echo "FAIL: SignUpGenius API error:"; grep -E "error connecting|Exception" sug.log | sed "s/$SUG_KEY/***/g" | head -3; exit 1 ;;
+            *)           echo "FAIL: no verdict within 60s"; exit 1 ;;
+          esac
