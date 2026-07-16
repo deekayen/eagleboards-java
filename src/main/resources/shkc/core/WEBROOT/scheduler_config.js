@@ -1,185 +1,230 @@
 // ------------------------------------------------------------------------
-// -- $Id: scheduler_config.js,v 1.2 2015/02/18 01:16:56 sking Exp $
+// scheduler_config.js — scheduler configuration + shared UI helpers.
+//
+// Loads the DEFAULT config record (refresh/alert timings and the status
+// row colors) from /config-autofill?Name=DEFAULT&fmt=json. The server
+// emits pseudo-JSON with unquoted keys, so it is parsed with a regex.
+//
+// Also provides the small dialog/toast/modal helpers used by the
+// scheduler page and the process_*.js board-lifecycle handlers.
 // ------------------------------------------------------------------------
-//-- Copyright (c) 2001-2010 by Monfox, LLC.  ALL RIGHTS RESERVED
-//--
-//-- This software, and the ideas, mechanisms and algorithms expressed
-//-- therein, is the intellectual and material property of Monfox, LLC
-//-- and is provided for use under applicable license agreement only.
-//-- No title to or ownership of the software is hereby transferred. No
-//-- license to copy, modify, distribute, translate, decompile, reverse
-//-- engineer or otherwise remanufacture this software except under the
-//-- above license is granted.
-//------------------------------------------------------------------------
 
+var SCHEDULER_refreshTime = 10;
+var SCHEDULER_SeatedAlertTime = 10;
+var SCHEDULER_SeatedReminderTime = 5;
+var SCHEDULER_InProgressAlertTime = 20;
+var SCHEDULER_InProgressReminderTime = 10;
 
-SCHEDULER_refreshTime = 10;
-SCHEDULER_SeatedAlertTime = 10;
-SCHEDULER_SeatedReminderTime = 5;
-SCHEDULER_InProgressAlertTime = 20;
-SCHEDULER_InProgessReminderTime = 10;
-
-
-SCHEDULER_Config = null;
-
-var r = window.dhx4.ajax.getSync("/config-autofill?Name=DEFAULT&fmt=json");
-if (r != null)
-{
-   SCHEDULER_Config = window.dhx4.s2j(r.xmlDoc.responseText); // convert response to json object); // script will wait for response
-
-   if (SCHEDULER_Config)
-   {
-      SCHEDULER_refreshTime = SCHEDULER_Config.RefreshTimeSecs;
-      SCHEDULER_SeatedAlertTime = SCHEDULER_Config.SeatedAlertTimeMins;
-      SCHEDULER_SeatedReminderTime = SCHEDULER_Config.SeatedReminderTimeMins;
-      SCHEDULER_InProgressAlertTime = SCHEDULER_Config.InProgressAlertTimeMins;
-      SCHEDULER_InProgressReminderTime = SCHEDULER_Config.InProgressReminderTimeMins;
-   }
-   console.log(SCHEDULER_Config);
-
-}
-
-
+var SCHEDULER_Config = null;
 
 var status2StyleMap = {};
 var status2SelectedStyleMap = {};
 
-//status2StyleMap["Registered"] = "background-color: #A60835;";
-//status2StyleMap["Verified"] = "background-color: #B07709;";
-//status2StyleMap["Seated"] = "background-color: #098CB0;";
-//status2StyleMap["InProgress"] = "background-color: #339900;";
-//status2StyleMap["Completed"] = "background-color: #ffffff;";
-//status2StyleMap["Postponed"] = "background-color: #eeeeee;";
+function SCHEDULER_setDefaultColors() {
+   status2StyleMap["Registered"] = "#ffcccc";
+   status2StyleMap["Verified"] = "#ffffcc";
+   status2StyleMap["Seated"] = "#ccffff";
+   status2StyleMap["InProgress"] = "#ccffcc";
+   status2StyleMap["Completed"] = "#ffffff";
+   status2StyleMap["Postponed"] = "#909090";
 
-
-if (SCHEDULER_Config != null)
-{
-   status2StyleMap["Registered"] = "background-color: " + SCHEDULER_Config.RegisteredColor;
-   status2StyleMap["Verified"] = "background-color: " + SCHEDULER_Config.VerifiedColor;
-   status2StyleMap["Seated"] = "background-color: " + SCHEDULER_Config.SeatedColor;
-   status2StyleMap["InProgress"] = "background-color: " + SCHEDULER_Config.InProgressColor;
-   status2StyleMap["Completed"] = "background-color: " + SCHEDULER_Config.CompletedColor;
-   status2StyleMap["Postponed"] = "background-color:" + SCHEDULER_Config.PostponedColor;
-
-   status2SelectedStyleMap["Registered"] = "text-decoration: underline !important; background-color: " + SCHEDULER_Config.RegisteredHiColor;
-   status2SelectedStyleMap["Verified"] = "text-decoration: underline !important;background-color:  " + SCHEDULER_Config.VerifiedHiColor;
-   status2SelectedStyleMap["Seated"] = "text-decoration: underline !important;background-color: " + SCHEDULER_Config.SeatedHiColor;
-   status2SelectedStyleMap["InProgress"] = "text-decoration: underline !important; background-color:  " + SCHEDULER_Config.InProgressHiColor;
-   status2SelectedStyleMap["Completed"] = "text-decoration: underline !important; background-color:  " + SCHEDULER_Config.CompletedHiColor;
-   status2SelectedStyleMap["Postponed"] = "text-decoration: underline !important; background-color: " + SCHEDULER_Config.PostponedHiColor;
-
-}
-else
-{
-   status2StyleMap["Registered"] = "background-color: #A60835;";
-   status2StyleMap["Verified"] = "background-color: #B07709;";
-   status2StyleMap["Seated"] = "background-color: #098CB0;";
-   status2StyleMap["InProgress"] = "background-color: #339900;";
-   status2StyleMap["Completed"] = "background-color: #ffffff;";
-   status2StyleMap["Postponed"] = "background-color: #eeeeee;";
-
-
-   status2SelectedStyleMap["Registered"] = "text-decoration: underline !important; background-color: #ff3366; border-top-width: 1px; border-top-color:black; color: #ffffff;";
-   status2SelectedStyleMap["Verified"] = "text-decoration: underline !important;background-color: #FF9933; color: #ffffff;";
-   status2SelectedStyleMap["Seated"] = "text-decoration: underline !important;background-color: #FFCC66; color: #ffffff;";
-   status2SelectedStyleMap["InProgress"] = "text-decoration: underline !important; background-color: #0099ff; color: #ffffff;";
-   status2SelectedStyleMap["Completed"] = "text-decoration: underline !important; background-color: #eeeeee; color: #ffffff;";
-   status2SelectedStyleMap["Postponed"] = "text-decoration: underline !important; background-color: #cccccc; color: #ffffff;";
-
+   status2SelectedStyleMap["Registered"] = "#ff6666";
+   status2SelectedStyleMap["Verified"] = "#ffff66";
+   status2SelectedStyleMap["Seated"] = "#66ffff";
+   status2SelectedStyleMap["InProgress"] = "#66ff66";
+   status2SelectedStyleMap["Completed"] = "#eeeeee";
+   status2SelectedStyleMap["Postponed"] = "#9f7f7f";
 }
 
-var status2numMap = {};
+SCHEDULER_setDefaultColors();
 
-status2numMap["Registered"] = 0;
-status2numMap["Verified"] = 1;
-status2numMap["Seated"] = 2;
-status2numMap["InProgress"] = 3;
-status2numMap["Completed"] = 4;
-status2numMap["Postponed"] = 5;
+// The server's toJSON emits keys without quotes: {Name: "DEFAULT", ...}
+function ebParseLooseJSON(text) {
+   var out = {};
+   var found = false;
+   var re = /([A-Za-z0-9_]+):\s*"((?:[^"\\]|\\.)*)"/g;
+   var m;
+   while ((m = re.exec(text)) !== null) {
+      out[m[1]] = m[2];
+      found = true;
+   }
+   return found ? out : null;
+}
 
-function sort2num(status)
-{
+// Resolves once the config record has been fetched (or failed and the
+// defaults kept). Grids wait on this before painting status colors.
+var SCHEDULER_configReady = fetch("/config-autofill?Name=DEFAULT&fmt=json")
+   .then(function (r) { return r.text(); })
+   .then(function (text) {
+      SCHEDULER_Config = ebParseLooseJSON(text);
+      if (SCHEDULER_Config) {
+         SCHEDULER_refreshTime = parseInt(SCHEDULER_Config.RefreshTimeSecs, 10) || SCHEDULER_refreshTime;
+         SCHEDULER_SeatedAlertTime = parseInt(SCHEDULER_Config.SeatedAlertTimeMins, 10) || 0;
+         SCHEDULER_SeatedReminderTime = parseInt(SCHEDULER_Config.SeatedReminderTimeMins, 10) || 0;
+         SCHEDULER_InProgressAlertTime = parseInt(SCHEDULER_Config.InProgressAlertTimeMins, 10) || 0;
+         SCHEDULER_InProgressReminderTime = parseInt(SCHEDULER_Config.InProgressReminderTimeMins, 10) || 0;
+
+         status2StyleMap["Registered"] = SCHEDULER_Config.RegisteredColor || status2StyleMap["Registered"];
+         status2StyleMap["Verified"] = SCHEDULER_Config.VerifiedColor || status2StyleMap["Verified"];
+         status2StyleMap["Seated"] = SCHEDULER_Config.SeatedColor || status2StyleMap["Seated"];
+         status2StyleMap["InProgress"] = SCHEDULER_Config.InProgressColor || status2StyleMap["InProgress"];
+         status2StyleMap["Completed"] = SCHEDULER_Config.CompletedColor || status2StyleMap["Completed"];
+         status2StyleMap["Postponed"] = SCHEDULER_Config.PostponedColor || status2StyleMap["Postponed"];
+
+         status2SelectedStyleMap["Registered"] = SCHEDULER_Config.RegisteredHiColor || status2SelectedStyleMap["Registered"];
+         status2SelectedStyleMap["Verified"] = SCHEDULER_Config.VerifiedHiColor || status2SelectedStyleMap["Verified"];
+         status2SelectedStyleMap["Seated"] = SCHEDULER_Config.SeatedHiColor || status2SelectedStyleMap["Seated"];
+         status2SelectedStyleMap["InProgress"] = SCHEDULER_Config.InProgressHiColor || status2SelectedStyleMap["InProgress"];
+         status2SelectedStyleMap["Completed"] = SCHEDULER_Config.CompletedHiColor || status2SelectedStyleMap["Completed"];
+         status2SelectedStyleMap["Postponed"] = SCHEDULER_Config.PostponedHiColor || status2SelectedStyleMap["Postponed"];
+      }
+      console.log(SCHEDULER_Config);
+      return SCHEDULER_Config;
+   })
+   .catch(function (e) {
+      console.log("config load failed, using defaults: " + e);
+      return null;
+   });
+
+var status2numMap = {
+   "Registered": 0,
+   "Verified": 1,
+   "Seated": 2,
+   "InProgress": 3,
+   "Completed": 4,
+   "Postponed": 5
+};
+
+function sort2num(status) {
    var v = status2numMap[status];
-
-   if (v != null)
-   {
-      return v;
-   }
-   else
-   {
-      return -1;
-   }
+   return (v != null) ? v : -1;
 }
 
-function sort_status(a, b, order)
-{
-   var n = sort2num(a);
-   var m = sort2num(b);
-
-   if (order == "asc")
-      return n > m ? 1 : -1;
-   else
-      return n < m ? 1 : -1;
+// Tabulator column sorter for the Status column.
+function sort_status(a, b) {
+   return sort2num(a) - sort2num(b);
 }
-;
 
-
-//var status2iconMap = {};
-//status2iconMap["Registered"] = "/images/24x24/status_red.png";
-//status2iconMap["Verified"] = "/images/24x24/status_orange.png";
-//status2iconMap["Seated"] = "/images/24x24/status_yellow.png";
-//status2iconMap["InProgress"] = "/images/24x24/status_blue.png";
-//status2iconMap["Completed"] = "/images/24x24/status_green.png";
-//status2iconMap["Postponed"] = "/images/24x24/status_grey.png";
-
-
-
-//var status2SelectedStyleMap = {};
-//status2SelectedStyleMap["Registered"] = "text-decoration: underline !important; color: #ffffff;";
-//status2SelectedStyleMap["Verified"] = "text-decoration: underline !important;background-color: #fff49e;";
-//status2SelectedStyleMap["Seated"] = "text-decoration: underline !important;background-color: #fff49e;";
-//status2SelectedStyleMap["InProgress"] = "text-decoration: underline !important; background-color: #fff49e;";
-//status2SelectedStyleMap["Completed"] = "text-decoration: underline !important; background-color: #fff49e;";
-//status2SelectedStyleMap["Postponed"] = "text-decoration: underline !important; background-color: #fff49e;";
-
-//function status2icon(status)
-//{
-//   return status2iconMap[status];//
-//}
-
-
-function status2style(status, selected)
-{
-   if (selected)
-   {
-      //return "background-color: #fff49e; color: #555555;";
-
+// Returns {background, selected} styling info for a status.
+function status2style(status, selected) {
+   if (selected) {
       return status2SelectedStyleMap[status];
    }
-   else
-   {
-      //return "background-image: /images/24x24/status_green.png; background-repeat: repeat-x;";
-
-      return status2StyleMap[status];
-
-   }
+   return status2StyleMap[status];
 }
 
-function cell_value(grid, row_id, col_id)
-{
-   var col_idx = grid.getColIndexById(col_id);
-   //alert("col-id" + col_idx)
-
-   if (col_idx >= 0)
-   {
-      var cell = grid.cells(row_id, col_idx);
-      // alert("cell: " + cell)
-
-      if (cell)
-      {
-         return cell.getValue();
-      }
+// Applies status coloring to a Tabulator row element.
+function SCHEDULER_styleRowByStatus(row, selected) {
+   var el = row.getElement();
+   var status = row.getData().Status;
+   var bg = status2style(status, selected);
+   if (bg) {
+      el.style.backgroundColor = bg;
+   } else {
+      el.style.backgroundColor = "";
    }
-   return null;
+   el.style.textDecoration = selected ? "underline" : "";
+   el.style.color = "#000000";
 }
 
+// ------------------------------------------------------------------------
+// Dialog / toast / modal helpers (vanilla toast, confirm and
+// modal-form dialog helpers).
+// ------------------------------------------------------------------------
+
+function ebToastContainer() {
+   var c = document.getElementById("eb-toasts");
+   if (!c) {
+      c = document.createElement("div");
+      c.id = "eb-toasts";
+      document.body.appendChild(c);
+   }
+   return c;
+}
+
+// kind: "error" | "ok" | "warn" | "info"
+function ebToast(title, html, kind, expireMs) {
+   var t = document.createElement("div");
+   t.className = "eb-toast eb-toast-" + (kind || "info");
+   t.innerHTML = "<div class='eb-toast-title'>" + title + "</div><div class='eb-toast-body'>" + html + "</div>";
+   t.addEventListener("click", function () {
+      if (t.parentNode) { t.parentNode.removeChild(t); }
+   });
+   ebToastContainer().appendChild(t);
+   if (expireMs !== -1) {
+      setTimeout(function () {
+         if (t.parentNode) { t.parentNode.removeChild(t); }
+      }, expireMs || 6000);
+   }
+   return t;
+}
+
+function ebAlert(title, html) {
+   ebToast(title, html, "error", 8000);
+}
+
+function ebMessage(title, html) {
+   ebToast(title, html, "ok", 6000);
+}
+
+function ebModalOverlay() {
+   var ov = document.createElement("div");
+   ov.className = "eb-modal-overlay";
+   return ov;
+}
+
+// Confirm dialog. callback(true|false).
+function ebConfirm(title, html, callback) {
+   var ov = ebModalOverlay();
+   var box = document.createElement("div");
+   box.className = "eb-modal";
+   box.innerHTML = "<div class='eb-modal-title'>" + title + "</div>"
+      + "<div class='eb-modal-body'>" + html + "</div>"
+      + "<div class='eb-modal-buttons'>"
+      + "<button class='eb-ok'>OK</button>"
+      + "<button class='eb-cancel'>Cancel</button>"
+      + "</div>";
+   ov.appendChild(box);
+   document.body.appendChild(ov);
+   function done(result) {
+      document.body.removeChild(ov);
+      if (callback) { callback(result); }
+   }
+   box.querySelector(".eb-ok").addEventListener("click", function () { done(true); });
+   box.querySelector(".eb-cancel").addEventListener("click", function () { done(false); });
+   box.querySelector(".eb-ok").focus();
+}
+
+// Modal with arbitrary body HTML and named buttons.
+// buttons: [{name, label}], callback(name, bodyElement) — return false from
+// callback to keep the dialog open (for validation).
+function ebModalForm(title, bodyHtml, buttons, callback) {
+   var ov = ebModalOverlay();
+   var box = document.createElement("div");
+   box.className = "eb-modal";
+   var btnHtml = "";
+   for (var i = 0; i < buttons.length; i++) {
+      btnHtml += "<button data-name='" + buttons[i].name + "'>" + buttons[i].label + "</button>";
+   }
+   box.innerHTML = "<div class='eb-modal-title'>" + title + "</div>"
+      + "<div class='eb-modal-body'></div>"
+      + "<div class='eb-modal-buttons'>" + btnHtml + "</div>";
+   var body = box.querySelector(".eb-modal-body");
+   body.innerHTML = bodyHtml;
+   ov.appendChild(box);
+   document.body.appendChild(ov);
+   var btns = box.querySelectorAll(".eb-modal-buttons button");
+   for (var b = 0; b < btns.length; b++) {
+      (function (btn) {
+         btn.addEventListener("click", function () {
+            var keep = callback && callback(btn.getAttribute("data-name"), body);
+            if (keep !== false) {
+               document.body.removeChild(ov);
+            }
+         });
+      })(btns[b]);
+   }
+   var first = body.querySelector("input,select,textarea");
+   if (first) { first.focus(); }
+   return { close: function () { if (ov.parentNode) { document.body.removeChild(ov); } }, body: body };
+}

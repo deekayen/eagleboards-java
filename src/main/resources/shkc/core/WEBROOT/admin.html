@@ -3,643 +3,489 @@
       <title>Eagle Board Admin Page</title>
 
       <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
-      <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
-      <link rel="stylesheet" type="text/css" href="/dhtmlx/dhtmlx.css"/>
-      <link rel="stylesheet" type="text/css" href="/dhtmlx/skins/terrace/dhtmlx.css"/>
+      <link rel="stylesheet" type="text/css" href="/tabulator/tabulator.min.css"/>
       <link rel="stylesheet" type="text/css" href="scheduler.css"/>
 
-      <script src="/dhtmlx/dhtmlx.js"></script>
+      <script src="/tabulator/tabulator.min.js"></script>
+      <script src="/eb-data.js"></script>
+
+      <style>
+         .eb-tabbar {
+            display: flex;
+            gap: 2px;
+            border-bottom: 1px solid #a4bed4;
+            margin-top: 8px;
+         }
+         .eb-tabbar button {
+            padding: 8px 18px;
+            border: 1px solid #a4bed4;
+            border-bottom: none;
+            border-radius: 4px 4px 0 0;
+            background: #f0f4f8;
+            cursor: pointer;
+            font-size: 14px;
+         }
+         .eb-tabbar button.active {
+            background: #ffffff;
+            font-weight: bold;
+         }
+         .eb-panel {
+            display: none;
+            border: 1px solid #a4bed4;
+            border-top: none;
+            background: #ffffff;
+            padding: 6px;
+         }
+         .eb-panel.active {
+            display: block;
+         }
+         .eb-toolbar {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 4px 2px 8px 2px;
+            flex-wrap: wrap;
+         }
+         .eb-toolbar button, .eb-toolbar a.eb-btn {
+            padding: 4px 12px;
+            border: 1px solid #a4bed4;
+            border-radius: 3px;
+            background: #f0f4f8;
+            color: #333;
+            text-decoration: none;
+            font-size: 13px;
+            cursor: pointer;
+            display: inline-block;
+         }
+         .eb-toolbar .eb-sep {
+            border-left: 1px solid #a4bed4;
+            height: 20px;
+         }
+         .eb-toolbar label {
+            font-size: 13px;
+         }
+         .eb-toolbar input, .eb-toolbar select {
+            font-size: 13px;
+            padding: 2px 4px;
+         }
+         .eb-grid {
+            height: 430px;
+         }
+      </style>
    </head>
    <body>
       <h1>Eagle Board Admin Page</h1>
       <p>
          <a href="/scheduler">Scheduler Page</a>
       </p>
-      <div id="layoutObj" style="border:1px solid #A4BED4; background-color:white;width:100%; height:100%;">
+
+      <div class="eb-tabbar" id="tabbar">
+         <button data-tab="boards" class="active">Boards</button>
+         <button data-tab="scouts">Scouts</button>
+         <button data-tab="scheduled">Scouts Scheduled</button>
+         <button data-tab="adults">Adults</button>
+         <button data-tab="history">Adult History</button>
+         <button data-tab="rooms">Rooms</button>
       </div>
-      <table width="100%">
-         <tr>
-            <td>
-               <div id="gridbox3" style="width:600px;height:270px;background-color:white;"></div>
-            </td>
-         </tr>
-      </table>
+
+      <div class="eb-panel active" id="panel-boards">
+         <div class="eb-toolbar">
+            <button id="boards-refresh">Refresh</button>
+            <a class="eb-btn" href="/scout-cells?cols=Last,First,Phone,Email,BoardType,DOB,UnitType,Unit,Leader,Status,Result,BoardChair,BoardMembers,Notes&amp;fmt=csv&amp;filename=Report.csv">CSV</a>
+            <a class="eb-btn" href="/scout-cells?cols=Last,First,Phone,Email,BoardType,DOB,UnitType,Unit,Leader,Status,Result,BoardChair,BoardMembers,Notes&amp;fmt=data&amp;filename=Report.xml">XML</a>
+            <span class="eb-sep"></span>
+            <button id="boards-delete">Delete</button>
+         </div>
+         <div class="eb-grid" id="grid-boards"></div>
+      </div>
+
+      <div class="eb-panel" id="panel-scouts">
+         <div class="eb-toolbar">
+            <button id="scouts-refresh">Refresh</button>
+            <a class="eb-btn" href="/scout-cells?cols=RegTime,Last,First,DOB,UnitType,Unit,Leader,Email,Phone,BoardType,Room,Status,Result&amp;fmt=csv&amp;filename=Scouts.csv">CSV</a>
+            <a class="eb-btn" href="/scout-cells?cols=RegTime,Last,First,DOB,UnitType,Unit,Leader,Email,Phone,BoardType,Room,Status,Result&amp;fmt=data&amp;filename=Scouts.xml">XML</a>
+            <span class="eb-sep"></span>
+            <button id="scouts-delete">Delete</button>
+         </div>
+         <div class="eb-grid" id="grid-scouts"></div>
+      </div>
+
+      <div class="eb-panel" id="panel-scheduled">
+         <div class="eb-toolbar">
+            <button id="scheduled-refresh">Refresh</button>
+            <a class="eb-btn" href="/scouts-scheduled-cells?cols=Last,First,DOB,UnitType,Unit,Leader,Email,Phone,BoardType&amp;fmt=csv&amp;filename=Scouts.csv">CSV</a>
+            <a class="eb-btn" href="/scouts-scheduled-cells?cols=Last,First,DOB,UnitType,Unit,Leader,Email,Phone,BoardType&amp;fmt=data&amp;filename=Scouts.xml">XML</a>
+            <span class="eb-sep"></span>
+            <button id="scheduled-delete">Delete</button>
+         </div>
+         <div class="eb-grid" id="grid-scheduled"></div>
+      </div>
+
+      <div class="eb-panel" id="panel-adults">
+         <div class="eb-toolbar">
+            <button id="adults-refresh">Refresh</button>
+            <a class="eb-btn" href="/adult-cells?cols=RegTime,Last,First,UnitType,Unit,Email,Phone,FinalBoard,ProjectReview,Room&amp;fmt=csv&amp;filename=Adults.csv">CSV</a>
+            <a class="eb-btn" href="/adult-cells?cols=RegTime,Last,First,UnitType,Unit,Email,Phone,FinalBoard,ProjectReview,Room&amp;fmt=data&amp;filename=Adults.xml">XML</a>
+            <span class="eb-sep"></span>
+            <button id="adults-delete">Delete</button>
+         </div>
+         <div class="eb-grid" id="grid-adults"></div>
+      </div>
+
+      <div class="eb-panel" id="panel-history">
+         <div class="eb-toolbar">
+            <button id="history-refresh">Refresh</button>
+            <a class="eb-btn" href="/adult-history-cells?cols=RegTime,Last,First,UnitType,Unit,Email,Phone,FinalBoard,ProjectReview&amp;fmt=csv&amp;filename=AdultHistory.csv">CSV</a>
+            <a class="eb-btn" href="/adult-history-cells?cols=RegTime,Last,First,UnitType,Unit,Email,Phone,FinalBoard,ProjectReview&amp;fmt=data&amp;filename=AdultHistory.xml">XML</a>
+            <span class="eb-sep"></span>
+            <button id="history-delete">Delete</button>
+         </div>
+         <div class="eb-grid" id="grid-history"></div>
+      </div>
+
+      <div class="eb-panel" id="panel-rooms">
+         <div class="eb-toolbar">
+            <button id="rooms-refresh">Refresh</button>
+            <a class="eb-btn" href="/room-cells?cols=Room,BoardType,Scout,Leaders&amp;fmt=csv&amp;filename=Rooms.csv">CSV</a>
+            <a class="eb-btn" href="/room-cells?cols=Room,BoardType,Scout,Leaders&amp;fmt=data&amp;filename=Rooms.xml">XML</a>
+            <span class="eb-sep"></span>
+            <label>Room #: <input type="text" id="rooms-add-room" size="6"/></label>
+            <label>BoardType:
+               <select id="rooms-add-type">
+                  <option value="Final">Final</option>
+                  <option value="Project">Project</option>
+               </select>
+            </label>
+            <button id="rooms-add">Add</button>
+            <span class="eb-sep"></span>
+            <button id="rooms-remove">Remove</button>
+         </div>
+         <div class="eb-grid" id="grid-rooms"></div>
+      </div>
+
       <script>
-         var myTabbar = new dhtmlXTabBar("layoutObj");
-         myTabbar.setSkin("dhx_terrace");
-         myTabbar.enableAutoReSize();
-         myTabbar.setSizes();
-         //myTabbar.enableAutoSize();
-         //myTabbar.enableScroll();
+         var UNIT_TYPES = ["Troop", "Team", "Crew", "Ship", "Pack"];
+         var BOARD_TYPES = ["Project", "Final"];
+         var STATUSES = ["Waiting", "InProgress", "Completed", "Postponed"];
+         var RESULTS = ["Approved", "Suspended", "NotApproved", "Postponed"];
+         var ROLES = ["Chair", "Member", "Unavailable"];
 
-         myTabbar.addTab("boards", "Boards", null, null, true);
-         myTabbar.addTab("scouts", "Scouts");
-         myTabbar.addTab("scheduled", "Scouts Scheduled");
-         myTabbar.addTab("adults", "Adults");
-         myTabbar.addTab("history", "Adult History");
+         function textCol(title, field, width, extra) {
+            var col = {
+               title: title, field: field, editor: "input",
+               headerFilter: "input"
+            };
+            if (width) { col.width = width; }
+            for (var k in (extra || {})) { col[k] = extra[k]; }
+            return col;
+         }
 
-         myTabbar.addTab("rooms", "Rooms");
+         function selectCol(title, field, width, values) {
+            return {
+               title: title, field: field, width: width,
+               editor: "list", editorParams: { values: values },
+               headerFilter: "list",
+               headerFilterParams: { valuesLookup: true, clearable: true }
+            };
+         }
 
+         function roCol(title, field, width, extra) {
+            var col = { title: title, field: field, headerFilter: "input" };
+            if (width) { col.width = width; }
+            for (var k in (extra || {})) { col[k] = extra[k]; }
+            return col;
+         }
 
-         scoutToolbar = myTabbar.cells("scouts").attachToolbar();
-         scoutGrid = myTabbar.cells("scouts").attachGrid();
+         // Build one grid + wire toolbar. cfg: {el, cellsPath, updatePath, cols,
+         // columns, refreshBtn, deleteBtn, deleteNoun}
+         function makeGrid(cfg) {
+            var table = new Tabulator(cfg.el, {
+               data: [],
+               index: "id",
+               layout: "fitColumns",
+               height: "100%",
+               selectableRows: 1,
+               columns: cfg.columns,
+               placeholder: "No data"
+            });
 
-         scoutToolbar.setIconsPath("/images/32x32/");
-         //leaderToobar.addButton("reload", 1, "", "open.gif", "open_dis.gif");
-         scoutToolbar.addButton("Refresh", 1, "Refresh", "view-refresh-7.png", "view-refresh-7.png");
-         //leaderToolbar.addButton("Save", 2, "Save", "document-save-5.png", "document-save-5.png");
-         scoutToolbar.addButton("CSV", 2, "CSV", "application-vnd.ms-excel.png", "application-vnd.ms-excel.png");
-         scoutToolbar.addButton("XML", 3, "XML", "text-xml.png", "text-xml.png");
-
-         scoutToolbar.addSpacer("XML");
-
-         scoutToolbar.addButton("Delete", 4, "Delete", "edit-delete-6.png", "edit-delete-6.png");
-
-         scoutToolbar.attachEvent("onClick", function (id) {
-            if (id == "Refresh")
-            {
-               scoutGrid.updateFromXML("/scout-cells?cols=RegTime,Last,First,DOB,UnitType,Unit,Leader,Email,Phone,BoardType,Room,Status,Result", true, true);
-            } else if (id == "CSV")
-            {
-               window.location.href = "/scout-cells?cols=RegTime,Last,First,DOB,UnitType,Unit,Leader,Email,Phone,BoardType,Room,Status,Result&fmt=csv&filename=Scouts.csv";
-               // scoutGrid.loadXML("/scout-cells?cols=RegTime,Last,First,DOB,UnitType,Unit,Leader,Email,Phone,BoardType,Room,Status");
-            } else if (id == "XML")
-            {
-               window.location.href = "/scout-cells?cols=RegTime,Last,First,DOB,UnitType,Unit,Leader,Email,Phone,BoardType,Room,Status,Result&fmt=data&filename=Scouts.xml";
-               // scoutGrid.loadXML("/scout-cells?cols=RegTime,Last,First,DOB,UnitType,Unit,Leader,Email,Phone,BoardType,Room,Status");
-            } else if (id == "Delete")
-            {
-               var rid = scoutGrid.getSelectedRowId();
-               var last = scoutGrid.cells(rid, 1).getValue();
-               var first = scoutGrid.cells(rid, 2).getValue();
-
-               var res = window.confirm("Are you sure you want to delete: " + last + ", " + first + " ?");
-               if (res)
-               {
-                  scoutGrid.deleteRow(rid);
-               }
+            function reload() {
+               return ebFetchRows(cfg.cellsPath, cfg.cols).then(function (rows) {
+                  return table.replaceData(rows);
+               }).catch(function () {
+                  alert("Failed to load data from " + cfg.cellsPath);
+               });
             }
-         });
 
+            table.on("tableBuilt", reload);
 
-         //mygrid = new dhtmlXGridObject('gridbox3');
-         scoutGrid.selMultiRows = false;
-         scoutGrid.setImagePath("/dhtmlx/skins/terrace/imgs/dhxgrid_terrace/");
-         scoutGrid.setHeader("In,Last,First,DOB,UType,Unit,Leader,Email,Phone,Board,Room,Status,Result");
-         scoutGrid.setColumnIds("RegTime,Last,First,DOB,UnitType,Unit,Leader,Email,Phone,BoardType,Room,Status,Result");
-
-         scoutGrid.setInitWidths("60,120,120,80,70,60,150,*,150,80,80,100,100");
-         scoutGrid.setColAlign("center,left,left,left,left,left,left,left,left,left,left,left,left,");
-         scoutGrid.setColTypes("ro,ed,ed,ed,coro,ed,ed,ed,ed,coro,ed,coro,coro");
-         scoutGrid.setColSorting("time, str,str,str,str,str,str,str,str,str,str,str,str,str");
-         scoutGrid.attachHeader("#text_filter,#text_filter,#text_filter,#select_filter,#select_filter,#select_filter,#text_filter,#text_filter,#text_filter,#select_filter,#select_filter,#select_filter,#select_filter,#select_filter");
-
-
-         var unit_combo = scoutGrid.getCombo(4);
-         unit_combo.put("Troop", "Troop");
-         unit_combo.put("Team", "Team");
-         unit_combo.put("Crew", "Crew");
-         unit_combo.put("Ship", "Ship");
-         unit_combo.put("Pack", "Pack");
-
-         var board_combo = scoutGrid.getCombo(9);
-         board_combo.put("Project", "Project");
-         board_combo.put("Final", "Final");
-
-         var status_combo = scoutGrid.getCombo(11);
-         status_combo.put("Waiting", "Waiting");
-         status_combo.put("InProgress", "InProgress");
-         status_combo.put("Completed", "Completed");
-         status_combo.put("Postponed", "Postponed");
-
-         var result_combo = scoutGrid.getCombo(12);
-         result_combo.put("Approved", "Approved");
-         result_combo.put("Suspended", "Suspended");
-         result_combo.put("NotApproved", "NotApproved");
-         result_combo.put("Postponed", "Postponed");
-
-
-         scoutGrid.setMultiLine(false);
-         scoutGrid.enableDragAndDrop(false);
-         scoutGrid.init();
-
-         scoutGrid.loadXML("/scout-cells?cols=RegTime,Last,First,DOB,UnitType,Unit,Leader,Email,Phone,BoardType,Room,Status,Result");
-
-         // scoutGrid.attachEvent("onEditCell", function(stage, rId, cInd, nValue, oValue) {
-         //    if (stage == 2)
-         //    {
-         //       var res = window.confirm("Are you sure you want to change\n\n    " + oValue + " => " + nValue + "?");
-         //       return oValue;
-         //    }
-         //    return true;
-         // });
-
-         scoutGridProcessor = new dataProcessor("/scout-update"); //lock feed url
-         scoutGridProcessor.init(scoutGrid); //link dataprocessor to the grid
-         scoutGridProcessor.setTransactionMode("GET", false);
-         scoutGridProcessor.enableDataNames(true);
-         scoutGridProcessor.enablePartialDataSend(true);
-
-
-         leaderToolbar = myTabbar.cells("adults").attachToolbar();
-         leaderGrid = myTabbar.cells("adults").attachGrid();
-
-         leaderToolbar.setIconsPath("/images/32x32/");
-         //leaderToobar.addButton("reload", 1, "", "open.gif", "open_dis.gif");
-         leaderToolbar.addButton("Refresh", 1, "Refresh", "view-refresh-7.png", "view-refresh-7.png");
-         //leaderToolbar.addButton("Save", 2, "Save", "document-save-5.png", "document-save-5.png");
-         leaderToolbar.addButton("CSV", 2, "CSV", "application-vnd.ms-excel.png", "application-vnd.ms-excel.png");
-         leaderToolbar.addButton("XML", 3, "XML", "text-xml.png", "text-xml.png");
-
-         leaderToolbar.addSpacer("XML");
-
-         leaderToolbar.addButton("Delete", 4, "Delete", "edit-delete-6.png", "edit-delete-6.png");
-
-         leaderToolbar.attachEvent("onClick", function (id) {
-            if (id == "Refresh")
-            {
-               leaderGrid.updateFromXML("/adult-cells?cols=RegTime,Last,First,UnitType,Unit,Email,Phone,FinalBoard,ProjectReview,Room", true, true);
-            } else if (id == "CSV")
-            {
-               window.location.href = "/adult-cells?cols=RegTime,Last,First,UnitType,Unit,Email,Phone,FinalBoard,ProjectReview,Room&fmt=csv&filename=Adults.csv";
-               // scoutGrid.loadXML("/scout-cells?cols=RegTime,Last,First,DOB,UnitType,Unit,Leader,Email,Phone,BoardType,Room,Status");
-            } else if (id == "XML")
-            {
-               window.location.href = "/adult-cells?cols=RegTime,Last,First,UnitType,Unit,Email,Phone,FinalBoard,ProjectReview,Room&fmt=data&filename=Adults.xml";
-               // scoutGrid.loadXML("/scout-cells?cols=RegTime,Last,First,DOB,UnitType,Unit,Leader,Email,Phone,BoardType,Room,Status");
-            } else if (id == "Delete")
-            {
-               var rid = leaderGrid.getSelectedRowId();
-               var last = leaderGrid.cells(rid, 1).getValue();
-               var first = leaderGrid.cells(rid, 2).getValue();
-
-               var res = window.confirm("Are you sure you want to delete: " + last + ", " + first + " ?");
-               if (res)
-               {
-                  leaderGrid.deleteRow(rid);
-               }
-            }
-         });
-
-
-
-
-         //mygrid = new dhtmlXGridObject('gridbox3');
-         leaderGrid.selMultiRows = false;
-         leaderGrid.setImagePath("/dhtmlx/skins/terrace/imgs/dhxgrid_terrace/");
-         leaderGrid.setHeader("In, Last, First, UnitType, Unit, Email, Phone, Final, Project, Room");
-         leaderGrid.setColumnIds("RegTime,Last,First,UnitType,Unit,Email,Phone,FinalBoard,ProjectReview,Room");
-
-         leaderGrid.setInitWidths("80,120,120,100,100,*,100,100,100,100");
-         leaderGrid.setColAlign("center,left,left,left,left,left,left,left,left,left");
-         leaderGrid.setColTypes("ro,ed,ed,coro,ed,ed,ed,coro,coro,ed");
-         leaderGrid.setColSorting("time, str,str,str,str,str,str,str,str,str");
-         leaderGrid.attachHeader("#text_filter,#text_filter,#text_filter,#select_filter,#select_filter,#text_filter,#text_filter,#select_filter,#select_filter,#select_filter");
-
-
-         leaderGrid.setMultiLine(false);
-         leaderGrid.enableDragAndDrop(false);
-         leaderGrid.init();
-
-         var final_combo = leaderGrid.getCombo(7);
-         final_combo.put("Chair", "Chair");
-         final_combo.put("Member", "Member");
-         final_combo.put("Unavailable", "Unavailable");
-
-         var project_combo = leaderGrid.getCombo(8);
-         project_combo.put("Chair", "Chair");
-         project_combo.put("Member", "Member");
-         project_combo.put("Unavailable", "Unavailable");
-
-         var ut_combo = leaderGrid.getCombo(3);
-         ut_combo.put("Troop", "Troop");
-         ut_combo.put("Team", "Team");
-         ut_combo.put("Crew", "Crew");
-         ut_combo.put("Ship", "Ship");
-         ut_combo.put("Pack", "Pack");
-
-         leaderGrid.loadXML("/adult-cells?cols=RegTime,Last,First,UnitType,Unit,Email,Phone,FinalBoard,ProjectReview,Room");
-         leaderGridProcessor = new dataProcessor("/adult-update"); //lock feed url
-         leaderGridProcessor.init(leaderGrid); //link dataprocessor to the grid
-         leaderGridProcessor.setTransactionMode("GET", false);
-         leaderGridProcessor.enableDataNames(true);
-         leaderGridProcessor.enablePartialDataSend(true);
-         // leaderGridProcessor.sendData();
-
-         //  leaderGrid.attachEvent("onEditCell", function(stage, rId, cInd, nValue, oValue) {
-         //     var colLabel = leaderGrid.getColLabel(cInd);
-         //      alert("edited: " + rId + ":" + colLabel + ": " + nValue);
-         //      // your code here
-         //   });
-
-
-         roomToolbar = myTabbar.cells("rooms").attachToolbar();
-         roomGrid = myTabbar.cells("rooms").attachGrid();
-
-         roomToolbar.setIconsPath("/images/32x32/");
-         //leaderToobar.addButton("reload", 1, "", "open.gif", "open_dis.gif");
-         roomToolbar.addButton("Refresh", 1, "Refresh", "view-refresh-7.png", "view-refresh-7.png");
-         roomToolbar.addButton("CSV", 2, "CSV", "application-vnd.ms-excel.png", "application-vnd.ms-excel.png");
-         roomToolbar.addButton("XML", 3, "XML", "text-xml.png", "text-xml.png");
-
-         roomToolbar.addSpacer("XML");
-
-         //roomToolbar.addInput("AddRoom", 2, "Room", "80");
-         roomToolbar.addButton("Add", 4, "Add", "list-add-5.png", "list-add-5.png");
-         roomToolbar.addSeparator("sep1", 5);
-         roomToolbar.addButton("Remove", 6, "Remove", "list-remove-5.png", "list-remove-5.png");
-
-
-
-         roomToolbar.attachEvent("onClick", function (id) {
-            if (id == "Refresh")
-            {
-               roomGrid.updateFromXML("/room-cells?cols=Room,BoardType,Scout,Leaders", true, true);
-            } else if (id == "CSV")
-            {
-               window.location.href = "/room-cells?cols=Room,BoardType,Scout,Leaders&fmt=csv&filename=Rooms.csv";
-               // scoutGrid.loadXML("/scout-cells?cols=RegTime,Last,First,DOB,UnitType,Unit,Leader,Email,Phone,BoardType,Room,Status");
-            } else if (id == "XML")
-            {
-               window.location.href = "/room-cells?cols=Room,BoardType,Scout,Leaders&fmt=data&filename=Rooms.xml";
-               // scoutGrid.loadXML("/scout-cells?cols=RegTime,Last,First,DOB,UnitType,Unit,Leader,Email,Phone,BoardType,Room,Status");
-            } else if (id == "Remove")
-            {
-               var rid = roomGrid.getSelectedRowId();
-               if (rid)
-               {
-                  var room = roomGrid.cells(rid, 0).getValue();
-                  var type = roomGrid.cells(rid, 1).getValue();
-                  var scout = roomGrid.cells(rid, 2).getValue();
-
-                  if (scout && scout !== "")
-                  {
-                     alert("Room '" + room + "' is currently in use, cannot remove.");
-                     return;
-                  } else
-                  {
-                     var res = window.confirm("Are you sure you want to remove room '" + room + "' ?");
-                     if (res)
-                     {
-                        roomGrid.deleteRow(rid);
+            table.on("cellEdited", function (cell) {
+               var fields = {};
+               fields[cell.getField()] = cell.getValue();
+               ebSaveRow(cfg.updatePath, "updated", cell.getRow().getIndex(), fields)
+                  .then(function (ok) {
+                     if (!ok) {
+                        alert("Server rejected the change; reloading.");
+                        reload();
                      }
+                  })
+                  .catch(function () {
+                     alert("Failed to save the change; reloading.");
+                     reload();
+                  });
+            });
+
+            document.getElementById(cfg.refreshBtn).addEventListener("click", reload);
+
+            if (cfg.deleteBtn) {
+               document.getElementById(cfg.deleteBtn).addEventListener("click", function () {
+                  var rows = table.getSelectedRows();
+                  if (rows.length === 0) {
+                     alert("Please select a row first.");
+                     return;
                   }
-               }
+                  var row = rows[0];
+                  var d = row.getData();
+                  if (!window.confirm("Are you sure you want to delete: " + d.Last + ", " + d.First + " ?")) {
+                     return;
+                  }
+                  ebSaveRow(cfg.updatePath, "deleted", row.getIndex(), {})
+                     .then(function (ok) {
+                        if (ok) {
+                           row.delete();
+                        } else {
+                           alert("Server rejected the delete; reloading.");
+                           reload();
+                        }
+                     })
+                     .catch(function () {
+                        alert("Failed to delete; reloading.");
+                        reload();
+                     });
+               });
             }
+
+            return { table: table, reload: reload };
+         }
+
+         // ---- Boards tab (full scout record incl. board results) ----
+         var boardsCols = ["Last", "First", "Phone", "Email", "BoardType", "DOB", "UnitType", "Unit", "Leader", "Status", "Result", "BoardChair", "BoardMembers", "Notes"];
+         var boards = makeGrid({
+            el: "#grid-boards",
+            cellsPath: "/scout-cells",
+            updatePath: "/scout-update",
+            cols: boardsCols,
+            refreshBtn: "boards-refresh",
+            deleteBtn: "boards-delete",
+            columns: [
+               textCol("Last", "Last", 100),
+               textCol("First", "First", 100),
+               textCol("Phone", "Phone", 100),
+               textCol("Email", "Email", 130),
+               selectCol("Board", "BoardType", 80, BOARD_TYPES),
+               textCol("DOB", "DOB", 80),
+               selectCol("UnitType", "UnitType", 90, UNIT_TYPES),
+               textCol("Unit", "Unit", 60),
+               textCol("Leader", "Leader", 90),
+               selectCol("Status", "Status", 90, STATUSES),
+               selectCol("Result", "Result", 90, RESULTS),
+               textCol("Chair", "BoardChair", 120),
+               textCol("Members", "BoardMembers", 180),
+               textCol("Notes", "Notes", null, { editor: "textarea" })
+            ]
          });
 
+         // ---- Scouts tab (registered scouts) ----
+         var scoutsCols = ["RegTime", "Last", "First", "DOB", "UnitType", "Unit", "Leader", "Email", "Phone", "BoardType", "Room", "Status", "Result"];
+         var scouts = makeGrid({
+            el: "#grid-scouts",
+            cellsPath: "/scout-cells",
+            updatePath: "/scout-update",
+            cols: scoutsCols,
+            refreshBtn: "scouts-refresh",
+            deleteBtn: "scouts-delete",
+            columns: [
+               roCol("In", "RegTime", 90, { hozAlign: "center" }),
+               textCol("Last", "Last", 110),
+               textCol("First", "First", 110),
+               textCol("DOB", "DOB", 80),
+               selectCol("UType", "UnitType", 80, UNIT_TYPES),
+               textCol("Unit", "Unit", 60),
+               textCol("Leader", "Leader", 130),
+               textCol("Email", "Email"),
+               textCol("Phone", "Phone", 120),
+               selectCol("Board", "BoardType", 85, BOARD_TYPES),
+               textCol("Room", "Room", 75),
+               selectCol("Status", "Status", 100, STATUSES),
+               selectCol("Result", "Result", 100, RESULTS)
+            ]
+         });
 
+         // ---- Scouts Scheduled tab ----
+         var scheduledCols = ["Last", "First", "DOB", "UnitType", "Unit", "Leader", "Email", "Phone", "BoardType"];
+         var scheduled = makeGrid({
+            el: "#grid-scheduled",
+            cellsPath: "/scouts-scheduled-cells",
+            updatePath: "/scouts-scheduled-update",
+            cols: scheduledCols,
+            refreshBtn: "scheduled-refresh",
+            deleteBtn: "scheduled-delete",
+            columns: [
+               textCol("Last", "Last", 110),
+               textCol("First", "First", 110),
+               textCol("DOB", "DOB", 85),
+               selectCol("UType", "UnitType", 85, UNIT_TYPES),
+               textCol("Unit", "Unit", 65),
+               textCol("Leader", "Leader", 120),
+               textCol("Email", "Email"),
+               textCol("Phone", "Phone", 120),
+               selectCol("Board", "BoardType", 100, BOARD_TYPES)
+            ]
+         });
 
-         //mygrid = new dhtmlXGridObject('gridbox3');
-         roomGrid.selMultiRows = false;
-         roomGrid.setImagePath("/dhtmlx/skins/terrace/imgs/dhxgrid_terrace/");
-         roomGrid.setHeader("Room, BoardType, Scout, Leaders");
-         roomGrid.setColumnIds("Room,BoardType,Scout,Leaders");
+         // ---- Adults tab (registered adults) ----
+         var adultsCols = ["RegTime", "Last", "First", "UnitType", "Unit", "Email", "Phone", "FinalBoard", "ProjectReview", "Room"];
+         var adults = makeGrid({
+            el: "#grid-adults",
+            cellsPath: "/adult-cells",
+            updatePath: "/adult-update",
+            cols: adultsCols,
+            refreshBtn: "adults-refresh",
+            deleteBtn: "adults-delete",
+            columns: [
+               roCol("In", "RegTime", 100, { hozAlign: "center" }),
+               textCol("Last", "Last", 120),
+               textCol("First", "First", 120),
+               selectCol("UnitType", "UnitType", 100, UNIT_TYPES),
+               textCol("Unit", "Unit", 90),
+               textCol("Email", "Email"),
+               textCol("Phone", "Phone", 110),
+               selectCol("Final", "FinalBoard", 100, ROLES),
+               selectCol("Project", "ProjectReview", 100, ROLES),
+               textCol("Room", "Room", 90)
+            ]
+         });
 
-         roomGrid.setInitWidths("80,120,250,*");
-         roomGrid.setColAlign("center,left,left,left");
-         roomGrid.setColTypes("ro,ed,ro,ro,");
-         roomGrid.setColSorting("int, str,str,str");
+         // ---- Adult History tab ----
+         var historyCols = ["RegTime", "Last", "First", "UnitType", "Unit", "Email", "Phone", "FinalBoard", "ProjectReview"];
+         var adultHistory = makeGrid({
+            el: "#grid-history",
+            cellsPath: "/adult-history-cells",
+            updatePath: "/adult-history-update",
+            cols: historyCols,
+            refreshBtn: "history-refresh",
+            deleteBtn: "history-delete",
+            columns: [
+               roCol("In", "RegTime", 100, { hozAlign: "center" }),
+               textCol("Last", "Last", 120),
+               textCol("First", "First", 120),
+               selectCol("UnitType", "UnitType", 100, UNIT_TYPES),
+               textCol("Unit", "Unit", 90),
+               textCol("Email", "Email"),
+               textCol("Phone", "Phone", 115),
+               selectCol("Final", "FinalBoard", 100, ROLES),
+               selectCol("Project", "ProjectReview", 100, ROLES)
+            ]
+         });
 
-         roomGrid.setMultiLine(false);
-         roomGrid.enableDragAndDrop(false);
-         roomGrid.init();
+         // ---- Rooms tab ----
+         var roomsCols = ["Room", "BoardType", "Scout", "Leaders"];
+         var rooms = makeGrid({
+            el: "#grid-rooms",
+            cellsPath: "/room-cells",
+            updatePath: "/room-update",
+            cols: roomsCols,
+            refreshBtn: "rooms-refresh",
+            columns: [
+               { title: "Room", field: "Room", width: 90, hozAlign: "center", sorter: "number" },
+               selectCol("BoardType", "BoardType", 130, BOARD_TYPES),
+               { title: "Scout", field: "Scout", width: 260 },
+               { title: "Leaders", field: "Leaders" }
+            ]
+         });
 
-         // var combo = roomGrid.getColumnCombo(1);
-
-         // combo.addOption([["Final","Final"],["Project","Project"]]);
-
-
-         roomGrid.loadXML("/room-cells?cols=Room,BoardType,Scout,Leaders");
-
-         roomGridProcessor = new dataProcessor("/room-update"); //lock feed url
-         roomGridProcessor.init(roomGrid); //link dataprocessor to the grid
-         roomGridProcessor.setTransactionMode("GET", false);
-         roomGridProcessor.enableDataNames(true);
-         //roomGridProcessor.enablePartialDataSend(true);
-
-         roomAddPopup = new dhtmlXPopup({toolbar: roomToolbar, id: "Add"});
-
-         roomAddForm = roomAddPopup.attachForm([
-            {type: "settings", position: "label-left", labelWidth: 80, inputWidth: 90},
-            {type: "input", label: "Room #:", name: "Room", validate: "NotEmpty", required: true},
-            {type: "select", label: "BoardType:", name: "BoardType", required: true, options: [
-                  {value: "Final", text: "Final"},
-                  {value: "Project", text: "Project"},
-               ]},
-            {type: "button", name: "AddButton", value: "Add", width: 150}
-
-         ]);
-         roomAddForm.enableLiveValidation(true);
-         roomAddForm.attachEvent("onButtonClick", function (id)
-         {
-            var room = roomAddForm.getItemValue("Room");
-            var type = roomAddForm.getItemValue("BoardType");
-            if (room == "")
-            {
-               roomAddForm.validate();
+         document.getElementById("rooms-add").addEventListener("click", function () {
+            var roomInput = document.getElementById("rooms-add-room");
+            var room = roomInput.value.trim();
+            var type = document.getElementById("rooms-add-type").value;
+            if (room === "") {
+               alert("Please enter a room number.");
                return;
             }
             var id = "ROOM:" + room;
-
-            var idx = roomGrid.getRowIndex(id);
-
-            if (idx >= 0)
-            {
+            var existing = rooms.table.getRow(id);
+            if (existing) {
                alert("Room '" + room + "' Already Exists");
-            } else
-            {
-               roomGrid.addRow(id, [room, type, "", ""]);
+               return;
             }
-
-            roomAddPopup.hide();
-         });
-
-         roomAddPopup.attachEvent("onShow", function () {
-            roomAddForm.setFocusOnFirstActive();
-         });
-
-
-         boardToolbar = myTabbar.cells("boards").attachToolbar();
-         boardGrid = myTabbar.cells("boards").attachGrid();
-
-         boardToolbar.setIconsPath("/images/32x32/");
-         //leaderToobar.addButton("reload", 1, "", "open.gif", "open_dis.gif");
-         boardToolbar.addButton("Refresh", 1, "Refresh", "view-refresh-7.png", "view-refresh-7.png");
-         //leaderToolbar.addButton("Save", 2, "Save", "document-save-5.png", "document-save-5.png");
-         boardToolbar.addButton("CSV", 2, "CSV", "application-vnd.ms-excel.png", "application-vnd.ms-excel.png");
-         boardToolbar.addButton("XML", 3, "XML", "text-xml.png", "text-xml.png");
-
-         boardToolbar.addSpacer("XML");
-
-         boardToolbar.addButton("Delete", 4, "Delete", "edit-delete-6.png", "edit-delete-6.png");
-
-         boardToolbar.attachEvent("onClick", function (id) {
-            if (id == "Refresh")
-            {
-               boardGrid.updateFromXML("/scout-cells?cols=Last,First,Phone,Email,BoardType,DOB,UnitType,Unit,Leader,Status,Result,BoardChair,BoardMembers,Notes", true, true);
-            } else if (id == "CSV")
-            {
-               window.location.href = "/scout-cells?cols=Last,First,Phone,Email,BoardType,DOB,UnitType,Unit,Leader,Status,Result,BoardChair,BoardMembers,Notes&fmt=csv&filename=Report.csv";
-               // scoutGrid.loadXML("/scout-cells?cols=RegTime,Last,First,DOB,UnitType,Unit,Leader,Email,Phone,BoardType,Room,Status");
-            } else if (id == "XML")
-            {
-               window.location.href = "/scout-cells?cols=Last,First,Phone,Email,BoardType,DOB,UnitType,Unit,Leader,Status,Result,BoardChair,BoardMembers,Notes&fmt=data&filename=Report.xml";
-               // scoutGrid.loadXML("/scout-cells?cols=RegTime,Last,First,DOB,UnitType,Unit,Leader,Email,Phone,BoardType,Room,Status");
-            } else if (id == "Delete")
-            {
-               var rid = boardGrid.getSelectedRowId();
-               var last = boardGrid.cells(rid, 1).getValue();
-               var first = boardGrid.cells(rid, 2).getValue();
-
-               var res = window.confirm("Are you sure you want to delete: " + last + ", " + first + " ?");
-               if (res)
-               {
-                  boardGrid.deleteRow(rid);
+            ebSaveRow("/room-update", "inserted", id, {
+               Room: room, BoardType: type, Scout: "", Leaders: ""
+            }).then(function (ok) {
+               if (ok) {
+                  roomInput.value = "";
+               } else {
+                  alert("Server rejected the new room.");
                }
-            }
+               rooms.reload();
+            }).catch(function () {
+               alert("Failed to add the room; reloading.");
+               rooms.reload();
+            });
          });
 
-
-         //mygrid = new dhtmlXGridObject('gridbox3');
-         boardGrid.selMultiRows = false;
-         boardGrid.setImagePath("/dhtmlx/skins/terrace/imgs/dhxgrid_terrace/");
-         boardGrid.setHeader("Last,First,Phone,Email,Board,DOB,UnitType,Unit,Leader,Status,Result,Chair,Members,Notes");
-         boardGrid.setColumnIds("Last,First,Phone,Email,BoardType,DOB,UnitType,Unit,Leader,Status,Result,BoardChair,BoardMembers,Notes");
-
-         boardGrid.setInitWidths("100,100,100,120,70,80,80,60,90,80,80,120,200,*");
-         boardGrid.setColAlign("center,left,left,left,left,left,left,left,left,left,left,left,left,left");
-         boardGrid.setColTypes("ed,ed,ed,ed,coro,ed,coro,ed,ed,coro,coro,ed,ed,txttxt");
-         boardGrid.setColSorting("str,str,str,str,str,str,str,str,str,str,str,str,str,str");
-         boardGrid.attachHeader("#text_filter,#text_filter,#text_filter,#text_filter,#select_filter,#text_filter,#select_filter,#select_filter,#text_filter,#select_filter,#select_filter,#text_filter,#text_filter,#text_filter");
-
-
-         var bunit_combo = boardGrid.getCombo(6);
-         bunit_combo.put("Troop", "Troop");
-         bunit_combo.put("Team", "Team");
-         bunit_combo.put("Crew", "Crew");
-         bunit_combo.put("Ship", "Ship");
-         bunit_combo.put("Pack", "Pack");
-
-         var board_combo = boardGrid.getCombo(4);
-         board_combo.put("Project", "Project");
-         board_combo.put("Final", "Final");
-
-         var status_combo = boardGrid.getCombo(9);
-         status_combo.put("Waiting", "Waiting");
-         status_combo.put("InProgress", "InProgress");
-         status_combo.put("Completed", "Completed");
-         status_combo.put("Postponed", "Postponed");
-
-         var result_combo = boardGrid.getCombo(10);
-         result_combo.put("Approved", "Approved");
-         result_combo.put("Suspended", "Suspended");
-         result_combo.put("NotApproved", "NotApproved");
-         result_combo.put("Postponed", "Postponed");
-
-
-         boardGrid.setMultiLine(false);
-         boardGrid.enableDragAndDrop(false);
-         boardGrid.init();
-
-         boardGrid.loadXML("/scout-cells?cols=Last,First,Phone,Email,BoardType,DOB,UnitType,Unit,Leader,Status,Result,BoardChair,BoardMembers,Notes");
-
-         // boardGrid.attachEvent("onEditCell", function(stage, rId, cInd, nValue, oValue) {
-         //    if (stage == 2)
-         //    {
-         //       var res = window.confirm("Are you sure you want to change\n\n    " + oValue + " => " + nValue + "?");
-         //       return oValue;
-         //    }
-         //    return true;
-         // });
-
-         boardGridProcessor = new dataProcessor("/scout-update"); //lock feed url
-         boardGridProcessor.init(boardGrid); //link dataprocessor to the grid
-         boardGridProcessor.setTransactionMode("GET", false);
-         boardGridProcessor.enableDataNames(true);
-         boardGridProcessor.enablePartialDataSend(true);
-
-         adultHistoryToolbar = myTabbar.cells("history").attachToolbar();
-         adultHistoryGrid = myTabbar.cells("history").attachGrid();
-
-         adultHistoryToolbar.setIconsPath("/images/32x32/");
-         //adultHistoryToobar.addButton("reload", 1, "", "open.gif", "open_dis.gif");
-         adultHistoryToolbar.addButton("Refresh", 1, "Refresh", "view-refresh-7.png", "view-refresh-7.png");
-         //adultHistoryToolbar.addButton("Save", 2, "Save", "document-save-5.png", "document-save-5.png");
-         adultHistoryToolbar.addButton("CSV", 2, "CSV", "application-vnd.ms-excel.png", "application-vnd.ms-excel.png");
-         adultHistoryToolbar.addButton("XML", 3, "XML", "text-xml.png", "text-xml.png");
-
-         adultHistoryToolbar.addSpacer("XML");
-
-         adultHistoryToolbar.addButton("Delete", 4, "Delete", "edit-delete-6.png", "edit-delete-6.png");
-
-         adultHistoryToolbar.attachEvent("onClick", function (id) {
-            if (id == "Refresh")
-            {
-               adultHistoryGrid.updateFromXML("/adult-history-cells?cols=RegTime,Last,First,UnitType,Unit,Email,Phone,FinalBoard,ProjectReview", true, true);
-            } else if (id == "CSV")
-            {
-               window.location.href = "/adult-history-cells?cols=RegTime,Last,First,UnitType,Unit,Email,Phone,FinalBoard,ProjectReview&fmt=csv&filename=AdultHistory.csv";
-               // scoutGrid.loadXML("/scout-cells?cols=RegTime,Last,First,DOB,UnitType,Unit,Leader,Email,Phone,BoardType,Room,Status");
-            } else if (id == "XML")
-            {
-               window.location.href = "/adult-history-cells?cols=RegTime,Last,First,UnitType,Unit,Email,Phone,FinalBoard,ProjectReview&fmt=data&filename=AdultHistory.xml";
-               // scoutGrid.loadXML("/scout-cells?cols=RegTime,Last,First,DOB,UnitType,Unit,Leader,Email,Phone,BoardType,Room,Status");
-            } else if (id == "Delete")
-            {
-               var rid = adultHistoryGrid.getSelectedRowId();
-               var last = adultHistoryGrid.cells(rid, 1).getValue();
-               var first = adultHistoryGrid.cells(rid, 2).getValue();
-
-               var res = window.confirm("Are you sure you want to delete: " + last + ", " + first + " ?");
-               if (res)
-               {
-                  adultHistoryGrid.deleteRow(rid);
-               }
+         document.getElementById("rooms-remove").addEventListener("click", function () {
+            var selected = rooms.table.getSelectedRows();
+            if (selected.length === 0) {
+               alert("Please select a room first.");
+               return;
             }
+            var row = selected[0];
+            var d = row.getData();
+            if (d.Scout && d.Scout !== "") {
+               alert("Room '" + d.Room + "' is currently in use, cannot remove.");
+               return;
+            }
+            if (!window.confirm("Are you sure you want to remove room '" + d.Room + "' ?")) {
+               return;
+            }
+            ebSaveRow("/room-update", "deleted", row.getIndex(), {})
+               .then(function (ok) {
+                  if (ok) {
+                     row.delete();
+                  } else {
+                     alert("Server rejected the remove; reloading.");
+                     rooms.reload();
+                  }
+               })
+               .catch(function () {
+                  alert("Failed to remove the room; reloading.");
+                  rooms.reload();
+               });
          });
 
+         // ---- Tab switching ----
+         var gridsByTab = {
+            boards: boards, scouts: scouts, scheduled: scheduled,
+            adults: adults, history: adultHistory, rooms: rooms
+         };
 
-
-
-         //mygrid = new dhtmlXGridObject('gridbox3');
-         adultHistoryGrid.selMultiRows = false;
-         adultHistoryGrid.setImagePath("/dhtmlx/skins/terrace/imgs/dhxgrid_terrace/");
-         adultHistoryGrid.setHeader("In,Last,First,UnitType,Unit,Email,Phone,Final,Project");
-         adultHistoryGrid.setColumnIds("RegTime,Last,First,UnitType,Unit,Email,Phone,FinalBoard,ProjectReview");
-
-         adultHistoryGrid.setInitWidths("80,120,120,100,100,*,110,100,100");
-         adultHistoryGrid.setColAlign("center,left,left,left,left,left,left,left,left");
-         adultHistoryGrid.setColTypes("ro,ed,ed,coro,ed,ed,ed,coro,coro");
-         adultHistoryGrid.setColSorting("str,str,str,str,str,str,str,str,str");
-         adultHistoryGrid.attachHeader("#text_filter,#text_filter,#text_filter,#select_filter,#select_filter,#text_filter,#text_filter,#select_filter,#select_filter");
-
-
-         adultHistoryGrid.setMultiLine(false);
-         adultHistoryGrid.enableDragAndDrop(false);
-         adultHistoryGrid.init();
-
-         var final_combo = adultHistoryGrid.getCombo(7);
-         final_combo.put("Chair", "Chair");
-         final_combo.put("Member", "Member");
-         final_combo.put("Unavailable", "Unavailable");
-
-         var project_combo = adultHistoryGrid.getCombo(8);
-         project_combo.put("Chair", "Chair");
-         project_combo.put("Member", "Member");
-         project_combo.put("Unavailable", "Unavailable");
-
-         var ut_combo = adultHistoryGrid.getCombo(3);
-         ut_combo.put("Troop", "Troop");
-         ut_combo.put("Team", "Team");
-         ut_combo.put("Crew", "Crew");
-         ut_combo.put("Ship", "Ship");
-         ut_combo.put("Pack", "Pack");
-
-         adultHistoryGrid.loadXML("/adult-history-cells?cols=RegTime,Last,First,UnitType,Unit,Email,Phone,FinalBoard,ProjectReview");
-         adultHistoryGridProcessor = new dataProcessor("/adult-history-update"); //lock feed url
-         adultHistoryGridProcessor.init(adultHistoryGrid); //link dataprocessor to the grid
-         adultHistoryGridProcessor.setTransactionMode("GET", false);
-         adultHistoryGridProcessor.enableDataNames(true);
-         adultHistoryGridProcessor.enablePartialDataSend(true);
-         // adultHistoryGridProcessor.sendData();
-
-         //  adultHistoryGrid.attachEvent("onEditCell", function(stage, rId, cInd, nValue, oValue) {
-         //     var colLabel = adultHistoryGrid.getColLabel(cInd);
-         //      alert("edited: " + rId + ":" + colLabel + ": " + nValue);
-         //      // your code here
-         //   });
-
-
-         scoutsScheduledToolbar = myTabbar.cells("scheduled").attachToolbar();
-         scoutsScheduledGrid = myTabbar.cells("scheduled").attachGrid();
-
-         scoutsScheduledToolbar.setIconsPath("/images/32x32/");
-         //leaderToobar.addButton("reload", 1, "", "open.gif", "open_dis.gif");
-         scoutsScheduledToolbar.addButton("Refresh", 1, "Refresh", "view-refresh-7.png", "view-refresh-7.png");
-         //leaderToolbar.addButton("Save", 2, "Save", "document-save-5.png", "document-save-5.png");
-         scoutsScheduledToolbar.addButton("CSV", 2, "CSV", "application-vnd.ms-excel.png", "application-vnd.ms-excel.png");
-         scoutsScheduledToolbar.addButton("XML", 3, "XML", "text-xml.png", "text-xml.png");
-
-         scoutsScheduledToolbar.addSpacer("XML");
-
-         scoutsScheduledToolbar.addButton("Delete", 4, "Delete", "edit-delete-6.png", "edit-delete-6.png");
-
-         scoutsScheduledToolbar.attachEvent("onClick", function (id) {
-            if (id == "Refresh")
-            {
-               scoutsScheduledGrid.updateFromXML("/scouts-scheduled-cells?cols=Last,First,DOB,UnitType,Unit,Leader,Email,Phone,BoardType", true, true);
-            } else if (id == "CSV")
-            {
-               window.location.href = "/scouts-scheduled-cells?cols=Last,First,DOB,UnitType,Unit,Leader,Email,Phone,BoardType&fmt=csv&filename=Scouts.csv";
-               // scoutsScheduledGrid.loadXML("/scoutsScheduled-cells?cols=RegTime,Last,First,DOB,UnitType,Unit,Leader,Email,Phone,BoardType,Room,Status");
-            } else if (id == "XML")
-            {
-               window.location.href = "/scouts-scheduled-cells?cols=Last,First,DOB,UnitType,Unit,Leader,Email,Phone,BoardType&fmt=data&filename=Scouts.xml";
-               // scoutsScheduledGrid.loadXML("/scoutsScheduled-cells?cols=RegTime,Last,First,DOB,UnitType,Unit,Leader,Email,Phone,BoardType,Room,Status");
-            } else if (id == "Delete")
-            {
-               var rid = scoutsScheduledGrid.getSelectedRowId();
-               var last = scoutsScheduledGrid.cells(rid, 1).getValue();
-               var first = scoutsScheduledGrid.cells(rid, 2).getValue();
-
-               var res = window.confirm("Are you sure you want to delete: " + last + ", " + first + " ?");
-               if (res)
-               {
-                  scoutsScheduledGrid.deleteRow(rid);
-               }
+         document.getElementById("tabbar").addEventListener("click", function (ev) {
+            var btn = ev.target.closest("button[data-tab]");
+            if (!btn) {
+               return;
             }
+            var tab = btn.getAttribute("data-tab");
+            var buttons = document.querySelectorAll("#tabbar button");
+            for (var i = 0; i < buttons.length; i++) {
+               buttons[i].classList.toggle("active", buttons[i] === btn);
+            }
+            var panels = document.querySelectorAll(".eb-panel");
+            for (var p = 0; p < panels.length; p++) {
+               panels[p].classList.toggle("active", panels[p].id === "panel-" + tab);
+            }
+            // Tabulator needs a redraw after its container becomes visible.
+            gridsByTab[tab].table.redraw(true);
          });
-
-
-         //mygrid = new dhtmlXGridObject('gridbox3');
-         scoutsScheduledGrid.selMultiRows = false;
-         scoutsScheduledGrid.setImagePath("/dhtmlx/skins/terrace/imgs/dhxgrid_terrace/");
-         scoutsScheduledGrid.setHeader("Last,First,DOB,UType,Unit,Leader,Email,Phone,Board");
-         scoutsScheduledGrid.setColumnIds("Last,First,DOB,UnitType,Unit,Leader,Email,Phone,BoardType");
-
-         scoutsScheduledGrid.setInitWidths("100,100,80,70,60,100,*,110,100");
-         scoutsScheduledGrid.setColAlign("left,left,left,left,left,left,left,left,left");
-         scoutsScheduledGrid.setColTypes("ed,ed,ed,coro,ed,ed,ed,ed,coro");
-         scoutsScheduledGrid.setColSorting("str,str,str,str,str,str,str,str,str");
-         scoutsScheduledGrid.attachHeader("#text_filter,#text_filter,#text_filter,#select_filter,#select_filter,#text_filter,#text_filter,#text_filter,#select_filter");
-
-         var unit_combo = scoutsScheduledGrid.getCombo(3);
-         unit_combo.put("Troop", "Troop");
-         unit_combo.put("Team", "Team");
-         unit_combo.put("Crew", "Crew");
-         unit_combo.put("Ship", "Ship");
-         unit_combo.put("Pack", "Pack");
-
-         var board_combo = scoutsScheduledGrid.getCombo(8);
-         board_combo.put("Project", "Project");
-         board_combo.put("Final", "Final");
-
-
-         scoutsScheduledGrid.setMultiLine(false);
-         scoutsScheduledGrid.enableDragAndDrop(false);
-         scoutsScheduledGrid.init();
-
-         scoutsScheduledGrid.loadXML("/scouts-scheduled-cells?cols=Last,First,DOB,UnitType,Unit,Leader,Email,Phone,BoardType");
-
-         // scoutsScheduledGrid.attachEvent("onEditCell", function(stage, rId, cInd, nValue, oValue) {
-         //    if (stage == 2)
-         //    {
-         //       var res = window.confirm("Are you sure you want to change\n\n    " + oValue + " => " + nValue + "?");
-         //       return oValue;
-         //    }
-         //    return true;
-         // });
-
-         scoutsScheduledGridProcessor = new dataProcessor("/scouts-scheduled-update"); //lock feed url
-         scoutsScheduledGridProcessor.init(scoutsScheduledGrid); //link dataprocessor to the grid
-         scoutsScheduledGridProcessor.setTransactionMode("GET", false);
-         scoutsScheduledGridProcessor.enableDataNames(true);
-         scoutsScheduledGridProcessor.enablePartialDataSend(true);
-
-
-
       </script>
-
    </body>
 </html>

@@ -99,21 +99,22 @@ done < <(find "$WORK/orig" -name '*.class')
 [ "$missing" -eq 0 ] && note "all classes present"
 note "signature comparison complete"
 
-# WEBROOT resources must be byte-identical. Intentional exceptions:
-#  - CVS/ checkout residue in the original is not re-bundled
-#  - signup_genius_api.js: the original embeds a live SignUpGenius API key;
-#    the rebuild ships a placeholder. Dead code — no page references it.
-#  - DEBRANDED pages: "Etowah District" branding was removed after the
-#    stabilization sign-off; runtime diffing below still covers these pages
-#    by normalizing exactly that removed prefix and nothing else.
-DEBRANDED='index.html|index_simple.html|admin.html|scheduler.html|scout_register.html|adult_register.html'
-webdiff=$(diff -rq "$WORK/orig/shkc/core" "$WORK/new/shkc/core" 2>/dev/null \
-    | grep -vE '/CVS|: CVS$' | grep -vE '\.class' | grep -v signup_genius_api.js \
-    | grep -vE "WEBROOT/($DEBRANDED)" | grep -v '^Common' || true)
-if [ -n "$webdiff" ]; then
-    fail "WEBROOT resources differ:"; echo "$webdiff" | head -10
+# WEBROOT: since the UI rework (dhtmlx -> Tabulator), only the assets the
+# rework preserved are still expected byte-identical to the original jar.
+# The HTML/JS pages are first-party code now, checked in the UI section
+# below; dhtmlx/, CVS/, and old_saved_script.js were dropped deliberately;
+# signup_genius_api.js ships a key placeholder (checked separately).
+PRESERVED="help.html scheduler.css NegaScheduler.png ScoutButton.png LeaderButton.png"
+for p in $PRESERVED; do
+    if ! cmp -s "$WORK/orig/shkc/core/WEBROOT/$p" "$WORK/new/shkc/core/WEBROOT/$p"; then
+        fail "preserved WEBROOT asset differs from original: $p"
+    fi
+done
+imgdiff=$(diff -rq "$WORK/orig/shkc/core/WEBROOT/images" "$WORK/new/shkc/core/WEBROOT/images" 2>/dev/null | grep -vE '/CVS|: CVS$' || true)
+if [ -n "$imgdiff" ]; then
+    fail "WEBROOT images differ:"; echo "$imgdiff" | head -5
 else
-    note "WEBROOT resources byte-identical (modulo documented exceptions)"
+    note "preserved WEBROOT assets byte-identical to original"
 fi
 if grep -q 'REPLACE_WITH_SIGNUP_GENIUS_KEY' "$WORK/new/shkc/core/WEBROOT/signup_genius_api.js"; then
     note "rebuilt jar carries the key placeholder, not a real key"
@@ -180,12 +181,10 @@ compare_status() { # method path — status code only; body is Jetty's own
     fi
 }
 
-echo "== 2a. read endpoints =="
-READS="/ /index.html /index_simple.html /admin.html /scheduler.html
-/help.html /configure.html /scout_register.html /adult_register.html
+echo "== 2a. read endpoints (parity vs original) =="
+# Server-generated responses and preserved assets must match the original.
+READS="/help.html
 /scheduler.css /NegaScheduler.png /ScoutButton.png /LeaderButton.png
-/process_seat.js /process_verify.js /process_complete.js
-/scheduler_scout_grid.js /scheduler_adult_grid.js
 /scout-cells /adult-cells /adult-history-cells /room-cells
 /scouts-scheduled-cells /scout-autofill /adult-autofill /config-autofill"
 count=0
@@ -243,6 +242,34 @@ if ! diff <(normlog parity/A/server.log) <(normlog parity/B/server.log) >"$WORK/
 else
     note "startup logs identical (modulo time/port)"
 fi
+
+echo "== 5. first-party UI (rebuilt server only) =="
+# These pages were rewritten on Tabulator (dhtmlx removed); they have no
+# original-jar counterpart to diff against. Assert they serve, are free of
+# dhtmlx references, and kept the headings operators (and CI greps) rely on.
+UI_PAGES="/index.html /index_simple.html /admin.html /scheduler.html
+/configure.html /scout_register.html /adult_register.html /eb-data.js
+/scheduler_config.js /scheduler_grid.js /scheduler_scout_grid.js
+/scheduler_adult_grid.js /scheduler_board_grid.js
+/process_seat.js /process_verify.js /process_inprogress.js
+/process_complete.js /process_postpone.js /process_reset.js
+/tabulator/tabulator.min.js /tabulator/tabulator.min.css"
+uicount=0
+for p in $UI_PAGES; do
+    if ! curl -sf "http://127.0.0.1:$PORT_B$p" -o "$WORK/ui.out"; then
+        fail "UI file not served: $p"
+        continue
+    fi
+    case "$p" in
+        /eb-data.js) ;;  # its comments document the legacy dhtmlx protocol
+        *) grep -qi "dhtmlx" "$WORK/ui.out" && fail "dhtmlx reference remains in $p" ;;
+    esac
+    uicount=$((uicount + 1))
+done
+curl -sf "http://127.0.0.1:$PORT_B/index.html" | grep -q "Welcome to the Eagle Board." || fail "index.html heading changed"
+curl -sf "http://127.0.0.1:$PORT_B/admin.html" | grep -qi "Eagle Board Admin Page" || fail "admin.html title changed"
+curl -sf "http://127.0.0.1:$PORT_B/scheduler.html" | grep -qi "Eagle Board Scheduler" || fail "scheduler.html heading changed"
+note "$uicount first-party UI files served clean"
 
 kill $PID_A $PID_B 2>/dev/null; wait 2>/dev/null
 

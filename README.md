@@ -72,5 +72,8 @@ git config core.hooksPath scripts/hooks
 
 ## License
 
-GPL-2.0 (see `LICENSE`) — required by the bundled dhtmlxSuite 4.1.2 Standard
-Edition web UI library, which is GPL-licensed.
+GPL-2.0 (see `LICENSE`). This was originally dictated by the bundled
+dhtmlxSuite UI library; that library has since been replaced by MIT-licensed
+Tabulator, so the project license can be revisited — but only after the
+rights to the reconstructed application code itself are settled with its
+original author (see issue #7). Keep the repo private until then.

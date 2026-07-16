@@ -2,152 +2,182 @@
 <html>
    <head>
       <title>Adult/Leader Sign-In</title>
-      <link rel="stylesheet" type="text/css" href="/dhtmlx/dhtmlx.css">
-      <script src="/dhtmlx/dhtmlx.js"></script>
       <link rel="stylesheet" type="text/css" href="scheduler.css"/>
+      <script src="/eb-data.js"></script>
+      <style>
+         .reg-wrap { width: 700px; margin: 20px auto 0 auto; font-family: sans-serif; }
+         .reg-wrap fieldset { border: 1px solid #cecece; border-radius: 3px; padding: 12px 16px; margin-bottom: 14px; background: #fff; }
+         .reg-wrap legend { font-size: 13px; color: #444; padding: 0 6px; }
+         .reg-cols { display: flex; }
+         .reg-col { flex: 1; }
+         .reg-row { margin: 7px 0; display: flex; align-items: center; }
+         .reg-row label { width: 110px; font-size: 12px; color: #444; text-align: right; padding-right: 8px; }
+         .reg-row input, .reg-row select { width: 180px; font-size: 12px; padding: 3px 4px; border: 1px solid #cecece; border-radius: 2px; box-sizing: content-box; }
+         .reg-buttons { display: flex; justify-content: space-around; padding: 8px 80px; }
+         .reg-buttons button { width: 120px; padding: 7px 0; font-size: 13px; font-weight: bold; cursor: pointer; }
+         #statusMsg { text-align: center; font-size: 13px; min-height: 18px; padding: 4px; }
+         #statusMsg.ok { color: #006600; font-weight: bold; }
+         #statusMsg.err { color: #cc0000; font-weight: bold; }
+      </style>
    </head>
-   <body >
-      <table align="center" style="border:0px solid red; background-color: #ffffff;">
-         <tr>
-            <td width="50" height="20">&nbsp</td>
-            <td width="860" height="20" >&nbsp</td>
-            <td width="50" height="20">&nbsp</td>
+   <body style="background-color: #ffffff;">
+      <div align="center" style="padding-top: 20px;">
+         <span class="page-header">Eagle Board</span><br/>
+         <span class="page-subheader" style="color: #cc0000;">Adult/Leader Sign-In</span>
+      </div>
 
-         </tr>
-         <tr>
-            <td>&nbsp</td>
-            <td align="center"><span class="page-header">Eagle Board</span><br/>
-               <span class="page-subheader"><font color="#cc0000">Adult/Leader Sign-In</font></span>
-               <br/>
-               <br/></td>
+      <div class="reg-wrap">
+         <form id="regForm" autocomplete="off">
+            <fieldset>
+               <legend><b>Adult/Leader Sign-In</b></legend>
+               <div class="reg-cols">
+                  <div class="reg-col">
+                     <div class="reg-row">
+                        <label for="Email">Email:</label>
+                        <input type="text" id="Email" name="Email" list="emailOptions" required
+                               title="Enter Email. If none, enter NONE.">
+                        <datalist id="emailOptions"></datalist>
+                     </div>
+                     <input type="hidden" name="ID" value="">
+                     <div class="reg-row">
+                        <label for="Last">Last:</label>
+                        <input type="text" id="Last" name="Last" required>
+                     </div>
+                     <div class="reg-row">
+                        <label for="First">First:</label>
+                        <input type="text" id="First" name="First" required>
+                     </div>
+                  </div>
+                  <div class="reg-col">
+                     <div class="reg-row">
+                        <label for="Phone">Phone:</label>
+                        <input type="text" id="Phone" name="Phone" required>
+                     </div>
+                     <div class="reg-row">
+                        <label for="UnitType">Unit Type:</label>
+                        <select id="UnitType" name="UnitType" required>
+                           <option value="Troop">Troop</option>
+                           <option value="Team">Team</option>
+                           <option value="Crew">Crew</option>
+                           <option value="Ship">Ship</option>
+                           <option value="Pack">Pack</option>
+                        </select>
+                     </div>
+                     <div class="reg-row">
+                        <label for="Unit">Unit #:</label>
+                        <input type="text" id="Unit" name="Unit" required pattern="[0-9]+"
+                               title="Unit # must be a whole number.">
+                     </div>
+                  </div>
+               </div>
+               <fieldset>
+                  <legend>I can serve as:</legend>
+                  <div class="reg-cols">
+                     <div class="reg-col">
+                        <div class="reg-row">
+                           <label for="FinalBoard">Final Board:</label>
+                           <select id="FinalBoard" name="FinalBoard" required>
+                              <option value="Member">Member</option>
+                              <option value="Chair">Chair</option>
+                           </select>
+                        </div>
+                     </div>
+                     <div class="reg-col">
+                        <div class="reg-row">
+                           <label for="ProjectReview">Project Review:</label>
+                           <select id="ProjectReview" name="ProjectReview" required>
+                              <option value="Member">Member</option>
+                              <option value="Chair">Chair</option>
+                           </select>
+                        </div>
+                     </div>
+                  </div>
+               </fieldset>
+            </fieldset>
+            <div id="statusMsg"></div>
+            <div class="reg-buttons">
+               <button type="submit" id="registerBtn" class="register_button"><b>Register</b></button>
+               <button type="button" id="cancelBtn"><b>Cancel</b></button>
+            </div>
+         </form>
+      </div>
 
-            <td>&nbsp</td>
-         </tr>
-         <tr>
-            <td>&nbsp</td>
-            <td style="border:0px solid red; vertical-align: bottom">
-               <div id="myForm" align="center"  style="width: 760px; height:500px;"></div>
-            </td>
-            <td>&nbsp</td>
-
-         </tr>
-      </table>
       <script>
-         var myForm, formData;
+         var form = document.getElementById("regForm");
+         var statusMsg = document.getElementById("statusMsg");
 
-         formData = [
-            {type: "settings", position: "label-left", offsetLeft: 10, labelWidth: 80, inputWidth: 200},
-            {type: "fieldset", label: "<b>Adult/Leader Sign-In</b>", labelWidth: 80, inputWidth: 760, list: [
-                  {type: "block", width: 700, list: [
-                        {type: "combo", name: "Email", label: "Email:", value: "", tooltip: "Enter Email. If none, enter NONE.", required: true},
-                        {type: "hidden", name: "ID", value: ""},
-                        {type: "input", name: "Last", label: "Last:", value: "", required: true},
-                        {type: "input", name: "First", label: "First:", value: "", required: true},
-                        {type: "newcolumn"},
-                        {type: "input", name: "Phone", label: "Phone:", value: "", required: true, leftOffset: 20},
-                        {type: "select", name: "UnitType", label: "Unit Type:", required: true, leftOffset: 20, options: [
-                              {text: "Troop", value: "Troop"},
-                              {text: "Team", value: "Team"},
-                              {text: "Crew", value: "Crew"},
-                              {text: "Ship", value: "Ship"},
-                              {text: "Pack", value: "Pack"},
-                           ]},
-                        {type: "input", name: "Unit", required: true, label: "Unit #:", validate: "ValidInteger", leftOffset: 20, value: ""}
-                     ]},
-                  {type: "fieldset", label: "I can serve as:", position: "label-right", width: 700, labelWidth: 100, list: [
-                        {type: "select", name: "FinalBoard", label: "Final Board:", labelWidth: 60, required: true, options: [
-                              {text: "Member", value: "Member"},
-                              {text: "Chair", value: "Chair"}
-                            
-                           ]},
-                        {type: "newcolumn"},
-                        {type: "select", name: "ProjectReview", label: "Project Review:", offsetLeft: 50, labelWidth: 60, required: true, options: [
-                              {text: "Member", value: "Member"},
-                              {text: "Chair", value: "Chair"}
-                              
-                           ]}]}
-               ]},
-            {type: "block", labelWidth: 80, inputWidth: 700, list: [
-                  {type: "button", name: "register", className: "register_button", width: 120, offsetLeft: 55, value: "<b>Register</b>"},
-                  {type: "newcolumn"},
-                  {type: "button", name: "cancel", width: 120, offsetLeft: 280, value: "<b>Cancel</b>"}
-               ]}
-         ];
-         myForm = new dhtmlXForm("myForm", formData);
-
-
-         var email_combo = myForm.getCombo("Email");
-         email_combo.load("/adult-autofill");
-
-         email_combo.enableAutocomplete(true);
-         email_combo.enableFilteringMode(true);
-
-         var last_email = "";
-         myForm.attachEvent("onChange", function(name, value) {
-
-            if (name === "Email")
-            {
-               //  if (last_email != value)
-               //alert("attempting change: '" + last_email + "' ? '" + value + "'");
-               if (value && (last_email !== value) && (value != "NONE") && (value != "none"))
-               {
-                  myForm.setItemValue("ID", "");
-                  last_email = value;
-                  //alert("Email changed to: " + value);
-                  myForm.load("/adult-autofill?Email=" + value, "json");
-               }
-            }
-            return true;
+         // Populate the Email autofill suggestions.
+         ebAutofillList("/adult-autofill").then(function (options) {
+            var datalist = document.getElementById("emailOptions");
+            options.forEach(function (value) {
+               var opt = document.createElement("option");
+               opt.value = value;
+               datalist.appendChild(opt);
+            });
          });
-         // or
-         // myForm.loadStruct(formData, "json");
-         myForm.attachEvent("onButtonClick", function(id) {
 
-            if (id == "register") //defines addition
-            {
-               var email = myForm.getItemValue("Email");
-//alert("submit: '" + email +"'");
-               myForm.send("register-adult", function(loader, response) {
-                  window.location.href = "/";
-               });
-               //window.location.href = "/";
-            }
-            else if (id == "cancel") //defines subtraction
-            {
-
-               dhtmlx.confirm({
-                  title: "Close",
-                  type: "confirm-warning",
-                  text: "Are you sure you want to Cancel ?",
-                  ok: "Yes",
-                  cancel: "No",
-                  callback: function(val)
-                  {
-                     if (val)
-                     {
-                        window.location.href = "/";
-                     }
+         // When a known email is entered, prefill the rest of the form.
+         var last_email = "";
+         var PREFILL = ["ID", "Last", "First", "Phone", "UnitType", "Unit", "FinalBoard", "ProjectReview"];
+         function onEmailChange() {
+            var value = form.elements["Email"].value;
+            if (value && last_email !== value && value != "NONE" && value != "none") {
+               form.elements["ID"].value = "";
+               last_email = value;
+               ebAutofillRecord("/adult-autofill", "Email", value).then(function (rec) {
+                  if (!rec) {
+                     return;
                   }
+                  PREFILL.forEach(function (name) {
+                     if (rec[name] != null && form.elements[name]) {
+                        form.elements[name].value = rec[name];
+                     }
+                  });
                });
-               // var r = window.confirm("Are you sure you want to Cancel ?");
-               // if (r) {
-               //    window.location.href = "/";
-               // } else {
-               //    // DO NOTHING
-               // }
+            }
+         }
+         form.elements["Email"].addEventListener("change", onEmailChange);
+         form.elements["Email"].addEventListener("input", onEmailChange);
+
+         function setStatus(text, cls) {
+            statusMsg.textContent = text;
+            statusMsg.className = cls;
+         }
+
+         form.addEventListener("submit", function (ev) {
+            ev.preventDefault();
+            var fields = {};
+            ["Email", "ID", "Last", "First", "Phone", "UnitType", "Unit", "FinalBoard", "ProjectReview"].forEach(function (name) {
+               fields[name] = form.elements[name].value;
+            });
+            var btn = document.getElementById("registerBtn");
+            btn.disabled = true;
+            setStatus("Registering...", "");
+            fetch("/register-adult", {
+               method: "POST",
+               headers: { "Content-Type": "application/x-www-form-urlencoded" },
+               body: ebFormBody(fields)
+            }).then(function (r) {
+               return r.text().then(function (text) { return { status: r.status, text: text }; });
+            }).then(function (res) {
+               if (res.status === 200) {
+                  setStatus("Registration complete. Thank you!", "ok");
+                  setTimeout(function () { window.location.href = "/"; }, 1200);
+               } else {
+                  btn.disabled = false;
+                  setStatus(res.text || "Registration failed. Please try again.", "err");
+               }
+            }).catch(function () {
+               btn.disabled = false;
+               setStatus("Registration failed. Please try again.", "err");
+            });
+         });
+
+         document.getElementById("cancelBtn").addEventListener("click", function () {
+            if (window.confirm("Are you sure you want to Cancel ?")) {
+               window.location.href = "/";
             }
          });
       </script>
-      <!--
-      ,
-                        {type: "checkbox", labelWidth: 100, position: "label-right", name: "final_ch", label: "Final Board <br/><b>Member</b>   ", checked: true},
-                        {type: "newcolumn"},
-                        {type: "checkbox", labelWidth: 100, position: "label-right", name: "project_ch", label: "Project Review <br/><b>Member</b>    ", checked: true},
-                        {type: "newcolumn"},
-                        {type: "checkbox", labelWidth: 100, position: "label-right", ame: "chair_ch", label: "Final Board <br/><b>Chair</b>   ", checked: false},
-                        {type: "newcolumn"},
-                        {type: "checkbox", labelWidth: 100, position: "label-right", ame: "chair_ch", label: "Project Review <br/><b>Chair</b>   ", checked: false}
-
-      -->
    </body>
 </html>

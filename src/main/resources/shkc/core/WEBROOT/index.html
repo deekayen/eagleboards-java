@@ -1,110 +1,77 @@
 <!DOCTYPE html>
 <html>
    <head>
-      <link rel="stylesheet" type="text/css" href="/dhtmlx/dhtmlx.css"/>
-      <link rel="stylesheet" type="text/css" href="/dhtmlx/skins/terrace/dhtmlx.css"/>
       <link rel="stylesheet" type="text/css" href="scheduler.css"/>
-
-      <script src="/dhtmlx/dhtmlx.js"></script>
-      <script>
-
-      </script>
+      <script src="/eb-data.js"></script>
+      <style>
+         .signin-buttons { width: 800px; margin: 0 auto; display: flex; justify-content: space-between; padding: 20px 50px; box-sizing: border-box; }
+         .signin-buttons input[type=button] {
+            width: 200px; height: 60px; border: 0;
+            background-position: center; background-repeat: no-repeat;
+            cursor: pointer;
+         }
+         .reg-panels { width: 800px; margin: 10px auto 0 auto; display: flex; }
+         .reg-panel { flex: 1; margin: 0 5px; border: 1px solid #cecece; background: #fff; }
+         .reg-panel-title {
+            padding: 6px 10px; background: #f4f4f4; border-bottom: 1px solid #cecece;
+            font-family: sans-serif; font-size: 13px; font-weight: bold; color: #555;
+         }
+         .reg-panel-body { height: 268px; overflow-y: auto; }
+         .reg-panel table { width: 100%; border-collapse: collapse; font-family: sans-serif; font-size: 12px; color: #444; }
+         .reg-panel td { padding: 3px 6px; border-bottom: 1px solid #eee; text-align: left; white-space: nowrap; overflow: hidden; }
+         .reg-panel td.c { text-align: center; }
+      </style>
    </head>
    <body>
 
-      <form>
-         <table align="center" border="0">
-            <tr>
-               <td height="1" width="300">&nbsp;</td> 
-               <td width="200">&nbsp;</td>            
-               <td width="300">&nbsp;</td>            
-            </tr>
-            <tr>
-               <td colspan="3"><h1>Welcome to the Eagle Board.</h1>
-                  <h1><u>Please Sign In</u></h1></td>
-            </tr>
-            <tr>
-               <td width="300" height="100" align="center"><input type="button" name="Scout" style="width:200px;height:60px; background: url('ScoutButton.png');
-                                                                  background-position:center;
-                                                                  background-repeat:no-repeat;
-                                                                  border: 0px;" onclick="window.location.href = '/scout_register';"> </td>
-               <td></td>
-               <td width="300" height="100" align="center"><input type ="button" name="Leader" style="width:200px;height:60px; background: url('LeaderButton.png');
-                                                                  background-position:center;
-                                                                  background-repeat:no-repeat;
-                                                                  border: 0px;" onclick="window.location.href = '/adult_register';"></td>
-            </tr>
-            <tr>
-               <td colspan="3"align="center"><div id="myLayout" align="center"  style="width: 800px; height:300px;"></div>
-               </td>
-            </tr>
-         </table>
-      </form>
+      <h1>Welcome to the Eagle Board.</h1>
+      <h1><u>Please Sign In</u></h1>
+
+      <div class="signin-buttons">
+         <input type="button" name="Scout" style="background-image: url('ScoutButton.png');"
+                onclick="window.location.href = '/scout_register';">
+         <input type="button" name="Leader" style="background-image: url('LeaderButton.png');"
+                onclick="window.location.href = '/adult_register';">
+      </div>
+
+      <div class="reg-panels">
+         <div class="reg-panel">
+            <div class="reg-panel-title">Registered Scouts</div>
+            <div class="reg-panel-body" id="scoutPanel"><table><tbody id="scoutRows"></tbody></table></div>
+         </div>
+         <div class="reg-panel">
+            <div class="reg-panel-title">Registered Adults</div>
+            <div class="reg-panel-body" id="adultPanel"><table><tbody id="adultRows"></tbody></table></div>
+         </div>
+      </div>
+
       <script>
-         var myLayout = new dhtmlXLayoutObject({
-            parent: "myLayout",
-            pattern: "2U"
-         });
-         myLayout.setSkin("dhx_terrace");
-         myLayout.setAutoSize("a;b", "a;b");
+         function fillPanel(bodyId, panelId, rows, cols, centerCols) {
+            var tbody = document.getElementById(bodyId);
+            rows.forEach(function (rec) {
+               var tr = document.createElement("tr");
+               cols.forEach(function (col) {
+                  var td = document.createElement("td");
+                  if (centerCols.indexOf(col) >= 0) {
+                     td.className = "c";
+                  }
+                  td.textContent = rec[col] || "";
+                  tr.appendChild(td);
+               });
+               tbody.appendChild(tr);
+            });
+            // Match the old behavior: scroll so the most recent row is visible.
+            var panel = document.getElementById(panelId);
+            panel.scrollTop = panel.scrollHeight;
+         }
 
-         myLayout.cells("a").setText("Registered Scouts");
-         scoutGrid = myLayout.cells("a").attachGrid();
-
-         scoutGrid.selMultiRows = false;
-         scoutGrid.setImagePath("/dhtmlx/skins/terrace/imgs/dhxgrid_terrace/");
-         scoutGrid.setHeader("In,Last,First,UType,Unit");
-         scoutGrid.setColumnIds("RegTimeHM,Last,First,UnitType,Unit");
-         scoutGrid.setNoHeader(true);
-
-         scoutGrid.setInitWidths("60,100,100,80,*");
-         scoutGrid.setColAlign("center,left,left,left,left");
-         scoutGrid.setColTypes("ro,ro,ro,ro,ro");
-         scoutGrid.setColSorting("time, str,str,str,str");
-
-         scoutGrid.setMultiLine(false);
-         scoutGrid.enableDragAndDrop(false);
-         scoutGrid.init();
-
-         scoutGrid.load("/scout-cells?cols=RegTimeHM,Last,First,UnitType,Unit",function()
-         {
-          var num = scoutGrid.getRowsNum();
-          if (num>0)
-          {
-             var id = scoutGrid.getRowId(num-1);
-             scoutGrid.showRow(id);
-          }
+         ebFetchRows("/scout-cells", ["RegTimeHM", "Last", "First", "UnitType", "Unit"]).then(function (rows) {
+            fillPanel("scoutRows", "scoutPanel", rows, ["RegTimeHM", "Last", "First", "UnitType", "Unit"], ["RegTimeHM"]);
          });
 
-
-         myLayout.cells("b").setText("Registered Adults");
-         leaderGrid = myLayout.cells("b").attachGrid();
-
-         leaderGrid.selMultiRows = false;
-         leaderGrid.setImagePath("/dhtmlx/skins/terrace/imgs/dhxgrid_terrace/");
-         leaderGrid.setHeader("Last,First,UType,Unit");
-         leaderGrid.setColumnIds("Last,First,UnitType,Unit");
-         leaderGrid.setNoHeader(true);
-
-         leaderGrid.setInitWidths("100,100,80,*");
-         leaderGrid.setColAlign("left,left,left,left");
-         leaderGrid.setColTypes("ro,ro,ro,ro");
-         leaderGrid.setColSorting("str,str,str,str");
-
-         leaderGrid.setMultiLine(false);
-         leaderGrid.enableDragAndDrop(false);
-         leaderGrid.init();
-
-         leaderGrid.load("/adult-cells?cols=Last,First,UnitType,Unit",function()
-         {
-          var num = leaderGrid.getRowsNum();
-          if (num>0)
-          {
-             var id = leaderGrid.getRowId(num-1);
-             leaderGrid.showRow(id);
-          }
+         ebFetchRows("/adult-cells", ["Last", "First", "UnitType", "Unit"]).then(function (rows) {
+            fillPanel("adultRows", "adultPanel", rows, ["Last", "First", "UnitType", "Unit"], []);
          });
-
       </script>
    </body>
 

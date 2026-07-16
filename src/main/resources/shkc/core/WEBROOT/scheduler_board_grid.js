@@ -1,59 +1,39 @@
 // ------------------------------------------------------------------------
-// -- $Id: scheduler_board_grid.js,v 1.5 2015/11/18 15:00:40 sking Exp $
+// scheduler_board_grid.js — Active/Completed Boards panel (Tabulator).
+//
+// Shows scouts whose Status is Seated/InProgress/Completed/Postponed,
+// colored by status. Selecting a board row selects everything for its
+// room (scout, adults, room card).
 // ------------------------------------------------------------------------
-//-- Copyright (c) 2001-2010 by Monfox, LLC.  ALL RIGHTS RESERVED
-//--
-//-- This software, and the ideas, mechanisms and algorithms expressed
-//-- therein, is the intellectual and material property of Monfox, LLC
-//-- and is provided for use under applicable license agreement only.
-//-- No title to or ownership of the software is hereby transferred. No
-//-- license to copy, modify, distribute, translate, decompile, reverse
-//-- engineer or otherwise remanufacture this software except under the
-//-- above license is granted.
-//------------------------------------------------------------------------
 
-var boardGrid;
-
-function SchedulerBoardGrid(layout_cell, title)
-{
-   SchedulerGrid.call(this, layout_cell, title,
-           "/scout-cells?filter=Status~Seated|InProgress|Completed|Postponed&fmt=rows",
-           "#,Last,First,Unit,Leader,Board,Status,RM#, Result,Chair,Members,Notes",
-           "RegNum,Last,First,UnitName,Leader,BoardType,Status,Room,Result,BoardChair,BoardMembers,Notes",
-           "50,80,80,60,100,60,80,50,60,100,100,*",
-           false);
-
-   boardGrid = this.grid;
-   
-   this.grid.attachHeader("#text_filter,#text_filter,#text_filter,#select_filter,#text_filter,#text_filter,#select_filter,#select_filter,#select_filter,#text_filter,#text_filter,#text_filter")
-
-
-   var this_obj = this;
-
-   this.grid.attachEvent("onRowSelect", function(s_id, ind) {
-      var b_room = this_obj.getColumnValue(s_id, "Room"); // this_obj.grid.cells(s_id, 7).getValue();
-
-      if ((b_room.length > 0) && (b_room !== "N/A"))
-      {
-         SCHEDULER_selectAllForRoom(b_room);
-      }
-
-      SCHEDULER_selectScout(s_id);
-
-      //   if (scoutGrid.doesRowExist(s_id))
-      //   {
-      //      scoutGrid.selectRowById(s_id, true, true, false);
-      //      global_findScoutmaster(s_id);
-      //      // alert("selecting: " + s_id);
-      //   }
-      // boardGrid_highlight();
-      // scoutGrid_highlight();
-   });
+function SchedulerBoardGrid(container_id, title) {
+   SchedulerGrid.call(this, container_id, title,
+      "/scout-cells?filter=Status~Seated|InProgress|Completed|Postponed",
+      [
+         { title: "#", field: "RegNum", width: 50, sorter: "number", headerFilter: "input" },
+         { title: "Last", field: "Last", width: 90, headerFilter: "input" },
+         { title: "First", field: "First", width: 90, headerFilter: "input" },
+         { title: "Unit", field: "UnitName", width: 70, headerFilter: "list", headerFilterParams: { valuesLookup: true, clearable: true } },
+         { title: "Leader", field: "Leader", width: 100, headerFilter: "input" },
+         { title: "Board", field: "BoardType", width: 70, headerFilter: "input" },
+         { title: "Status", field: "Status", width: 90, sorter: sort_status, headerFilter: "list", headerFilterParams: { valuesLookup: true, clearable: true } },
+         { title: "RM#", field: "Room", width: 60, headerFilter: "list", headerFilterParams: { valuesLookup: true, clearable: true } },
+         { title: "Result", field: "Result", width: 80, headerFilter: "list", headerFilterParams: { valuesLookup: true, clearable: true } },
+         { title: "Chair", field: "BoardChair", width: 100, headerFilter: "input" },
+         { title: "Members", field: "BoardMembers", width: 120, headerFilter: "input" },
+         { title: "Notes", field: "Notes", widthGrow: 1, headerFilter: "input" }
+      ],
+      ["RegNum", "Last", "First", "UnitName", "Leader", "BoardType", "Status", "Room", "Result", "BoardChair", "BoardMembers", "Notes"]);
 }
 
 SchedulerBoardGrid.prototype = new SchedulerGrid();
-
 SchedulerBoardGrid.prototype.constructor = SchedulerBoardGrid;
 
+SchedulerBoardGrid.prototype.onUserSelect = function (s_id) {
+   var b_room = this.getColumnValue(s_id, "Room");
 
-
+   if ((b_room.length > 0) && (b_room !== "N/A")) {
+      SCHEDULER_selectAllForRoom(b_room);
+   }
+   SCHEDULER_selectScout(s_id);
+};
