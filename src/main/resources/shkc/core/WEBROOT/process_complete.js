@@ -1,7 +1,7 @@
 // ------------------------------------------------------------------------
 // process_complete.js — InProgress -> Completed transition
-// (/complete-board). Collects Result, Notes, Project Cost, BSA Hours and
-// Other Hours in a dialog before posting.
+// (/complete-board). Collects the board Result and free-text Notes before
+// posting. (Project cost / BSA hours / other hours are no longer collected.)
 // ------------------------------------------------------------------------
 
 function InitializeCompleteBoard() {
@@ -23,18 +23,12 @@ function ProcessCompleteBoard(s_id) {
          + "<option value='Suspended'>Suspended</option>"
          + "<option value='NotApproved'>NotApproved</option>"
          + "</select></label><br/><br/>"
-         + "<label>Notes:<br/><textarea name='Notes' rows='4' style='width: 300px;'>Completion Notes...</textarea></label><br/><br/>"
-         + "<label>Project Cost: <input type='text' name='Cost' size='8' value=''/></label><br/>"
-         + "<label>BSA Hours: <input type='text' name='BSAHours' size='8' value=''/></label><br/>"
-         + "<label>Other Hours: <input type='text' name='OtherHours' size='8' value=''/></label>",
+         + "<label>Notes:<br/><textarea name='Notes' rows='4' style='width: 300px;'>Completion Notes...</textarea></label>",
          [{ name: "Complete", label: "Complete" }, { name: "Cancel", label: "Cancel" }],
          function (name, body) {
             if (name == "Complete") {
                var result = body.querySelector("select[name='Result']").value;
                var notes = body.querySelector("textarea[name='Notes']").value;
-               var project_cost = body.querySelector("input[name='Cost']").value;
-               var bsa_hours = body.querySelector("input[name='BSAHours']").value;
-               var other_hours = body.querySelector("input[name='OtherHours']").value;
 
                // strip any markup from the notes (parity with the old editor)
                var sidx = notes.indexOf('<');
@@ -43,7 +37,7 @@ function ProcessCompleteBoard(s_id) {
                   notes = notes.substring(0, sidx);
                }
 
-               SendCompleteRequest(s_id, result, notes, project_cost, bsa_hours, other_hours);
+               SendCompleteRequest(s_id, result, notes);
             }
          });
    } else {
@@ -52,17 +46,14 @@ function ProcessCompleteBoard(s_id) {
    }
 }
 
-function SendCompleteRequest(s_id, result, notes, project_cost, bsa_hours, other_hours) {
+function SendCompleteRequest(s_id, result, notes) {
    var s_last = schedulerScoutGrid.getColumnValue(s_id, "Last");
    var s_first = schedulerScoutGrid.getColumnValue(s_id, "First");
 
    ebAction("/complete-board", {
       ScoutID: s_id,
       Result: result,
-      Notes: urlEntities(notes),
-      Cost: urlEntities(project_cost),
-      BSAHours: urlEntities(bsa_hours),
-      OtherHours: urlEntities(other_hours)
+      Notes: urlEntities(notes)
    })
       .then(function (res) {
          if (res.ok) {
