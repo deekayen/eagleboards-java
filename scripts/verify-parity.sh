@@ -215,7 +215,9 @@ note "$count GET paths compared + 3 status-only paths"
 echo "== 3. write endpoints =="
 compare POST /register-scout "Last=Parity&First=Test&Email=parity@example.org&Phone=555-000-0001&UnitType=Troop&Unit=9999&UnitName=T9999&DOB=2008-01-01&BoardType=EagleBoard&Leader=Leader+Parity"
 compare POST /register-adult "Last=Boardmember&First=Check&Email=board@example.org&Phone=555-000-0002&UnitType=Troop&Unit=9999&UnitName=T9999&ProjectReview=Member&FinalBoard=Member"
-compare GET /scout-cells
+# Explicit cols excluding the dropped AdultScoutRatio column (the rebuilt no
+# longer tracks it, so a no-cols /scout-cells would differ from the original).
+compare GET "/scout-cells?cols=RegNum,Last,First,Email,Phone,BoardType,Status"
 compare GET /adult-cells
 compare POST /room-update  '!nativeeditor_status=inserted&gr_id=1&c0=1&c1=Room+101&c2=&c3='
 compare GET /room-cells
@@ -224,11 +226,27 @@ compare POST /seat-board   "RoomID=1&ScoutID=BOGUS&ChairID=B&MemberIDs=C"
 compare POST /room-change  "RmID1=&RmID2="
 note "write/error endpoints compared"
 
+# Drop the intentionally-removed AdultScoutRatio column (by header name) from
+# a CSV before comparing, so the original's scout files (which still carry it)
+# compare cleanly against the rebuilt's (which no longer do). No-op on files
+# without that column. Naive comma split is safe: the fields written during a
+# parity run contain no embedded commas.
+dropcol() {
+    python3 -c '
+import sys
+lines = sys.stdin.read().splitlines()
+if lines and "AdultScoutRatio" in lines[0].split(","):
+    idx = lines[0].split(",").index("AdultScoutRatio")
+    lines = [",".join([p for i, p in enumerate(ln.split(",")) if i != idx]) for ln in lines]
+print("\n".join(lines))
+'
+}
+
 echo "== 3a. resulting data files =="
 sleep 1
 for f in $(cd parity/A && find testrun -type f 2>/dev/null; echo Master_AdultHistory.csv); do
     if [ ! -f "parity/B/$f" ]; then fail "file missing on rebuilt side: $f"; continue; fi
-    if ! diff <(norm <"parity/A/$f") <(norm <"parity/B/$f") >"$WORK/fdiff" 2>&1; then
+    if ! diff <(dropcol <"parity/A/$f" | norm) <(dropcol <"parity/B/$f" | norm) >"$WORK/fdiff" 2>&1; then
         fail "data file differs: $f"; sed 's/^/      /' "$WORK/fdiff" | head -8
     fi
 done
@@ -243,7 +261,7 @@ echo "== 4. startup logs =="
 # (startup banners, SLF4J notices, and the old Jetty-8-era ResourceHandler
 # getResource/RESOURCE trace lines that no longer exist).
 normlog() { norm <"$1" | LC_ALL=C sed -E "s/:1808[01]/:PORT/g; s/[0-9]{2}:[0-9]{2}:[0-9]{2}[.,][0-9]+/TIME/g; s/[0-9]{4}-[0-9]{2}-[0-9]{2} TIME/DATETIME/g; s|parity/[AB]|parity/X|g; s/@[0-9a-fA-F]+/@ID/g; s/^size:[0-9]+$/size:N/; s/context-path=null/context-path=/" \
-    | grep -vE '^(DATETIME|TIME)?[: ]*(INFO|WARN)[: ]|SLF4J|jetty|oejs|oeje|getResource: |RESOURCE: |Session workerName|Started |Logging initialized|^LOADED: CONFIG,' \
+    | grep -vE '^(DATETIME|TIME)?[: ]*(INFO|WARN)[: ]|SLF4J|jetty|oejs|oeje|getResource: |RESOURCE: |Session workerName|Started |Logging initialized|^LOADED: CONFIG,|^NEW SCOUT RECORD:' \
     | python3 -c '
 # Parameter-map dumps ({k=[v],...}) keep the same entries but a different
 # iteration order under Jetty 12 vs 8 — sort entries so order is irrelevant.

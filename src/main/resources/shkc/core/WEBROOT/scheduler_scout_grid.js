@@ -1,7 +1,7 @@
 // ------------------------------------------------------------------------
 // scheduler_scout_grid.js — Scouts/Candidates panel (Tabulator).
 //
-// Columns:  # (RegNum), B/S (AdultScoutRatio), T (MinsSinceLastUpdate),
+// Columns:  # (RegNum), T (MinsSinceLastUpdate),
 //           Last, First, Unit, F/P (BoardType), RM# (Room), Status, Leader
 // Toolbar:  Verify / Seat / Complete | Locate / View-Hide / Reset /
 //           Postpone — enabled according to the selected scout's status.
@@ -15,7 +15,6 @@ function SchedulerScoutGrid(container_id, toolbar_id, title) {
    SchedulerGrid.call(this, container_id, title, "/scout-cells",
       [
          { title: "#", field: "RegNum", width: 46, sorter: "number" },
-         { title: "B/S", field: "AdultScoutRatio", width: 48 },
          { title: "T", field: "MinsSinceLastUpdate", width: 44, sorter: "number" },
          { title: "Last", field: "Last", width: 90, headerFilter: "input" },
          { title: "First", field: "First", width: 90, headerFilter: "input" },
@@ -25,7 +24,7 @@ function SchedulerScoutGrid(container_id, toolbar_id, title) {
          { title: "Status", field: "Status", width: 100, sorter: sort_status, headerFilter: "list", headerFilterParams: { valuesLookup: true, clearable: true } },
          { title: "Leader", field: "Leader", widthGrow: 1, headerFilter: "input" }
       ],
-      ["RegNum", "AdultScoutRatio", "MinsSinceLastUpdate", "Last", "First", "UnitName", "BoardType", "Room", "Status", "Leader"]);
+      ["RegNum", "MinsSinceLastUpdate", "Last", "First", "UnitName", "BoardType", "Room", "Status", "Leader"]);
 
    var this_obj = this;
 

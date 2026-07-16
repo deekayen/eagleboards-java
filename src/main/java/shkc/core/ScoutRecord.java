@@ -21,7 +21,6 @@ public class ScoutRecord extends PersonRecord {
       "RegNum",
       "Last",
       "First",
-      "AdultScoutRatio",
       "Email",
       "Phone",
       "UnitType",

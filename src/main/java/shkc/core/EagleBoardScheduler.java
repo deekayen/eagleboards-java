@@ -215,7 +215,6 @@ public class EagleBoardScheduler {
          System.out.println("\n   no prereg-file or SignupGenius DB loaded \n\n");
       }
 
-      this.updateAdultScoutRatios(true);
       this._server.addHandler("/register-scout", new EagleBoardScheduler.RegisterScoutHandler());
       this._server.addHandler("/register-adult", new EagleBoardScheduler.RegisterAdultHandler());
       this._server.addHandler("/update-config", new EagleBoardScheduler.UpdateConfigHandler());
@@ -260,6 +259,9 @@ public class EagleBoardScheduler {
       }
    }
 
+   // No longer called: the AdultScoutRatio ("B/S") column was dropped. Kept
+   // defined (unused) so this class's declared members — and the parity gate —
+   // are unchanged. Safe to delete if the parity baseline is ever retired.
    private void updateAdultScoutRatios(boolean var1) {
       HashMap var2 = new HashMap();
 
@@ -791,7 +793,6 @@ public class EagleBoardScheduler {
             var7.setBoardHistory(var8);
             EagleBoardScheduler.this._adultRecords.store();
             EagleBoardScheduler.this._adultHistoryRecords.store();
-            EagleBoardScheduler.this.updateAdultScoutRatios(true);
             var3.setStatus(200);
          }
       }
@@ -835,7 +836,6 @@ public class EagleBoardScheduler {
                var11.setRegNum("P" + (var5 + 1));
             }
 
-            EagleBoardScheduler.this.updateAdultScoutRatios(false);
             EagleBoardScheduler.this._scoutRecords.store();
             var3.setStatus(200);
          }
