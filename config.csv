@@ -1,2 +1,0 @@
-Type,ID,Name,RefreshTimeSecs,ProjectYellowMins,ProjectRedMins,FinalYellowMins,FinalRedMins,RegisteredColor,VerifiedColor,SeatedColor,InProgressColor,CompletedColor,PostponedColor,RegisteredHiColor,VerifiedHiColor,SeatedHiColor,InProgressHiColor,CompletedHiColor,PostponedHiColor
-CONFIG,DEFAULT,DEFAULT,30,25,40,40,50,#ffcccc,#ffffcc,#ccffff,#ccffcc,#ffffff,#909090,#ff6666,#ffff66,#66ffff,#66ff66,#eeeeee,#9f7f7f

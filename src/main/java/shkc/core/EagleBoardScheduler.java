@@ -157,11 +157,11 @@ public class EagleBoardScheduler {
             throw new Exception("error: config  file '" + var5 + "' does not exist.");
          }
       } else {
-         this._configFile = new File(this._dataRoot, "config.csv");
+         this._configFile = new File(this._dataRoot, "config.properties");
       }
 
       if (var5 == null) {
-         var5 = "config.csv";
+         var5 = "config.properties";
       }
 
       this._server = new WebServer("WEBROOT");
@@ -172,7 +172,7 @@ public class EagleBoardScheduler {
       this._scoutsScheduledFile = new File(this._dataRoot, "scouts_scheduled.csv");
       this._configFile = new File(this._dataRoot, var5);
       if (!this._configFile.exists()) {
-         this._configFile = new File("config.csv");
+         this._configFile = new File("config.properties");
       }
 
       this._configRecords = new DataRecordFile<>(this._configFile, new ConfigRecord.Factory());

@@ -13,7 +13,7 @@ var SCHEDULER_refreshTime = 10;
 
 // Board-type room-card warning thresholds, in minutes since a board was
 // seated. Yellow = warning, Red = overdue. Defaults below; override in
-// config.csv with columns ProjectYellowMins / ProjectRedMins /
+// config.properties with keys ProjectYellowMins / ProjectRedMins /
 // FinalYellowMins / FinalRedMins.
 var SCHEDULER_ProjectYellowTime = 25;
 var SCHEDULER_ProjectRedTime = 40;

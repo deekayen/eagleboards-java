@@ -2,6 +2,7 @@ package shkc.core;
 
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.IOException;
@@ -10,6 +11,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.StringTokenizer;
 
 public class DataRecordFile<T extends DataRecord> {
@@ -82,6 +84,33 @@ public class DataRecordFile<T extends DataRecord> {
    }
 
    public synchronized void store() throws IOException {
+      // A ".properties" file holds a single record as key=value lines (used
+      // for the CONFIG record): one line per column, in column order, with a
+      // header comment. Hex color values are written verbatim (no escaping).
+      // Logic is inlined here rather than in a helper so this class's declared
+      // members stay identical to the original binary (the parity gate).
+      if (this._file.getName().toLowerCase().endsWith(".properties")) {
+         StringBuffer var10 = new StringBuffer();
+         var10.append("# Eagle Board Scheduler configuration\n");
+         var10.append("# Edit the values after each '='. Lines starting with # are comments.\n\n");
+
+         for (DataRecord var12 : this._recordList) {
+            for (String var14 : this._factory.getColumns()) {
+               String var15 = var12.getValue(var14);
+               if (var15 == null) {
+                  var15 = "";
+               }
+
+               var10.append(var14).append("=").append(var15).append("\n");
+            }
+         }
+
+         PrintStream var16 = new PrintStream(new FileOutputStream(this._file));
+         var16.print(var10.toString());
+         var16.close();
+         return;
+      }
+
       boolean var1 = true;
       StringBuffer var2 = new StringBuffer();
 
@@ -107,6 +136,31 @@ public class DataRecordFile<T extends DataRecord> {
    }
 
    public synchronized void load() throws IOException {
+      // ".properties" config file: parse key=value into a single record via
+      // java.util.Properties. Inlined (see store()) to preserve signatures.
+      if (this._file.getName().toLowerCase().endsWith(".properties")) {
+         Properties var10 = new Properties();
+         FileInputStream var11 = new FileInputStream(this._file);
+
+         try {
+            var10.load(var11);
+         } finally {
+            var11.close();
+         }
+
+         DataRecord var12 = this._factory.newInstance();
+         for (String var14 : this._factory.getColumns()) {
+            String var15 = var10.getProperty(var14);
+            if (var15 != null) {
+               var12.put(var14, var15);
+            }
+         }
+
+         this.add((T)var12, false);
+         EagleBoardScheduler.verbose("LOADED: " + var12);
+         return;
+      }
+
       BufferedReader var1 = new BufferedReader(new FileReader(this._file));
       String var2 = null;
       int var3 = 0;

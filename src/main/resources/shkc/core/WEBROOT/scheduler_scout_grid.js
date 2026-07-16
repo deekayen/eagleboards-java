@@ -3,11 +3,12 @@
 //
 // Columns:  # (RegNum), B/S (AdultScoutRatio), T (MinsSinceLastUpdate),
 //           Last, First, Unit, F/P (BoardType), RM# (Room), Status, Leader
-// Toolbar:  Verify / Seat / Start / Complete | Locate / View-Hide /
-//           Reset / Postpone — enabled according to the selected scout's
-//           status, exactly as the old toolbar did.
-// Timers:   rows whose Status is Seated/InProgress raise room alerts when
-//           MinsSinceLastUpdate exceeds the configured alert/reminder times.
+// Toolbar:  Verify / Seat / Complete | Locate / View-Hide / Reset /
+//           Postpone — enabled according to the selected scout's status.
+//           (Seat and Start were merged: seating goes straight to InProgress.)
+// Timers:   active (Seated/InProgress) rows raise a room card warning
+//           (yellow) then overdue (red) at the board-type thresholds in
+//           config.properties, measured from when the board was seated.
 // ------------------------------------------------------------------------
 
 function SchedulerScoutGrid(container_id, toolbar_id, title) {
@@ -130,7 +131,7 @@ SchedulerScoutGrid.prototype.updateHidden = function (state) {
 
 // Minutes-since-seated at which an active board's room card turns yellow
 // (warning) then red (overdue). Board-type specific; configurable via
-// config.csv (see SCHEDULER_*Mins in scheduler_config.js).
+// config.properties (see SCHEDULER_*Mins in scheduler_config.js).
 SchedulerScoutGrid.prototype.getYellowTime = function (status, btype) {
    if (status != "Seated" && status != "InProgress") {
       return 0;

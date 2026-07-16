@@ -23,5 +23,5 @@ if "%JAR%"=="" (
 set "SUGARG="
 if not "%SUG_KEY%"=="" if not "%SUG_KEY%"=="replace-with-real-key" set SUGARG=-sugkey %SUG_KEY%
 
-java -jar "%JAR%" -verbose -w -a Master_AdultHistory.csv -c config.csv -port 8080 %SUGARG%
+java -jar "%JAR%" -verbose -w -a Master_AdultHistory.csv -c config.properties -port 8080 %SUGARG%
 pause

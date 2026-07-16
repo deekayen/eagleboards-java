@@ -29,5 +29,5 @@ if [ "$(uname)" != "Darwin" ] && [ -z "${DISPLAY:-}" ] && [ -z "${WAYLAND_DISPLA
 fi
 
 exec java -jar "$JAR" -verbose $W_FLAG \
-    -a Master_AdultHistory.csv -c config.csv -port 8080 \
+    -a Master_AdultHistory.csv -c config.properties -port 8080 \
     ${SUG_KEY:+-sugkey "$SUG_KEY"}

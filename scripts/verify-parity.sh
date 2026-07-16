@@ -128,8 +128,17 @@ fi
 # -------------------------------------------------------------- 2/3. runtime
 echo "== 2. side-by-side servers =="
 rm -rf parity && mkdir -p parity/A parity/B
+# The original binary only reads CSV config, so parity runs both jars on a
+# generated config.csv fixture (the rebuilt reads .csv via its CSV path). The
+# .properties path is exercised by CI's smoke test instead. The config schema
+# change is already accounted for (/config-autofill is status-only and the
+# CONFIG startup-log line is normalized).
 for d in parity/A parity/B; do
-    cp config.csv Master_AdultHistory.csv "$d/"
+    cp Master_AdultHistory.csv "$d/"
+    {
+        echo "Type,ID,Name,RefreshTimeSecs,ProjectYellowMins,ProjectRedMins,FinalYellowMins,FinalRedMins,RegisteredColor,VerifiedColor,SeatedColor,InProgressColor,CompletedColor,PostponedColor,RegisteredHiColor,VerifiedHiColor,SeatedHiColor,InProgressHiColor,CompletedHiColor,PostponedHiColor"
+        echo "CONFIG,DEFAULT,DEFAULT,30,25,40,40,50,#ffcccc,#ffffcc,#ccffff,#ccffcc,#ffffff,#909090,#ff6666,#ffff66,#66ffff,#66ff66,#eeeeee,#9f7f7f"
+    } > "$d/config.csv"
 done
 
 ( cd parity/A && exec java -jar "../../$ORIG_JAR" -verbose \

@@ -49,10 +49,10 @@ original source was received) and then modernized. See `PROVENANCE.md`.
    `YYYY-MM-DD/` folders, `Master_AdultHistory*`, `LOGIN_INFO*`) and the
    inherited jar (embeds an API key) are gitignored and blocked by
    `scripts/hooks/pre-commit`. Install the hook once per clone:
-   `git config core.hooksPath scripts/hooks`. Only `config.csv` (colors/timings,
-   no PII) is a committed CSV.
+   `git config core.hooksPath scripts/hooks`. No CSV is committed; the only
+   committed config is `config.properties` (colors/timings, no PII).
 4. **Test in a sandbox, never against the live instance or real data.** Copy
-   `config.csv` and use a *synthetic* header-only `Master_AdultHistory.csv`
+   `config.properties` and use a *synthetic* header-only `Master_AdultHistory.csv`
    into a scratch dir; run on a spare port with `-d testdata`. Never load the
    real `Master_AdultHistory.csv` into anything you screenshot.
 5. **CI must stay green on all three platforms** (`.github/workflows/build.yml`:
@@ -75,12 +75,16 @@ original source was received) and then modernized. See `PROVENANCE.md`.
 - **Board lifecycle:** Registered → Verified → (Seat) → InProgress → Completed /
   Postponed. "Seat" and "Start" were merged — seating goes straight to
   InProgress; there is no separate Seated state or Start button anymore.
-- **Config lives in `config.csv`** as one CONFIG row, loaded into `ConfigRecord`
+- **Config lives in `config.properties`** (JDK `java.util.Properties`,
+  `key=value`, `#` comments) as one CONFIG record, loaded into `ConfigRecord`
   (columns must be listed in `ConfigRecord.COLUMNS` to be served via
   `/config-autofill`) and edited via the Settings page (`configure.html`).
-  Room-card warning timers are board-type specific: `ProjectYellowMins` /
-  `ProjectRedMins` / `FinalYellowMins` / `FinalRedMins`, minutes since seating.
-  Migrating this to a `.properties` file is a planned follow-up (see issues).
+  The format is chosen by file extension inside `DataRecordFile.load`/`store`
+  (`.properties` → key=value, else CSV — the CSV path is kept so the original
+  binary and the parity gate still work). Room-card warning timers are
+  board-type specific: `ProjectYellowMins` / `ProjectRedMins` /
+  `FinalYellowMins` / `FinalRedMins`, minutes since seating. Note: saving via
+  the Settings page rewrites the file and does not preserve `#` comments.
 - **Branding is district-neutral** — never reintroduce "Etowah" or a specific
   district/council name; that's tracked as configurable-branding work.
 

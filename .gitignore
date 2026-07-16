@@ -6,7 +6,6 @@
 #   - *Board_Results* spreadsheets   (board outcomes with names)
 # ============================================================
 *.csv
-!config.csv
 *.xls
 *.xlsx
 *.xlsm

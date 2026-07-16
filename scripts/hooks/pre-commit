@@ -11,8 +11,8 @@ staged=$(git diff --cached --name-only --diff-filter=ACR)
 
 for f in $staged; do
     case "$f" in
-        config.csv) ;; # allowlisted: display colors/timings only, no PII
         *.csv|*.xls|*.xlsx|*.xlsm|*.ods)
+            # No CSV is committed anymore (config moved to config.properties).
             echo "BLOCKED: $f — spreadsheet/CSV files may contain participant data" >&2
             fail=1 ;;
     esac

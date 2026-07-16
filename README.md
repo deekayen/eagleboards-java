@@ -44,7 +44,7 @@ manual invocation:
 
 ```sh
 java -jar target/eagleboardscheduler-*.jar -verbose -w \
-  -a Master_AdultHistory.csv -c config.csv -port 8080 -sugkey "$SUG_KEY"
+  -a Master_AdultHistory.csv -c config.properties -port 8080 -sugkey "$SUG_KEY"
 ```
 
 Two windows appear: a console and a small grey window showing the URL to open
@@ -56,10 +56,11 @@ management) or `/scheduler` (room assignments) to that URL.
 The application's data files live in this same folder and contain personal
 information about adults and minors. **They are never committed.** Guards:
 
-- `.gitignore` excludes all CSV/spreadsheet formats (except `config.csv`,
-  which holds only display colors and timings), all dated `YYYY-MM-DD/` run
-  folders, `Master_AdultHistory.csv`, `*Board_Results*`, `LOGIN_INFO*`, the
-  legacy `RunScheduler.*` scripts (they embed an API key), and `.env`.
+- `.gitignore` excludes all CSV/spreadsheet formats, all dated `YYYY-MM-DD/`
+  run folders, `Master_AdultHistory.csv`, `*Board_Results*`, `LOGIN_INFO*`,
+  the legacy `RunScheduler.*` scripts (they embed an API key), and `.env`.
+  The only committed config is `config.properties` (display colors and
+  warning timings, no PII).
 - `scripts/hooks/pre-commit` (installed via `git config core.hooksPath
   scripts/hooks`) hard-fails any commit that stages one of those files or a
   literal API key. Do not bypass it with `--no-verify`.

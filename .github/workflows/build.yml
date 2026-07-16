@@ -42,7 +42,7 @@ jobs:
           # starts, serves the UI, and answers data endpoints on this OS/arch.
           NEW_JAR=$(ls target/eagleboardscheduler-*.jar | grep -v original- | head -1)
           echo 'Type,ID,Last,First,Email,Phone,UnitType,Unit,UnitName,ProjectReview,FinalBoard,RegTime,Room,Flags,Sel,BoardHistory' > SmokeAdults.csv
-          java -jar "$NEW_JAR" -verbose -a SmokeAdults.csv -c config.csv -port 18099 -d smokerun > server.log 2>&1 &
+          java -jar "$NEW_JAR" -verbose -a SmokeAdults.csv -c config.properties -port 18099 -d smokerun > server.log 2>&1 &
           SRV=$!
           for i in $(seq 1 30); do
             curl -sf -o /dev/null http://127.0.0.1:18099/index.html && break
@@ -87,7 +87,7 @@ jobs:
           # GitHub also masks the secret value in any log output.
           NEW_JAR=$(ls target/eagleboardscheduler-*.jar | grep -v original- | head -1)
           echo 'Type,ID,Last,First,Email,Phone,UnitType,Unit,UnitName,ProjectReview,FinalBoard,RegTime,Room,Flags,Sel,BoardHistory' > SugAdults.csv
-          java -jar "$NEW_JAR" -a SugAdults.csv -c config.csv -port 18098 -d sugrun -sugkey "$SUG_KEY" > sug.log 2>&1 &
+          java -jar "$NEW_JAR" -a SugAdults.csv -c config.properties -port 18098 -d sugrun -sugkey "$SUG_KEY" > sug.log 2>&1 &
           SRV=$!
           verdict=""
           for i in $(seq 1 60); do
