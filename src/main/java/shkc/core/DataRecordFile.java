@@ -151,7 +151,10 @@ public class DataRecordFile<T extends DataRecord> {
          DataRecord var12 = this._factory.newInstance();
          for (String var14 : this._factory.getColumns()) {
             String var15 = var10.getProperty(var14);
-            if (var15 != null) {
+            // Skip empty values so a blank key doesn't clobber a sensible
+            // default (e.g. the record's DEFAULT identity); config values are
+            // never legitimately empty.
+            if (var15 != null && var15.length() > 0) {
                var12.put(var14, var15);
             }
          }

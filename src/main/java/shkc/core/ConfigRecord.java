@@ -50,6 +50,11 @@ public class ConfigRecord extends DataRecord {
 
    public ConfigRecord(Map var1) {
       super("CONFIG", COLUMNS, var1);
+      // There is only ever one config record. Default its identity to DEFAULT
+      // so a config update or a hand-edited file that omits ID/Name still
+      // targets the single record in place instead of adding a duplicate.
+      this.setIfNotSet("ID", "DEFAULT");
+      this.setIfNotSet("Name", "DEFAULT");
       this.setIfNotSet("RefreshTimeSecs", "30");
       // Minutes since a board was seated at which its room card turns yellow
       // (warning) then red (overdue), per board type.
