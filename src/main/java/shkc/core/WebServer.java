@@ -72,13 +72,24 @@ public class WebServer {
       if (_bindHost == null) {
          server = new Server(this.getPort());
       } else {
-         // Same server, but the connector is pinned to one local address so the
-         // socket never appears on virtual/VPN adapters.
+         // Same server, but the public connector is pinned to one local address
+         // so the socket never appears on virtual/VPN adapters.
          server = new Server();
-         ServerConnector connector = new ServerConnector(server);
-         connector.setHost(_bindHost);
-         connector.setPort(this.getPort());
-         server.addConnector(connector);
+         ServerConnector venueConnector = new ServerConnector(server);
+         venueConnector.setHost(_bindHost);
+         venueConnector.setPort(this.getPort());
+         server.addConnector(venueConnector);
+
+         // Pinning one address also drops loopback, which would break
+         // http://127.0.0.1:<port>/scheduler on the admin machine itself. Add a
+         // second connector for it: loopback is not reachable off-box, so this
+         // costs nothing in exposure.
+         if (!_bindHost.startsWith("127.")) {
+            ServerConnector loopbackConnector = new ServerConnector(server);
+            loopbackConnector.setHost("127.0.0.1");
+            loopbackConnector.setPort(this.getPort());
+            server.addConnector(loopbackConnector);
+         }
       }
 
       ServletContextHandler contextHandler = new ServletContextHandler(ServletContextHandler.SESSIONS);
