@@ -42,8 +42,12 @@ echo "== 1. structural comparison (javap declared members) =="
 WORK=$(mktemp -d)
 trap 'rm -rf "$WORK"; kill $PID_A $PID_B 2>/dev/null' EXIT
 mkdir -p "$WORK/orig" "$WORK/new"
-unzip -qo "$ORIG_JAR" 'shkc/*' 'monfox/*' -d "$WORK/orig"
-unzip -qo "$NEW_JAR"  'shkc/*' 'monfox/*' -d "$WORK/new" 2>/dev/null  # monfox/* absent post-swap
+# '**' not '*': the MSYS2/Git-for-Windows unzip is built with WILD_STOP_AT_DIR,
+# so '*' stops at '/' and 'shkc/*' silently extracts nothing (exit 11) — which
+# looks like a clean pass because the comparison then runs on empty trees.
+# '**' recurses on that build and on stock Info-ZIP alike, so it works on both.
+unzip -qo "$ORIG_JAR" 'shkc/**' 'monfox/**' -d "$WORK/orig"
+unzip -qo "$NEW_JAR"  'shkc/**' 'monfox/**' -d "$WORK/new" 2>/dev/null  # monfox/** absent post-swap
 
 # Compiler-internal artifacts with no behavior of their own; javac 25 emits
 # them differently than javac 7 did (nestmates replaced access$ bridges).
