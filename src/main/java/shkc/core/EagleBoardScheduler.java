@@ -48,7 +48,7 @@ public class EagleBoardScheduler {
       String var1 = "vw?";
       String[] var2 = new String[]{"verbose", "help", "debug", "windows"};
       String var3 = "dapc";
-      String[] var4 = new String[]{"dir", "prereg", "adults", "config", "port", "sugkey", "sugid"};
+      String[] var4 = new String[]{"dir", "prereg", "adults", "config", "port", "sugkey", "sugid", "bind"};
       Commandline var5 = null;
 
       try {
@@ -88,6 +88,12 @@ public class EagleBoardScheduler {
       int var12 = var5.getIntOption("port", 8080);
       String var13 = var5.getOption("sugkey", null);
       String var14 = var5.getOption("sugid", null);
+      // -bind <ip-prefix>: restrict the listener and the advertised URLs to the
+      // single interface we actually serve from (e.g. "192.168." for the venue
+      // wifi), so virtual adapters don't each pop their own dialog. When absent,
+      // behavior is unchanged: listen on every interface and list them all.
+      String bindPrefix = var5.getOption("bind", null);
+      String boundAddress = null;
       if (var0.length != 0 && var5.hasFlag("w:windows")) {
       }
 
@@ -102,8 +108,14 @@ public class EagleBoardScheduler {
 
          while (var19.hasMoreElements()) {
             InetAddress var20 = (InetAddress)var19.nextElement();
-            if (var20 instanceof Inet4Address && !var20.getHostAddress().startsWith("127")) {
+            if (var20 instanceof Inet4Address
+               && !var20.getHostAddress().startsWith("127")
+               && (bindPrefix == null || var20.getHostAddress().startsWith(bindPrefix))) {
                var16.append("\n                 http://" + var20.getHostAddress() + ":" + var12);
+               if (boundAddress == null) {
+                  boundAddress = var20.getHostAddress();
+               }
+
                var18++;
             }
          }
@@ -115,6 +127,17 @@ public class EagleBoardScheduler {
             }
 
             System.out.println(var16.toString());
+         }
+      }
+
+      if (bindPrefix != null) {
+         if (boundAddress == null) {
+            // Don't strand the event if the wifi is down at startup: warn loudly
+            // and fall back to the original listen-everywhere behavior.
+            System.out.println("\n   WARNING: no active interface matches -bind " + bindPrefix + "; listening on all interfaces.\n");
+         } else {
+            WebServer.setBindHost(boundAddress);
+            System.out.println("\n   binding to " + boundAddress + " (-bind " + bindPrefix + ")\n");
          }
       }
 
@@ -132,7 +155,7 @@ public class EagleBoardScheduler {
    public static void usage() {
       System.out
          .println(
-            "\n\n\n   USAGE\n\n          java -jar eagle-board-scheduler.jar <options>\n\n      OPTIONS\n\n         -w[indows]                     : popup dialog for config info\n         -v[erbose]                     : print verbose messages\n         -h[elp]                        : print this message\n\n         -d[ir]    <data-directory>     : directory where data files live\n\n         -a[dult]  <adult-history-file> : file containing adult auto-fill data\n         -c[onfig] <config-file>        : scheduler config file\n         -p[rereg] <prereg-file>        : preregistration data file (csv) from district website\n         -sugkey <signup-genius-key>    : SignupGenius API KEY\n         -sugid  <signup-id>            : SignupGenius Eagle Board Signup ID (optional)\n\n"
+            "\n\n\n   USAGE\n\n          java -jar eagle-board-scheduler.jar <options>\n\n      OPTIONS\n\n         -w[indows]                     : popup dialog for config info\n         -v[erbose]                     : print verbose messages\n         -h[elp]                        : print this message\n\n         -d[ir]    <data-directory>     : directory where data files live\n\n         -a[dult]  <adult-history-file> : file containing adult auto-fill data\n         -c[onfig] <config-file>        : scheduler config file\n         -p[rereg] <prereg-file>        : preregistration data file (csv) from district website\n         -sugkey <signup-genius-key>    : SignupGenius API KEY\n         -sugid  <signup-id>            : SignupGenius Eagle Board Signup ID (optional)\n\n         -bind   <ip-prefix>            : only listen on / advertise the interface whose\n                                          IPv4 address starts with this (e.g. 192.168.);\n                                          default is every interface\n\n"
          );
    }
 

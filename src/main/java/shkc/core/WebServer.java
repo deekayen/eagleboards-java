@@ -15,6 +15,7 @@ import java.util.Map;
 import org.eclipse.jetty.ee11.servlet.ServletContextHandler;
 import org.eclipse.jetty.ee11.servlet.ServletHolder;
 import org.eclipse.jetty.server.Server;
+import org.eclipse.jetty.server.ServerConnector;
 
 public class WebServer {
    private static final int CHUNK_SIZE = 131072;
@@ -24,6 +25,13 @@ public class WebServer {
    private String _htmlDirectory = "html";
    private Map<String, WebServer.WebHandler> _handlerMap = new Hashtable<>();
    private FileLocator _locator;
+   // Set from EagleBoardScheduler.main when -bind is given; null keeps the
+   // original Jetty behavior of accepting connections on every interface.
+   private static String _bindHost = null;
+
+   public static void setBindHost(String bindHost) {
+      _bindHost = bindHost;
+   }
 
    public WebServer() {
       this("html");
@@ -60,13 +68,25 @@ public class WebServer {
       // front of the dispatcher, but LocalDefaultHandler's sendResponseFile
       // already checks the filesystem before the classpath, so all serving
       // behavior is preserved by the single dispatcher servlet.
-      Server var1 = new Server(this.getPort());
-      ServletContextHandler var2 = new ServletContextHandler(ServletContextHandler.SESSIONS);
-      var2.setContextPath("/");
-      var2.addServlet(new ServletHolder(new WebServer.LocalDefaultHandler()), "/*");
-      var1.setHandler(var2);
-      var1.start();
-      var1.join();
+      Server server;
+      if (_bindHost == null) {
+         server = new Server(this.getPort());
+      } else {
+         // Same server, but the connector is pinned to one local address so the
+         // socket never appears on virtual/VPN adapters.
+         server = new Server();
+         ServerConnector connector = new ServerConnector(server);
+         connector.setHost(_bindHost);
+         connector.setPort(this.getPort());
+         server.addConnector(connector);
+      }
+
+      ServletContextHandler contextHandler = new ServletContextHandler(ServletContextHandler.SESSIONS);
+      contextHandler.setContextPath("/");
+      contextHandler.addServlet(new ServletHolder(new WebServer.LocalDefaultHandler()), "/*");
+      server.setHandler(contextHandler);
+      server.start();
+      server.join();
    }
 
    public boolean sendResponseFile(String var1, String var2, HttpServletResponse var3) {
