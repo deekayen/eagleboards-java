@@ -438,6 +438,10 @@
 
          function refresh_polling() {
             refresh_scouts();
+            // Adults check in too, so the leader grid has to poll alongside the
+            // scouts. Rooms are deliberately left out: room_refresh() resets the
+            // seat timers, and seating already calls refresh_all() itself.
+            schedulerLeaderGrid.refresh();
             console.log("refresh-timeout: " + SCHEDULER_refreshTime + "s");
             setTimeout(refresh_polling, SCHEDULER_refreshTime * 1000);
          }

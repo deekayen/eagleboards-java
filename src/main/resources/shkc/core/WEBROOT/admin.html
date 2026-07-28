@@ -203,17 +203,61 @@
                placeholder: "No data"
             });
 
-            function reload() {
-               return ebFetchRows(cfg.cellsPath, cfg.cols).then(function (rows) {
-                  return table.replaceData(rows);
-               }).catch(function () {
-                  alert("Failed to load data from " + cfg.cellsPath);
+            // Background polls must not disturb work in progress, so track open
+            // cell editors, keep the row selection across a data swap, and never
+            // let two loads overlap.
+            var openCellEditors = 0;
+            var loadInFlight = false;
+
+            function loadRows(isQuiet) {
+               if (loadInFlight) {
+                  return Promise.resolve();
+               }
+               loadInFlight = true;
+               var selectedIds = table.getSelectedRows().map(function (row) {
+                  return row.getIndex();
                });
+               return ebFetchRows(cfg.cellsPath, cfg.cols).then(function (rows) {
+                  return table.replaceData(rows).then(function () {
+                     if (selectedIds.length) {
+                        // Rows can vanish between polls; re-selecting is best effort.
+                        try { table.selectRow(selectedIds); } catch (e) { /* gone */ }
+                     }
+                  });
+               }).catch(function () {
+                  // A poll failing is not worth a modal; a clicked Refresh is.
+                  if (!isQuiet) {
+                     alert("Failed to load data from " + cfg.cellsPath);
+                  }
+               }).then(function () {
+                  loadInFlight = false;
+               });
+            }
+
+            function reload() {
+               return loadRows(false);
+            }
+
+            function reloadQuiet() {
+               return loadRows(true);
+            }
+
+            function isEditing() {
+               return openCellEditors > 0;
             }
 
             table.on("tableBuilt", reload);
 
+            table.on("cellEditing", function () {
+               openCellEditors++;
+            });
+
+            table.on("cellEditCancelled", function () {
+               openCellEditors = Math.max(0, openCellEditors - 1);
+            });
+
             table.on("cellEdited", function (cell) {
+               openCellEditors = Math.max(0, openCellEditors - 1);
                var fields = {};
                fields[cell.getField()] = cell.getValue();
                ebSaveRow(cfg.updatePath, "updated", cell.getRow().getIndex(), fields)
@@ -259,7 +303,7 @@
                });
             }
 
-            return { table: table, reload: reload };
+            return { table: table, reload: reload, reloadQuiet: reloadQuiet, isEditing: isEditing };
          }
 
          // ---- Boards tab (full scout record incl. board results) ----
@@ -479,6 +523,54 @@
             }
             // Tabulator needs a redraw after its container becomes visible.
             gridsByTab[tab].table.redraw(true);
+            // Switching tabs should show current data, not whatever was last polled.
+            gridsByTab[tab].reloadQuiet();
+         });
+
+         // ---- Auto-refresh ----
+         // Poll the visible tab so new check-ins appear without anyone pressing
+         // Refresh. The interval is RefreshTimeSecs from config.properties, the
+         // same setting the scheduler page already polls on, so the Settings page
+         // controls both. Only the active tab is polled, and a poll is skipped
+         // while a cell editor is open or the browser tab is in the background.
+         var autoRefreshSeconds = 30;
+
+         function activeGrid() {
+            var activeButton = document.querySelector("#tabbar button.active");
+            var tab = activeButton && activeButton.getAttribute("data-tab");
+            return tab ? gridsByTab[tab] : null;
+         }
+
+         function pollActiveGrid() {
+            var grid = activeGrid();
+            if (grid && !document.hidden && !grid.isEditing()) {
+               grid.reloadQuiet();
+            }
+            setTimeout(pollActiveGrid, Math.max(1, autoRefreshSeconds) * 1000);
+         }
+
+         fetch("/config-autofill?Name=DEFAULT&fmt=json")
+            .then(function (response) { return response.text(); })
+            .then(function (text) {
+               // Same pseudo-JSON scheduler_config.js parses; take just this key.
+               var match = /RefreshTimeSecs"?\s*:\s*"?(\d+)/.exec(text);
+               var seconds = match ? parseInt(match[1], 10) : 0;
+               if (seconds > 0) {
+                  autoRefreshSeconds = seconds;
+               }
+            })
+            .catch(function () { /* unreachable config: keep the default */ })
+            .then(function () {
+               setTimeout(pollActiveGrid, Math.max(1, autoRefreshSeconds) * 1000);
+            });
+
+         // Returning to a backgrounded tab should show current data immediately
+         // rather than after up to a full interval.
+         document.addEventListener("visibilitychange", function () {
+            var grid = activeGrid();
+            if (!document.hidden && grid && !grid.isEditing()) {
+               grid.reloadQuiet();
+            }
          });
       </script>
    </body>

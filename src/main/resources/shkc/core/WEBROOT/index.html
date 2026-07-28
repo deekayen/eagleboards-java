@@ -46,8 +46,22 @@
       </div>
 
       <script>
-         function fillPanel(bodyId, panelId, rows, cols, centerCols) {
+         var SCOUT_PANEL_COLS = ["RegTimeHM", "Last", "First", "UnitType", "Unit"];
+         var ADULT_PANEL_COLS = ["Last", "First", "UnitType", "Unit"];
+
+         // Poll interval comes from RefreshTimeSecs in config.properties, the
+         // same setting the scheduler and admin pages use, so the Settings page
+         // controls every auto-refreshing screen.
+         var autoRefreshSeconds = 30;
+         var loadInFlight = false;
+
+         function fillPanel(bodyId, panelId, rows, cols, centerCols, forceBottom) {
             var tbody = document.getElementById(bodyId);
+            var panel = document.getElementById(panelId);
+            // A refresh repaints the list, so it has to be cleared first —
+            // appending would duplicate every row already on screen.
+            var wasAtBottom = panel.scrollTop + panel.clientHeight >= panel.scrollHeight - 4;
+            tbody.textContent = "";
             rows.forEach(function (rec) {
                var tr = document.createElement("tr");
                cols.forEach(function (col) {
@@ -61,16 +75,60 @@
                tbody.appendChild(tr);
             });
             // Match the old behavior: scroll so the most recent row is visible.
-            var panel = document.getElementById(panelId);
-            panel.scrollTop = panel.scrollHeight;
+            // On a poll, only do that if the list was already at the bottom, so
+            // the view isn't yanked away from someone scrolled up reading it.
+            if (forceBottom || wasAtBottom) {
+               panel.scrollTop = panel.scrollHeight;
+            }
          }
 
-         ebFetchRows("/scout-cells", ["RegTimeHM", "Last", "First", "UnitType", "Unit"]).then(function (rows) {
-            fillPanel("scoutRows", "scoutPanel", rows, ["RegTimeHM", "Last", "First", "UnitType", "Unit"], ["RegTimeHM"]);
-         });
+         function loadPanels(forceBottom) {
+            if (loadInFlight) {
+               return;
+            }
+            loadInFlight = true;
+            Promise.all([
+               ebFetchRows("/scout-cells", SCOUT_PANEL_COLS).then(function (rows) {
+                  fillPanel("scoutRows", "scoutPanel", rows, SCOUT_PANEL_COLS, ["RegTimeHM"], forceBottom);
+               }),
+               ebFetchRows("/adult-cells", ADULT_PANEL_COLS).then(function (rows) {
+                  fillPanel("adultRows", "adultPanel", rows, ADULT_PANEL_COLS, [], forceBottom);
+               })
+            ]).catch(function () {
+               // This screen faces the Scouts signing in; a failed poll must
+               // never put an error dialog in front of them. Next tick retries.
+            }).then(function () {
+               loadInFlight = false;
+            });
+         }
 
-         ebFetchRows("/adult-cells", ["Last", "First", "UnitType", "Unit"]).then(function (rows) {
-            fillPanel("adultRows", "adultPanel", rows, ["Last", "First", "UnitType", "Unit"], []);
+         loadPanels(true);
+
+         function pollPanels() {
+            if (!document.hidden) {
+               loadPanels(false);
+            }
+            setTimeout(pollPanels, Math.max(1, autoRefreshSeconds) * 1000);
+         }
+
+         fetch("/config-autofill?Name=DEFAULT&fmt=json")
+            .then(function (response) { return response.text(); })
+            .then(function (text) {
+               var match = /RefreshTimeSecs"?\s*:\s*"?(\d+)/.exec(text);
+               var seconds = match ? parseInt(match[1], 10) : 0;
+               if (seconds > 0) {
+                  autoRefreshSeconds = seconds;
+               }
+            })
+            .catch(function () { /* unreachable config: keep the default */ })
+            .then(function () {
+               setTimeout(pollPanels, Math.max(1, autoRefreshSeconds) * 1000);
+            });
+
+         document.addEventListener("visibilitychange", function () {
+            if (!document.hidden) {
+               loadPanels(false);
+            }
          });
       </script>
    </body>
