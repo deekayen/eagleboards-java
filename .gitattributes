@@ -1,0 +1,33 @@
+# Line-ending policy.
+#
+# This matters more than usual here. scripts/verify-parity.sh byte-compares the
+# preserved WEBROOT assets against the inherited jar, whose copies use LF. Git
+# for Windows defaults to core.autocrlf=true, so without these rules a Windows
+# checkout produces CRLF, Maven packages the CRLF copies into the jar, and the
+# parity gate fails with exactly one extra byte per line (help.html: 161 lines,
+# +161 bytes; scheduler.css: 228 lines, +228 bytes).
+
+* text=auto
+
+# Served assets and Java sources: LF in the working tree on every platform.
+src/main/resources/shkc/core/WEBROOT/**  text eol=lf
+*.java   text eol=lf
+*.xml    text eol=lf
+*.md     text eol=lf
+*.properties text eol=lf
+
+# Shell scripts and the Maven wrapper must stay LF to run.
+*.sh     text eol=lf
+mvnw     text eol=lf
+
+# Windows batch files need CRLF for cmd.exe.
+*.bat    text eol=crlf
+*.cmd    text eol=crlf
+
+# Never line-ending convert binaries.
+*.png    binary
+*.gif    binary
+*.ico    binary
+*.jar    binary
+*.xls    binary
+*.xlsx   binary

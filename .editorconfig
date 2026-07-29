@@ -1,0 +1,30 @@
+# Matches the existing style of the tree. The Java sources came out of a
+# decompiler at 3-space indent; keeping that avoids reformatting churn that
+# would widen the diff against the inherited binary for no functional gain
+# (see CONTRIBUTING.md, "House style").
+
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+[*.java]
+indent_style = space
+indent_size = 3
+
+[*.{html,js,css}]
+indent_style = space
+indent_size = 3
+
+[*.{xml,yml,yaml}]
+indent_style = space
+indent_size = 2
+
+[*.{bat,cmd}]
+end_of_line = crlf
+
+[*.md]
+trim_trailing_whitespace = false
