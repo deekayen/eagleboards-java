@@ -3,24 +3,6 @@ package shkc.core;
 import java.util.Map;
 
 public class ConfigRecord extends DataRecord {
-   public static final String NAME = "Name";
-   public static final String REFRESH_TIME_SECS = "RefreshTimeSecs";
-   public static final String SEATED_ALERT_TIME_MINS = "SeatedAlertTimeMins";
-   public static final String SEATED_ALERT_REMINDER_MINS = "SeatedReminderTimeMins";
-   public static final String IN_PROGRESS_ALERT_TIME_MINS = "InProgressAlertTimeMins";
-   public static final String IN_PROGRESS_ALERT_REMINDER_MINS = "InProgressReminderTimeMins";
-   public static final String REGISTERED_COLOR = "RegisteredColor";
-   public static final String VERIFIED_COLOR = "VerifiedColor";
-   public static final String SEATED_COLOR = "SeatedColor";
-   public static final String IN_PROGRESS_COLOR = "InProgressColor";
-   public static final String COMPLETED_COLOR = "CompletedColor";
-   public static final String POSTPONED_COLOR = "PostponedColor";
-   public static final String REGISTERED_HI_COLOR = "RegisteredHiColor";
-   public static final String VERIFIED_HI_COLOR = "VerifiedHiColor";
-   public static final String SEATED_HI_COLOR = "SeatedHiColor";
-   public static final String IN_PROGRESS_HI_COLOR = "InProgressHiColor";
-   public static final String COMPLETED_HI_COLOR = "CompletedHiColor";
-   public static final String POSTPONED_HI_COLOR = "PostponedHiColor";
    public static final String[] COLUMNS = new String[]{
       "Type",
       "ID",

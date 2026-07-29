@@ -73,7 +73,11 @@ REMOVED_VENDORED='^shkc/json/simple/|^monfox/'
 # has no counterpart to compare against:
 #  - VerifyBoardHandler: the Verify step (Registered -> Verified) was dropped;
 #    a registered Scout is now seated directly, and /verify-board is gone.
-REMOVED_FEATURE='shkc/core/EagleBoardScheduler[$]VerifyBoardHandler[.]class'
+#  - ConfigWindow: an unreferenced Swing settings window, superseded by the
+#    browser Settings page. Nothing constructed it.
+# The trailing ([$]...)? also covers each class's anonymous inner classes —
+# ConfigWindow carried five ActionListeners as ConfigWindow$1..$5.
+REMOVED_FEATURE='shkc/core/EagleBoardScheduler[$]VerifyBoardHandler([$][A-Za-z0-9_]+)?[.]class|shkc/core/ConfigWindow([$][A-Za-z0-9_]+)?[.]class'
 
 sig() { # normalized member signatures for one class file
     # Filtered as compiler-internal (verified behaviorally equivalent in the
@@ -86,8 +90,15 @@ sig() { # normalized member signatures for one class file
     # javax.servlet and jakarta.servlet are the same API before/after the
     # Jetty 12 migration — the rename is normalized so handler signatures
     # still compare meaningfully.
+    # Also filtered, as deliberate dead-code removals (see the commit that
+    # introduced this): the 58 unused single-String column/value constants in
+    # the record classes, which only restated strings COLUMNS already lists as
+    # literals, and the dev-harness main() methods in library classes. COLUMNS
+    # itself is String[] and still compares; EagleBoardScheduler's real entry
+    # point is covered by CI's manifest check and runtime smoke test.
     javap -p "$1" 2>/dev/null \
       | grep -vE 'access[$][0-9]+|[$]SwitchMap[$]|Compiled from|private static .*[$]values\(\)|val[$]|final .* this[$]0;|[a-zA-Z0-9_.]+[$]1\);|^ *static \{\};' \
+      | grep -vE '^ *public static final java\.lang\.String [A-Z_]+;|^ *public static void main\(java\.lang\.String\[\]\)' \
       | sed -E "s/[$][0-9]+\((, )?[a-zA-Z0-9_.$]+(, [a-zA-Z0-9_.$]+)*\);/\$N(CAPTURES);/; s/[$][0-9]+\(\);/\$N(CAPTURES);/; s/(javax|jakarta)\.servlet/SERVLET_API/g; s/(shkc\.json\.simple\.JSONArray|com\.fasterxml\.jackson\.databind\.JsonNode)/JSON_TREE/g; s/(monfox\.log|java\.util\.logging)\.Logger/LOGGER/g" \
       | grep -v '_debugLogger' \
       | sed 's/[[:space:]]\+/ /g' | sort
@@ -117,7 +128,7 @@ note "signature comparison complete"
 # rework preserved are still expected byte-identical to the original jar.
 # The HTML/JS pages are first-party code now, checked in the UI section
 # below; dhtmlx/, CVS/, and old_saved_script.js were dropped deliberately;
-# signup_genius_api.js ships a key placeholder (checked separately).
+# signup_genius_api.js was removed entirely (checked separately below).
 # help.html is no longer byte-compared: removing the Verify step made the
 # original's operator instructions wrong (they described verifying paperwork
 # through the UI), so the page was rewritten to match the current workflow.
@@ -133,10 +144,21 @@ if [ -n "$imgdiff" ]; then
 else
     note "preserved WEBROOT assets byte-identical to original"
 fi
-if grep -q 'REPLACE_WITH_SIGNUP_GENIUS_KEY' "$WORK/new/shkc/core/WEBROOT/signup_genius_api.js"; then
-    note "rebuilt jar carries the key placeholder, not a real key"
+# signup_genius_api.js was deleted. Nothing referenced it (the server takes the
+# key from -sugkey), and it was the only file in the tree carrying a third-party
+# copyright notice. Assert it stays gone, and — stronger than the old
+# placeholder check it replaces — that the real key the ORIGINAL jar still
+# embeds appears nowhere in the rebuilt jar. The key is never echoed.
+if [ -f "$WORK/new/shkc/core/WEBROOT/signup_genius_api.js" ]; then
+    fail "signup_genius_api.js is back in the rebuilt jar; it was deliberately removed"
 else
-    fail "rebuilt signup_genius_api.js does not contain the expected placeholder"
+    orig_key=$(sed -nE 's/.*SIGNUP_GENIUS_KEY *= *"([^"]+)".*/\1/p' \
+        "$WORK/orig/shkc/core/WEBROOT/signup_genius_api.js" 2>/dev/null | head -1)
+    if [ -n "$orig_key" ] && grep -rqF "$orig_key" "$WORK/new" 2>/dev/null; then
+        fail "the original's embedded SignUpGenius key appears in the rebuilt jar"
+    else
+        note "signup_genius_api.js gone; original's embedded key absent from the rebuild"
+    fi
 fi
 
 # -------------------------------------------------------------- 2/3. runtime

@@ -10,10 +10,13 @@ compiled JAR below.
 **The original jar is intentionally NOT committed** — its bundled
 `signup_genius_api.js` embeds a live SignUpGenius API key, so the binary is
 kept only on the maintainer's machine (`original/`, gitignored). The checksum
-below authenticates any offline copy. The copy of `signup_genius_api.js`
-under `src/main/resources` has that key replaced with the placeholder
-`REPLACE_WITH_SIGNUP_GENIUS_KEY`; nothing references the file at runtime (the
-server-side integration takes the key from the `-sugkey` option instead).
+below authenticates any offline copy. `signup_genius_api.js` is **not carried
+over into this tree at all**: nothing referenced it at runtime (the server-side
+integration takes the key from the `-sugkey` option instead), and it was the one
+file bearing a third-party copyright notice, so it was deleted rather than
+shipped with a placeholder key. `scripts/verify-parity.sh` asserts both that the
+file stays absent and that the original's embedded key appears nowhere in the
+rebuilt jar.
 
 | | |
 |---|---|

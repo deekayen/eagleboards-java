@@ -23,17 +23,6 @@ public class SignUpGeniusPlugin {
    private DataRecordFile<AdultRecord> _adultHistoryRecords;
    private DataRecordFile<ScoutRecord> _scoutsScheduledRecords;
 
-   public static void main(String[] var0) throws Exception {
-      String var1 = "REPLACE_WITH_SIGNUP_GENIUS_KEY";
-      SignUpGeniusPlugin var2 = new SignUpGeniusPlugin(
-         var1,
-         null,
-         new DataRecordFile<>(new File("adult_test.csv"), new AdultRecord.Factory()),
-         new DataRecordFile<>(new File("scout_test.csv"), new ScoutRecord.Factory())
-      );
-      var2.populatePreRegistrations();
-   }
-
    public SignUpGeniusPlugin(String var1, String var2, DataRecordFile<AdultRecord> var3, DataRecordFile<ScoutRecord> var4) {
       this._key = var1;
       this._signupID = var2;

@@ -3,18 +3,6 @@ package shkc.core;
 import java.util.Map;
 
 public class ScoutRecord extends PersonRecord {
-   public static final String ADULT_SCOUT_RATIO = "AdultScoutRatio";
-   public static final String REG_NUM = "RegNum";
-   public static final String DOB = "DOB";
-   public static final String BOARD_TYPE = "BoardType";
-   public static final String LEADER = "Leader";
-   public static final String STATUS = "Status";
-   public static final String RESULT = "Result";
-   public static final String BOARD_CHAIR_ID = "BoardChairID";
-   public static final String BOARD_CHAIR = "BoardChair";
-   public static final String BOARD_MEMBER_IDS = "BoardMembersIDs";
-   public static final String BOARD_MEMBERS = "BoardMembers";
-   public static final String NOTES = "Notes";
    public static final String[] COLUMNS = new String[]{
       "Type",
       "ID",
@@ -41,19 +29,6 @@ public class ScoutRecord extends PersonRecord {
       "BoardMembersIDs",
       "Notes"
    };
-   public static final String STATUS_REGISTERED = "Registered";
-   public static final String STATUS_VERIFIED = "Verified";
-   public static final String STATUS_SEATED = "Seated";
-   public static final String STATUS_IN_PROGRESS = "InProgress";
-   public static final String STATUS_COMPLETED = "Completed";
-   public static final String STATUS_POSTPONED = "Postponed";
-   public static final String RESULT_NO_RESULT = "";
-   public static final String RESULT_APPROVED = "Approved";
-   // Unused, and kept only so this class's javap signature still matches the
-   // inherited binary (see CLAUDE.md rule 2). The live value is "Adjourned" —
-   // boards are recorded from process_complete.js and admin.html, not from here.
-   public static final String RESULT_SUSPENDED = "Suspended";
-   public static final String RESULT_NOT_APPROVED = "NotApproved";
 
    public ScoutRecord() {
       this(null);

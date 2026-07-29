@@ -3,10 +3,6 @@ package shkc.core;
 import java.util.Map;
 
 public class AdultRecord extends PersonRecord {
-   public static final String FINAL_BOARD = "FinalBoard";
-   public static final String PROJECT_REVIEW = "ProjectReview";
-   public static final String BOARD_HISTORY = "BoardHistory";
-   public static final String SEL = "Sel";
    public static final String[] COLUMNS = new String[]{
       "Type",
       "ID",

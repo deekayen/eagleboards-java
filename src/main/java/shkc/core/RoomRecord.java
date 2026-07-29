@@ -3,10 +3,6 @@ package shkc.core;
 import java.util.Map;
 
 public class RoomRecord extends DataRecord {
-   public static final String ROOM = "Room";
-   public static final String BOARD_TYPE = "BoardType";
-   public static final String SCOUT = "Scout";
-   public static final String LEADERS = "Leaders";
    public static final String[] COLUMNS = new String[]{"Type", "ID", "Room", "BoardType", "Scout", "Leaders", "RegTime"};
 
    public RoomRecord() {

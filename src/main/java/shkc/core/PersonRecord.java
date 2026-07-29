@@ -3,16 +3,6 @@ package shkc.core;
 import java.util.Map;
 
 public class PersonRecord extends DataRecord {
-   public static final String FIRST = "First";
-   public static final String LAST = "Last";
-   public static final String SHORT_NAME = "ShortName";
-   public static final String EMAIL = "Email";
-   public static final String PHONE = "Phone";
-   public static final String UNIT_TYPE = "UnitType";
-   public static final String UNIT = "Unit";
-   public static final String UNIT_NAME = "UnitName";
-   public static final String ROOM = "Room";
-   public static final String FLAGS = "Flags";
 
    public PersonRecord(String var1, String[] var2, Map var3) {
       super(var1, var2, var3);

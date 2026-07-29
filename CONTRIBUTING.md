@@ -130,9 +130,11 @@ Two gotchas, both of which fail *silently* or misleadingly:
   `var27`. Renaming a *local* is parity-safe: the gate compares declared
   members, and local names are not part of a javap signature.
 - **Editing a method body does not change a class's signature; adding or
-  removing a field or method does.** This is why you can add null-guards freely
-  but should leave unused constants (`ConfigRecord.SEATED_*`,
-  `ScoutRecord.RESULT_SUSPENDED`) in place rather than deleting them.
+  removing a field or method does.** This is why you can add null-guards freely,
+  but removing a member means teaching the parity gate about it. Prefer a
+  targeted filter in the gate's `sig()` function, which keeps the rest of that
+  class compared, over exempting the whole class — an exemption skips every
+  signature in it.
 - **Server endpoints are the contract.** The UI rework froze every endpoint and
   wire format. Prefer client-only changes; if you must touch the server, check
   whether the gate exercises that path.
@@ -177,5 +179,11 @@ are about to publish something you cannot unpublish. See
 Open a GitHub issue. Follow-up work and design decisions are tracked there.
 
 The repository is **private** pending a rights review with the original author
-(the code carries a Monfox LLC copyright) and a final license decision. Do not
-redistribute it. See [LICENSE](LICENSE) and the pre-public checklist issue.
+and a final license decision. Do not redistribute it. See [LICENSE](LICENSE) and
+the pre-public checklist issue.
+
+The rights question is about the reconstruction itself: the app was rebuilt by
+decompiling a binary whose author reserved all rights. No third-party copyright
+notice remains in this tree — the vendored `monfox/log` library was replaced by
+`java.util.logging`, and the single unused file that carried a Monfox LLC notice
+has been deleted.

@@ -42,9 +42,11 @@ original source was received) and then modernized. See `PROVENANCE.md`.
    config-schema change, `PopupDialog` enhancements.
 2. **Editing a method body doesn't change a class's javap signature; adding or
    removing a field/method does.** The parity structural check compares
-   declared members. This is why you can add null-guards freely but should
-   leave unused constants (e.g. the old `ConfigRecord.SEATED_*` fields) in
-   place rather than deleting them.
+   declared members. Add null-guards freely; removing a member means teaching
+   the gate about it. Prefer a targeted filter in `sig()` (which keeps the rest
+   of that class compared) over adding the class to an exemption list, since an
+   exemption skips every signature in it. Worked example: the 58 unused
+   column/value constants removed from the record classes.
 3. **Never commit PII or secrets.** Participant data (all CSV/XLS, dated
    `YYYY-MM-DD/` folders, `Master_AdultHistory*`, `LOGIN_INFO*`) and the
    inherited jar (embeds an API key) are gitignored and blocked by
@@ -95,5 +97,9 @@ original source was received) and then modernized. See `PROVENANCE.md`.
   PR was merged on GitHub.
 - Follow-up work and decisions are tracked as GitHub issues on
   `deekayen/eagleboards`. The repo is **private** until a rights review with the
-  original author (code carries Monfox LLC copyright) and a final license
-  decision — see the pre-public checklist issue.
+  original author and a final license decision — see the pre-public checklist
+  issue. The rights question is that the app was reconstructed by decompiling a
+  binary whose author reserved all rights; no Monfox LLC copyright notice
+  remains in this tree (the vendored `monfox/log` library was replaced by
+  `java.util.logging`, and the one file that carried the notice was unused and
+  has been deleted).

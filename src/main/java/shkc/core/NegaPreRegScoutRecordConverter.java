@@ -28,12 +28,6 @@ public class NegaPreRegScoutRecordConverter extends DataFileConverter<ScoutRecor
       }
    }
 
-   public static void main(String[] var0) throws Exception {
-      DataRecordFile var1 = new DataRecordFile(new File("test_prereg.csv"), new ScoutRecord.Factory());
-      NegaPreRegScoutRecordConverter var2 = new NegaPreRegScoutRecordConverter(var1);
-      var2.convert(new File(var0[0]));
-      System.out.println(var1);
-   }
 
    static {
       COLUMN_MAP.put("Email", "Email");

@@ -186,15 +186,6 @@ public class WebServer {
       return var1 == null ? "text/plain" : var1;
    }
 
-   public static void main(String[] var0) throws Exception {
-      String var1 = "html";
-      if (var0.length > 0) {
-         var1 = var0[0];
-      }
-
-      WebServer var2 = new WebServer(var1);
-      var2.start();
-   }
 
    static {
       _contentTypeMap.put("html", "text/html");

@@ -90,9 +90,4 @@ public class PopupDialog extends JFrame {
       }
    }
 
-   public static void main(String[] var0) {
-      PopupDialog var1 = new PopupDialog(
-         "        Connect to the following URLs\n\n                 http://192.168.0.163:8080\n");
-      var1.setVisible(true);
-   }
 }
