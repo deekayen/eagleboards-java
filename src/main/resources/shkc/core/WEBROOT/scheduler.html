@@ -20,10 +20,38 @@
       <script src="scheduler_adult_grid.js"></script>
 
       <style type="text/css">
+         html, body { height: 100%; }
          body {
             margin: 0;
-            padding: 0 8px 20px 8px;
+            padding: 0 8px 8px 8px;
+            box-sizing: border-box;
+            /* The scheduler is sized to the viewport so an operator sees
+               scouts, adults, rooms and boards at once. Panels scroll
+               internally; the page itself never does. */
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
          }
+         #main-toolbar { flex: 0 0 auto; }
+         .eb-layout {
+            flex: 1 1 auto;
+            min-height: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+         }
+         .eb-row {
+            display: flex;
+            gap: 8px;
+            min-height: 0;
+         }
+         /* Scouts and Adult Board Members sit side by side as they did in the
+            original layout, so the top band costs one panel's height, not two.
+            The flex shares below reproduce its roughly even three-band split. */
+         .eb-row > .eb-panel { flex: 1 1 0; min-width: 0; }
+         .eb-row-top { flex: 4 1 0; }
+         .eb-panel-rooms { flex: 3 1 0; }
+         .eb-panel-boards { flex: 4 1 0; }
          .eb-toolbar {
             display: flex;
             align-items: center;
@@ -62,8 +90,12 @@
          .eb-panel {
             border: 1px solid #a4bed4;
             background: #ffffff;
-            margin-bottom: 8px;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+            overflow: hidden;
          }
+         .eb-panel-title, .eb-panel .eb-toolbar { flex: 0 0 auto; }
          .eb-panel-title {
             background: #f0f4f8;
             border-bottom: 1px solid #a4bed4;
@@ -77,17 +109,23 @@
             padding: 4px 6px;
             border-bottom: 1px solid #dde7f0;
          }
-         .eb-grid-scouts { height: 30vh; }
-         .eb-grid-adults { height: 26vh; }
-         .eb-grid-boards { height: 30vh; }
+         /* Grids fill whatever their panel is given. The old fixed 30vh/26vh/30vh
+            heights added up to 86vh of grid alone, which is what forced the page
+            to scroll once the toolbars and titles were added on top. */
+         .eb-grid-scouts, .eb-grid-adults, .eb-grid-boards {
+            flex: 1 1 auto;
+            min-height: 80px;
+         }
 
          /* room cards */
          #roomview {
             display: flex;
             flex-wrap: nowrap;
             overflow-x: auto;
+            overflow-y: hidden;
             gap: 6px;
             padding: 6px;
+            flex: 1 1 auto;
             min-height: 96px;
             background: #ffffff;
          }
@@ -200,6 +238,8 @@
          <span class="eb-title">Eagle Board Scheduler</span>
       </div>
 
+      <div class="eb-layout">
+      <div class="eb-row eb-row-top">
       <div class="eb-panel">
          <div class="eb-panel-title">Scouts/Candidates</div>
          <div class="eb-toolbar" id="scout-toolbar">
@@ -226,8 +266,9 @@
          </div>
          <div class="eb-grid-adults" id="grid-adults"></div>
       </div>
+      </div>
 
-      <div class="eb-panel">
+      <div class="eb-panel eb-panel-rooms">
          <div class="eb-panel-title">Available Rooms</div>
          <div class="eb-toolbar" id="room-toolbar">
             <label>Filter <input type="text" id="room-filter" size="18"/></label>
@@ -236,9 +277,10 @@
          <div id="roomview"></div>
       </div>
 
-      <div class="eb-panel">
+      <div class="eb-panel eb-panel-boards">
          <div class="eb-panel-title">Active/Completed Boards</div>
          <div class="eb-grid-boards" id="grid-boards"></div>
+      </div>
       </div>
 
       <script>
@@ -448,6 +490,21 @@
 
          SCHEDULER_configReady.then(function () {
             setTimeout(refresh_polling, SCHEDULER_refreshTime * 1000);
+         });
+
+         // Panel heights come from flexbox now, so resizing the window changes
+         // every grid's height. Tabulator measures once at build time and has to
+         // be told to re-measure; debounced so a drag-resize doesn't thrash.
+         var gridRedrawTimer = null;
+         window.addEventListener("resize", function () {
+            clearTimeout(gridRedrawTimer);
+            gridRedrawTimer = setTimeout(function () {
+               [schedulerScoutGrid, schedulerLeaderGrid, schedulerBoardGrid].forEach(function (grid) {
+                  if (grid && grid.table) {
+                     try { grid.table.redraw(true); } catch (e) { /* not built yet */ }
+                  }
+               });
+            }, 150);
          });
 
          // ------------------------------------------------------------
