@@ -1,5 +1,5 @@
 // ------------------------------------------------------------------------
-// process_seat.js — Verified -> Seated transition (/seat-board).
+// process_seat.js — Registered -> InProgress transition (/seat-board).
 //
 // Validates the selection (scout status, checked adults, unit conflicts,
 // availability, member counts per board type, selected room), then shows
@@ -15,10 +15,7 @@ function ProcessSeatBoard(s_id) {
    var s_room = schedulerScoutGrid.getColumnValue(s_id, "Room");
    var s_status = schedulerScoutGrid.getColumnValue(s_id, "Status");
 
-   if (s_status == "Registered") {
-      ebAlert("Schedule Error", "Scout is not verified yet, please Verify " + s_first + " " + s_last);
-      return;
-   } else if (s_status == "Seated") {
+   if (s_status == "Seated") {
       ebAlert("Schedule Error", "Scout " + s_first + " " + s_last + " board is already seated.");
       return;
    } else if (s_status == "InProgress") {
@@ -30,7 +27,9 @@ function ProcessSeatBoard(s_id) {
    } else if (s_status == "Postponed") {
       ebAlert("Schedule Error", "Scout has already postponed his " + s_btype + " board");
       return;
-   } else if (s_status != "Verified") {
+   } else if (s_status != "Registered" && s_status != "Verified") {
+      // "Verified" is accepted for legacy records only; Verify was removed and
+      // nothing sets that status anymore.
       ebAlert("Schedule Error", "Unknown Status: " + s_status);
       return;
    }

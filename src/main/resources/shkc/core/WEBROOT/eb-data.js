@@ -6,7 +6,7 @@
 //   POST <entity>-update                  -> form fields: !nativeeditor_status
 //        (inserted|updated|deleted), gr_id=<ID>, plus <Column>=<value> pairs;
 //        responds <data><action type="<status|invalid>" sid=".." tid=".."/></data>
-//   POST board actions (/seat-board, /verify-board, ...) -> "OK." (200) or
+//   POST board actions (/seat-board, /complete-board, ...) -> "OK." (200) or
 //        plain-text error (304)
 //   GET  <entity>-autofill                -> dhtmlx-combo pseudo-JSON list
 //   GET  <entity>-autofill?<Field>=<v>    -> <data><Col>value</Col>...</data>
@@ -62,7 +62,7 @@ function ebSaveRow(path, status, id, fields) {
    });
 }
 
-// Board workflow actions (/seat-board, /verify-board, /complete-board, ...).
+// Board workflow actions (/seat-board, /complete-board, /postpone-board, ...).
 // Resolves {ok: bool, text: string}; the server answers "OK." on success and
 // a plain-text reason with HTTP 304 on rejection.
 function ebAction(path, fields) {

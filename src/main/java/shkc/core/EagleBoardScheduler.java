@@ -252,7 +252,6 @@ public class EagleBoardScheduler {
       this._server.addHandler("/adult-history-update", new EagleBoardScheduler.AdultHistoryUpdateHandler());
       this._server.addHandler("/room-update", new EagleBoardScheduler.RoomUpdateHandler());
       this._server.addHandler("/room-change", new EagleBoardScheduler.RoomChangeHandler());
-      this._server.addHandler("/verify-board", new EagleBoardScheduler.VerifyBoardHandler());
       this._server.addHandler("/seat-board", new EagleBoardScheduler.SeatBoardHandler());
       this._server.addHandler("/inprogress-board", new EagleBoardScheduler.InProgressBoardHandler());
       this._server.addHandler("/complete-board", new EagleBoardScheduler.CompleteBoardHandler());
@@ -517,7 +516,7 @@ public class EagleBoardScheduler {
                   }
                }
             } else {
-               this.sendError("Invalid Result '" + var6 + "', expected Approved, Suspended or NotApproved", var3);
+               this.sendError("Invalid Result '" + var6 + "', expected Approved, Adjourned or NotApproved", var3);
             }
          }
       }
@@ -1041,8 +1040,11 @@ public class EagleBoardScheduler {
                ScoutRecord var10 = EagleBoardScheduler.this._scoutRecords.get(var6);
                if (var10 == null) {
                   this.sendError("ERROR: Invalid Scout ID" + var6, var3);
-               } else if (!var10.getStatus().equals("Verified")) {
-                  this.sendError("ERROR: Invalid Status '" + var10.getStatus() + "', expected '" + "Verified" + "'", var3);
+                  // Verify was removed, so a Registered scout is seated directly.
+                  // "Verified" is still accepted for legacy records carried over
+                  // from a run made before that change.
+               } else if (!var10.getStatus().equals("Registered") && !var10.getStatus().equals("Verified")) {
+                  this.sendError("ERROR: Invalid Status '" + var10.getStatus() + "', expected '" + "Registered" + "'", var3);
                } else if (!"".equals(var10.getRoom()) && !var10.getRoom().equals(var9.getRoom())) {
                   this.sendError("ERROR: Scout Already Assigned Room: " + var10.getRoom(), var3);
                } else if (var8 == null || var8.trim().length() == 0) {
@@ -1136,26 +1138,4 @@ public class EagleBoardScheduler {
       }
    }
 
-   public class VerifyBoardHandler extends EagleBoardScheduler.CoreBoardHandler {
-      @Override
-      public synchronized void handle(String var1, HttpServletRequest var2, HttpServletResponse var3) throws IOException, ServletException {
-         synchronized (EagleBoardScheduler.this.LOCK) {
-            EagleBoardScheduler.verbose(var2);
-            EagleBoardScheduler.verbose(var2.getParameterMap());
-            String var5 = var2.getParameter("ScoutID");
-            EagleBoardScheduler.verbose("ScoutID: " + var5);
-            ScoutRecord var6 = EagleBoardScheduler.this._scoutRecords.get(var5);
-            if (var6 == null) {
-               this.sendError("ERROR: Invalid Scout ID" + var5, var3);
-            } else if (!var6.getStatus().equals("Registered")) {
-               this.sendError("ERROR: Invalid Status '" + var6.getStatus() + "', expected '" + "Registered" + "'", var3);
-            } else {
-               var6.setStatus("Verified");
-               var6.updateFields(true);
-               EagleBoardScheduler.this._scoutRecords.store();
-               this.sendSuccess(var3);
-            }
-         }
-      }
-   }
 }

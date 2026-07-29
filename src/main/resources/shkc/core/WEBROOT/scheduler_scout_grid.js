@@ -3,7 +3,7 @@
 //
 // Columns:  # (RegNum), T (MinsSinceLastUpdate),
 //           Last, First, Unit, F/P (BoardType), RM# (Room), Status, Leader
-// Toolbar:  Verify / Seat / Complete | Locate / View-Hide / Reset /
+// Toolbar:  Seat / Complete | Locate / View-Hide / Reset /
 //           Postpone — enabled according to the selected scout's status.
 //           (Seat and Start were merged: seating goes straight to InProgress.)
 // Timers:   active (Seated/InProgress) rows raise a room card warning
@@ -34,7 +34,7 @@ function SchedulerScoutGrid(container_id, toolbar_id, title) {
 
    this.toolbar = document.getElementById(toolbar_id);
    this.buttons = {};
-   var names = ["Verify", "Seat", "Complete", "Locate", "Filter", "Reset", "Postpone"];
+   var names = ["Seat", "Complete", "Locate", "Filter", "Reset", "Postpone"];
    for (var i = 0; i < names.length; i++) {
       this.buttons[names[i]] = this.toolbar.querySelector("[data-action='" + names[i] + "']");
    }
@@ -59,9 +59,7 @@ function SchedulerScoutGrid(container_id, toolbar_id, title) {
          return;
       }
 
-      if (id === "Verify") {
-         ProcessVerifyBoard(s_id);
-      } else if (id === "Seat") {
+      if (id === "Seat") {
          ProcessSeatBoard(s_id);
       } else if (id === "Complete") {
          ProcessCompleteBoard(s_id);
@@ -191,8 +189,11 @@ SchedulerScoutGrid.prototype.updateButtonStatus = function (s_id) {
    var status = this.getColumnValue(s_id, "Status");
 
    if (status === "Registered") {
-      this.setButtonStatus(["Verify", "Postpone", "Locate", "Filter"]);
+      // Verify was removed, so a registered scout is seated directly.
+      this.setButtonStatus(["Seat", "Postpone", "Locate", "Filter"]);
    } else if (status === "Verified") {
+      // Legacy records only: nothing sets this status anymore, but a carried-
+      // over scout must still be seatable rather than stuck.
       this.setButtonStatus(["Seat", "Reset", "Postpone", "Locate", "Filter"]);
    } else if (status === "Seated" || status === "InProgress") {
       // Seat and Start are merged: seating goes straight to InProgress.

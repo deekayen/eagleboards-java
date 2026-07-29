@@ -49,6 +49,9 @@ public class ScoutRecord extends PersonRecord {
    public static final String STATUS_POSTPONED = "Postponed";
    public static final String RESULT_NO_RESULT = "";
    public static final String RESULT_APPROVED = "Approved";
+   // Unused, and kept only so this class's javap signature still matches the
+   // inherited binary (see CLAUDE.md rule 2). The live value is "Adjourned" —
+   // boards are recorded from process_complete.js and admin.html, not from here.
    public static final String RESULT_SUSPENDED = "Suspended";
    public static final String RESULT_NOT_APPROVED = "NotApproved";
 

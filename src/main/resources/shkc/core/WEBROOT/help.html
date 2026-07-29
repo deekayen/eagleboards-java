@@ -66,9 +66,9 @@
          <p style="font-size: large; "><b>Status Values</b></p>
          <blockquote>
             <ol>
-               <li><b>Registered</b>:  The Scout has signed in
-               <li><b>Verified</b>: The Scouts paperwork has been checked and is ready to seat the board
+               <li><b>Registered</b>:  The Scout has signed in and is ready to be seated
                <li><b>Seated</b>: The Adults have been seated for the review
+                  (legacy: seating now moves a Scout straight to InProgress)
                <li><b>InProgress</b>: The Scout is in the Board room
                <li><b>Completed</b>: The Board is completed and a result has been entered. 
                <li><b>Postponed</b>: The Board ihas been postponed, probably due to a paperwork or preparation issue.
@@ -80,10 +80,11 @@
          <blockquote>
             <ol>
                <li>Sign-in: Scouts/Adults sign in on sign-in screen
-               <li>Verification: As Scouts sign in, verify their writeups and paperwork for 
-                  the board. If all is well, 'Verify' them through the User Interface. If the paperwork 
+               <li>Paperwork check: As Scouts sign in, check their writeups and paperwork for
+                  the board. This is done off-screen &mdash; there is no longer a 'Verify' step in the
+                  User Interface. If the paperwork
                   is not in order you may move them to 'Postponed' and they can reschedule for the next month.
-               <li>Seating: Once verified, you may seat a board.  To do this:
+               <li>Seating: Once the paperwork is in order, you may seat a board.  To do this:
                   <ol>
                      <li>Select the scout in the Scouts window of the scheduler page. 
                      <li>The scheduler will 'auto-select' a board consisting of a registered

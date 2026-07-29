@@ -9,7 +9,6 @@
       <script src="/tabulator/tabulator.min.js"></script>
       <script src="eb-data.js"></script>
       <script src="scheduler_config.js"></script>
-      <script src="process_verify.js"></script>
       <script src="process_seat.js"></script>
       <script src="process_complete.js"></script>
       <script src="process_postpone.js"></script>
@@ -243,7 +242,6 @@
       <div class="eb-panel">
          <div class="eb-panel-title">Scouts/Candidates</div>
          <div class="eb-toolbar" id="scout-toolbar">
-            <button data-action="Verify" title="Verify Scout Paperwork">Verify</button>
             <button data-action="Seat" title="Seat Board (starts the board)">Seat</button>
             <button data-action="Complete" title="Complete Board">Complete</button>
             <span class="eb-sep"></span>
@@ -406,7 +404,6 @@
          var roomView = new RoomView("roomview");
 
          InitializeCompleteBoard();
-         InitializeVerifyBoard();
 
          roomView.onAfterSelect = function (id) {
             var rm_data = roomView.get(id);

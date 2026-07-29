@@ -69,6 +69,12 @@ MIGRATED='shkc/core/WebServer[.]class|shkc/core/WebServer[$]LocalDefaultHandler[
 # Jackson; monfox.log -> java.util.logging.
 REMOVED_VENDORED='^shkc/json/simple/|^monfox/'
 
+# Features deliberately removed from the rebuilt app, so the original's class
+# has no counterpart to compare against:
+#  - VerifyBoardHandler: the Verify step (Registered -> Verified) was dropped;
+#    a registered Scout is now seated directly, and /verify-board is gone.
+REMOVED_FEATURE='shkc/core/EagleBoardScheduler[$]VerifyBoardHandler[.]class'
+
 sig() { # normalized member signatures for one class file
     # Filtered as compiler-internal (verified behaviorally equivalent in the
     # bytecode): access$ bridges, enum $values()/switch-maps, and anonymous-
@@ -93,6 +99,7 @@ while IFS= read -r cls; do
     if echo "$rel" | grep -qE "$KNOWN_SYNTHETIC"; then continue; fi
     if echo "$rel" | grep -qE "$MIGRATED"; then continue; fi
     if echo "$rel" | grep -qE "$REMOVED_VENDORED"; then continue; fi
+    if echo "$rel" | grep -qE "$REMOVED_FEATURE"; then continue; fi
     if [ ! -f "$WORK/new/$rel" ]; then
         fail "class missing from rebuilt jar: $rel"
         missing=1
@@ -111,7 +118,10 @@ note "signature comparison complete"
 # The HTML/JS pages are first-party code now, checked in the UI section
 # below; dhtmlx/, CVS/, and old_saved_script.js were dropped deliberately;
 # signup_genius_api.js ships a key placeholder (checked separately).
-PRESERVED="help.html scheduler.css NegaScheduler.png ScoutButton.png LeaderButton.png"
+# help.html is no longer byte-compared: removing the Verify step made the
+# original's operator instructions wrong (they described verifying paperwork
+# through the UI), so the page was rewritten to match the current workflow.
+PRESERVED="scheduler.css NegaScheduler.png ScoutButton.png LeaderButton.png"
 for p in $PRESERVED; do
     if ! cmp -s "$WORK/orig/shkc/core/WEBROOT/$p" "$WORK/new/shkc/core/WEBROOT/$p"; then
         fail "preserved WEBROOT asset differs from original: $p"
@@ -199,8 +209,9 @@ compare_status() { # method path — status code only; body is Jetty's own
 
 echo "== 2a. read endpoints (parity vs original) =="
 # Server-generated responses and preserved assets must match the original.
-READS="/help.html
-/scheduler.css /NegaScheduler.png /ScoutButton.png /LeaderButton.png
+# /help.html is excluded for the same reason it left PRESERVED above: its
+# operator instructions were rewritten when the Verify step was removed.
+READS="/scheduler.css /NegaScheduler.png /ScoutButton.png /LeaderButton.png
 /scout-cells /adult-cells /adult-history-cells /room-cells
 /scouts-scheduled-cells /scout-autofill /adult-autofill"
 count=0
@@ -225,7 +236,8 @@ compare GET "/scout-cells?cols=RegNum,Last,First,Email,Phone,BoardType,Status"
 compare GET /adult-cells
 compare POST /room-update  '!nativeeditor_status=inserted&gr_id=1&c0=1&c1=Room+101&c2=&c3='
 compare GET /room-cells
-compare POST /verify-board "ScoutID=BOGUS:Nobody:X:0"      # error path must match too
+# /verify-board is intentionally gone (the Verify step was removed), so there is
+# no rebuilt endpoint to compare against the original's error path.
 compare POST /seat-board   "RoomID=1&ScoutID=BOGUS&ChairID=B&MemberIDs=C"
 compare POST /room-change  "RmID1=&RmID2="
 note "write/error endpoints compared"
@@ -290,7 +302,7 @@ UI_PAGES="/index.html /index_simple.html /admin.html /scheduler.html
 /configure.html /scout_register.html /adult_register.html /eb-data.js
 /scheduler_config.js /scheduler_grid.js /scheduler_scout_grid.js
 /scheduler_adult_grid.js /scheduler_board_grid.js
-/process_seat.js /process_verify.js
+/process_seat.js
 /process_complete.js /process_postpone.js /process_reset.js
 /tabulator/tabulator.min.js /tabulator/tabulator.min.css"
 uicount=0

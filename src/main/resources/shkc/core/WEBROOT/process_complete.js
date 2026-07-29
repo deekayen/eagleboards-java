@@ -20,7 +20,7 @@ function ProcessCompleteBoard(s_id) {
       ebModalForm("Complete Board: " + s_first + " " + s_last,
          "<label>Board Result:<br/><select name='Result'>"
          + "<option value='Approved' selected>Approved</option>"
-         + "<option value='Suspended'>Suspended</option>"
+         + "<option value='Adjourned'>Adjourned</option>"
          + "<option value='NotApproved'>NotApproved</option>"
          + "</select></label><br/><br/>"
          + "<label>Notes:<br/><textarea name='Notes' rows='4' style='width: 300px;'></textarea></label>",
