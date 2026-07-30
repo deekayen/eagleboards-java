@@ -60,9 +60,15 @@ jobs:
           # Structural: files that have historically carried a key or personal
           # information must not be in the artifact at all. signup_genius_api.js
           # is the one that embedded a live key in the original binary.
-          if jar tf "$JAR" | grep -qE "$PATTERN"; then
+          #
+          # Listed to a file, never piped into grep -q. Under this shell's
+          # pipefail, grep -q exits on first match and SIGPIPEs jar, so the
+          # pipeline reports failure exactly when the pattern IS found -- which
+          # an `if` reads as "clean" and would publish the jar anyway.
+          jar tf "$JAR" > jar-contents.txt
+          if grep -qE "$PATTERN" jar-contents.txt; then
             echo "FAIL: artifact contains a key-bearing or data file:"
-            jar tf "$JAR" | grep -E "$PATTERN"
+            grep -E "$PATTERN" jar-contents.txt
             exit 1
           fi
           echo "ok: no key-bearing or data files in the artifact"
@@ -96,9 +102,14 @@ jobs:
             if [ "$i" = 30 ]; then echo "server never became ready"; cat server.log; exit 1; fi
           done
           set -e
-          curl -sf http://127.0.0.1:18097/index.html   | grep -q  "Welcome to the Eagle Board."
-          curl -sf http://127.0.0.1:18097/admin.html   | grep -qi "Eagle Board Admin Page"
-          curl -sf http://127.0.0.1:18097/scheduler.html | grep -qi "Eagle Board Scheduler"
+          # Same pipefail trap as above: curl into grep -q makes curl exit 23
+          # when grep matches early. Fetch to a file, then grep the file.
+          curl -sf http://127.0.0.1:18097/index.html -o index.out
+          grep -q "Welcome to the Eagle Board." index.out
+          curl -sf http://127.0.0.1:18097/admin.html -o admin.out
+          grep -qi "Eagle Board Admin Page" admin.out
+          curl -sf http://127.0.0.1:18097/scheduler.html -o scheduler.out
+          grep -qi "Eagle Board Scheduler" scheduler.out
           curl -sf -o /dev/null http://127.0.0.1:18097/scout-cells
           kill $SRV
           echo "release artifact serves correctly"
