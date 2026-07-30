@@ -1,4 +1,4 @@
-# Eagle Board Scheduler
+# Review Board Scheduler
 
 Check-in and room-scheduling application for Eagle Scout Boards of Review.
 

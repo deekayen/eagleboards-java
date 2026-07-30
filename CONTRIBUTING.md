@@ -1,6 +1,6 @@
 # Contributing
 
-Thanks for helping with the Eagle Board Scheduler. This page covers everything
+Thanks for helping with the Review Board Scheduler. This page covers everything
 needed to get productive: setup, build, test, house style, and how changes are
 reviewed. Read [ARCHITECTURE.md](ARCHITECTURE.md) first if you want the map of
 how the app fits together, and [PROVENANCE.md](PROVENANCE.md) for where the code
@@ -146,6 +146,35 @@ Two gotchas, both of which fail *silently* or misleadingly:
   is often "because the original binary did it this way".
 - **Branding stays district-neutral.** Do not reintroduce a specific district or
   council name.
+
+### Colour has meaning
+
+`eb-ui.css` implements the Scouts BSA palette (BSA Brand Guidelines p.54: "mainly
+tan, gray, and olive hues… Scouting Red as an accent or action color"). Button
+colour states what the button *does*, so an operator can find the right one
+without reading every label:
+
+| Colour | Meaning | Examples |
+| --- | --- | --- |
+| **Olive** `#243E2C` | primary or additive | Refresh, Seat, Complete, + Room |
+| **White** | navigate or view | Settings, Admin, Login, Help, View, CSV |
+| **Red** `#CE1126` | destructive, reversing, cancelling | − Room, Reset, Postpone, Clear (adults), Delete |
+| **Blue** `#003F87` | a neutral change | Change Room |
+
+Pick by **meaning, not by label**. The two buttons named "Clear" are deliberately
+different colours: the Adult panel's unchecks people and is red, while the room
+filter only empties a search box and is white. Matching them would promise a
+consequence the second one does not have.
+
+Two hard constraints when adding a colour:
+
+- **Measure it.** Every pairing above passes WCAG 1.4.3 (AA): olive-on-white and
+  white-on-olive 11.66:1, white-on-red 5.63:1, white-on-blue 10.19:1. Three brand
+  colours cannot carry text on white at all — Pale Gray 3.61, Dark Tan 2.66, Pale
+  Blue 2.15 — they are background-only.
+- **Never put Scouting Red on Scouts BSA Olive.** They measure 2.07:1 against
+  each other; both look strong on white but their luminances are nearly
+  identical. Red belongs on white or tan.
 
 ## Never commit data or secrets
 

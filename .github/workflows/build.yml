@@ -51,9 +51,9 @@ jobs:
           done
           set -e
           curl -sf http://127.0.0.1:18099/index.html -o index.out
-          grep -q "Welcome to the Eagle Board." index.out
+          grep -q "Welcome to Review Boards" index.out
           curl -sf http://127.0.0.1:18099/admin.html -o admin.out
-          grep -qi "Eagle Board Admin Page" admin.out
+          grep -qi "Review Board Admin Page" admin.out
           curl -sf -o /dev/null http://127.0.0.1:18099/scout-cells
           curl -sf -o /dev/null http://127.0.0.1:18099/room-cells
           curl -sf -X POST --data "Last=Smoke&First=Test&Email=s@example.org&UnitType=Troop&Unit=1&BoardType=Final" http://127.0.0.1:18099/register-scout -o /dev/null

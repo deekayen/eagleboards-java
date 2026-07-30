@@ -1,6 +1,6 @@
 <html>
    <head>
-      <title>Scheduler: Eagle Board </title>
+      <title>Scheduler: Review Board</title>
 
       <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
       <link rel="stylesheet" type="text/css" href="/tabulator/tabulator.min.css"/>
@@ -60,10 +60,10 @@
          }
          .eb-toolbar button, .eb-toolbar a.eb-btn {
             padding: 4px 12px;
-            border: 1px solid #a4bed4;
+            border: 1px solid #b6b0a4;
             border-radius: 3px;
-            background: #f0f4f8;
-            color: #333;
+            background: #E9E9E4;
+            color: #232528;
             text-decoration: none;
             font-size: 13px;
             cursor: pointer;
@@ -74,7 +74,7 @@
             cursor: default;
          }
          .eb-toolbar .eb-sep {
-            border-left: 1px solid #a4bed4;
+            border-left: 1px solid #b6b0a4;
             height: 20px;
          }
          .eb-toolbar .eb-title {
@@ -87,7 +87,7 @@
             padding: 2px 4px;
          }
          .eb-panel {
-            border: 1px solid #a4bed4;
+            border: 1px solid #b6b0a4;
             background: #ffffff;
             display: flex;
             flex-direction: column;
@@ -96,17 +96,17 @@
          }
          .eb-panel-title, .eb-panel .eb-toolbar { flex: 0 0 auto; }
          .eb-panel-title {
-            background: #f0f4f8;
-            border-bottom: 1px solid #a4bed4;
+            background: #E9E9E4;
+            border-bottom: 1px solid #b6b0a4;
             padding: 4px 8px;
             font-size: 13px;
             font-weight: bold;
-            color: #333;
+            color: #232528;
             text-align: left;
          }
          .eb-panel .eb-toolbar {
             padding: 4px 6px;
-            border-bottom: 1px solid #dde7f0;
+            border-bottom: 1px solid #e6e2da;
          }
          /* Grids fill whatever their panel is given. The old fixed 30vh/26vh/30vh
             heights added up to 86vh of grid alone, which is what forced the page
@@ -133,7 +133,7 @@
             min-height: 84px;
             border: 1px solid #cbd8e4;
             border-radius: 3px;
-            background: cornsilk;
+            background: #E9E9E4;
             padding: 6px 8px;
             cursor: pointer;
             font-size: 13px;
@@ -142,7 +142,7 @@
          }
          .eb-room-card.selected {
             background: #ffff99;
-            border-color: #a4bed4;
+            border-color: #b6b0a4;
          }
 
          /* toast notices */
@@ -191,8 +191,8 @@
             text-align: left;
          }
          .eb-modal-title {
-            background: #f0f4f8;
-            border-bottom: 1px solid #a4bed4;
+            background: #E9E9E4;
+            border-bottom: 1px solid #b6b0a4;
             padding: 6px 10px;
             font-weight: bold;
             font-size: 14px;
@@ -210,15 +210,16 @@
          }
          .eb-modal-buttons button {
             padding: 4px 18px;
-            border: 1px solid #a4bed4;
+            border: 1px solid #b6b0a4;
             border-radius: 3px;
-            background: #f0f4f8;
+            background: #E9E9E4;
             cursor: pointer;
             font-size: 13px;
          }
       </style>
+      <link rel="stylesheet" type="text/css" href="eb-ui.css"/>
    </head>
-   <body>
+   <body class="eb-operator">
       <div class="eb-toolbar" id="main-toolbar">
          <button data-action="Refresh" title="Refresh All Data">Refresh</button>
          <span class="eb-sep"></span>
@@ -234,7 +235,7 @@
          <button data-action="AddRoom" title="Add New Room">+ Room</button>
          <button data-action="RemoveRoom" title="Remove Room">- Room</button>
          <button data-action="ChangeRoom" title="Change/Swap Rooms">Change Room</button>
-         <span class="eb-title">Eagle Board Scheduler</span>
+         <span class="eb-title">Review Board Scheduler</span>
       </div>
 
       <div class="eb-layout">

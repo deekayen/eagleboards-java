@@ -1,0 +1,500 @@
+/* ========================================================================
+ * eb-ui.css -- Scouts BSA theme.
+ *
+ * Loaded LAST on every page, after tabulator.min.css, scheduler.css and each
+ * page's inline <style>, so it wins on cascade order. It is a separate file
+ * rather than edits to scheduler.css because that file is byte-compared
+ * against the inherited jar by scripts/verify-parity.sh and cannot change.
+ *
+ * PALETTE -- BSA Brand Guidelines (July 2019) p.54, Scouts BSA sub-brand:
+ * "projects specific to Scouts BSA should use a similarly neutral palette
+ * composed mainly of tan, gray, and olive hues ... Scouting Red should be
+ * used as an accent or action color." Scouting Blue is deliberately absent;
+ * it belongs to the corporate and Cub Scouting palettes, not this one.
+ *
+ * TYPE -- p.46 digital typefaces. Trebuchet MS (primary, for type >=16px)
+ * and Arial (tertiary, for dense data). Both ship with Windows, so nothing
+ * is vendored or fetched; the app runs on a venue LAN with no internet.
+ *
+ * CONTRAST -- every pairing below was measured against WCAG 2.2 SC 1.4.3
+ * (4.5:1 body, 3:1 large/UI). The measured ratio is in the comment. Three
+ * brand colours CANNOT carry text on white and are background-only:
+ * Pale Gray 3.61, Dark Tan 2.66, Pale Blue 2.15.
+ *
+ * THE ONE HARD RULE: Scouting Red and Scouts BSA Olive must never touch.
+ * They measure 2.07:1 against each other -- both are strong on white, but
+ * their luminances are nearly identical. Red goes on white or tan only.
+ * ===================================================================== */
+
+:root {
+   /* Scouts BSA palette, verbatim from p.54 + corporate neutrals from p.51-52 */
+   --eb-olive:      #243E2C;   /* Scouts BSA Olive   -- luminance 0.04 */
+   --eb-tan:        #D6CEBD;   /* Scouting Tan */
+   --eb-light-tan:  #E9E9E4;   /* Scouting Light Tan */
+   --eb-red:        #CE1126;   /* Scouting Red -- action only, never tinted (p.52) */
+   --eb-warm-gray:  #515354;   /* Scouting Warm Gray */
+   --eb-dark-gray:  #232528;   /* Scouting Dark Gray */
+   --eb-line:       #b6b0a4;
+   /* Scouting Blue is a corporate primary, not part of the Scouts BSA trio --
+      but p.51 explicitly allows it: "These five colors may be used by any of
+      the sub-brands, especially the red and blue colors, whose use throughout
+      will serve to unify disparate brands." Reserved here for one meaning. */
+   --eb-blue:       #003F87;   /* Scouting Blue */
+
+   /* WCAG 2.5.8 (AA) pointer target minimum. */
+   --eb-target: 24px;
+   /* WCAG 2.5.5 (AAA); Apple HIG 44pt and Material 48dp agree. */
+   --eb-target-touch: 44px;
+}
+
+/* ---------------------------------------------------------------- shared */
+
+body {
+   color: var(--eb-dark-gray);          /* 15.37:1 on white */
+   background: #ffffff;
+}
+
+h1, h2, h3 { color: var(--eb-olive); }  /* 11.66:1 on white */
+a { color: var(--eb-olive); }
+
+/* ============================ OPERATOR MODE ============================
+ * scheduler, admin, configure. The operator scans many rows under time
+ * pressure, so density is the goal -- bounded by the 24px target minimum,
+ * which is what actually sets the floor on row height.
+ * ==================================================================== */
+
+body.eb-operator {
+   font-family: Arial, Helvetica, sans-serif;   /* tertiary face: dense data */
+}
+body.eb-operator h1,
+body.eb-operator .eb-panel-title,
+body.eb-operator .eb-toolbar button,
+body.eb-operator .eb-tabbar button {
+   font-family: "Trebuchet MS", Tahoma, sans-serif;   /* primary face */
+}
+
+/* Panel headings: olive band, Light Tan on it = 9.58:1 */
+body.eb-operator .eb-panel-title {
+   background: var(--eb-olive);
+   color: var(--eb-light-tan);
+   border-bottom: none;
+   font-size: 14px;
+   padding: 6px 10px;
+}
+
+body.eb-operator .eb-panel { border-color: var(--eb-line); }
+body.eb-operator .eb-toolbar { background: var(--eb-light-tan); }
+body.eb-operator .eb-panel .eb-toolbar { border-bottom-color: var(--eb-line); }
+
+/* Primary action: white on olive = 11.66:1. 28px clears the 24px AA floor
+   without paying the 44px AAA cost on a screen showing four panels. */
+body.eb-operator .eb-toolbar button,
+body.eb-operator .eb-toolbar a.eb-btn {
+   /* The CSV control is an <a>, everything beside it is a <button>. Left alone
+      they render as different shapes: an anchor defaults to content-box, so
+      min-height sets its CONTENT height and the padding and border stack on
+      top (38px tall against the buttons' 28px), and it inherits the page font
+      instead of the toolbar's. Normalising both element types here keeps them
+      identical rather than patching the anchor afterwards. */
+   box-sizing: border-box;
+   display: inline-flex;
+   align-items: center;
+   justify-content: center;
+   line-height: 1;
+   font-family: "Trebuchet MS", Tahoma, sans-serif;
+
+   min-height: 28px;
+   min-width: var(--eb-target);
+   padding: 4px 14px;
+   font-size: 13px;
+   font-weight: 700;
+   color: #ffffff;
+   background: var(--eb-olive);
+   border: 1px solid var(--eb-olive);
+   border-radius: 3px;
+}
+/* Secondary: olive on white = 11.66:1 */
+body.eb-operator .eb-toolbar a.eb-btn {
+   color: var(--eb-olive);
+   background: #ffffff;
+}
+/* Warm Gray on white = 7.73:1. The stock opacity:0.45 measured 3.72:1 and
+   fails 1.4.3 outright, reading as unreadable rather than unavailable. */
+body.eb-operator .eb-toolbar button:disabled {
+   opacity: 1;
+   color: var(--eb-warm-gray);
+   background: #ffffff;
+   border-color: var(--eb-line);
+}
+
+/* ---- semantic button colours -------------------------------------------
+ * The colour states what the button DOES, so an operator can find the right
+ * one without reading every label:
+ *
+ *   olive (default)  primary or additive   Refresh, Seat, Complete, + Room
+ *   white            navigate or view      Settings, Admin, Login, Help, View, CSV
+ *   red              destructive/negative  - Room, Reset, Postpone, Clear, Delete
+ *   blue             neutral change        Change Room
+ *
+ * Every pairing measured: olive-on-white 11.66:1, white-on-olive 11.66:1,
+ * white-on-red 5.63:1, white-on-blue 10.19:1 -- all past WCAG 1.4.3 (AA).
+ * --------------------------------------------------------------------- */
+
+/* White: navigation and view toggles. Olive text and border, 11.66:1.
+   #room-filter-clear is here, not with the red Clear in the Adult panel: the
+   two share a label but not a meaning. That one unchecks people; this one only
+   empties a search box. Colouring it red would promise a consequence it does
+   not have. */
+body.eb-operator .eb-toolbar button[data-action="Settings"],
+body.eb-operator .eb-toolbar button[data-action="Admin"],
+body.eb-operator .eb-toolbar button[data-action="Login"],
+body.eb-operator .eb-toolbar button[data-action="Help"],
+body.eb-operator .eb-toolbar button[data-action="Filter"],
+body.eb-operator .eb-toolbar button#room-filter-clear {
+   color: var(--eb-olive);
+   background: #ffffff;
+   border-color: var(--eb-olive);
+}
+
+/* Red: anything that removes, reverses or cancels. White on red = 5.63:1.
+   Red never sits on olive -- that pairing is 2.07:1 -- so these are only ever
+   on the light toolbar. */
+body.eb-operator .eb-toolbar button[data-action="RemoveRoom"],
+body.eb-operator .eb-toolbar button[data-action="Reset"],
+body.eb-operator .eb-toolbar button[data-action="Postpone"],
+body.eb-operator .eb-toolbar button[data-action="Clear"],
+body.eb-operator .eb-toolbar button[id$="-delete"],
+body.eb-operator .eb-toolbar button#rooms-remove {
+   color: #ffffff;
+   background: var(--eb-red);
+   border-color: var(--eb-red);
+}
+
+/* Blue: a change that is neither additive nor destructive. 10.19:1. */
+body.eb-operator .eb-toolbar button[data-action="ChangeRoom"] {
+   color: #ffffff;
+   background: var(--eb-blue);
+   border-color: var(--eb-blue);
+}
+
+/* Green/olive: additive. Already the default, stated so the intent is explicit
+   next to its opposite. */
+body.eb-operator .eb-toolbar button[data-action="AddRoom"],
+body.eb-operator .eb-toolbar button#rooms-add {
+   color: #ffffff;
+   background: var(--eb-olive);
+   border-color: var(--eb-olive);
+}
+
+/* Disabled still wins over every colour above, so an unavailable action never
+   reads as an available one. Warm Gray on white = 7.73:1. */
+body.eb-operator .eb-toolbar button:disabled {
+   color: var(--eb-warm-gray) !important;
+   background: #ffffff !important;
+   border-color: var(--eb-line) !important;
+}
+
+/* Admin tab bar */
+body.eb-operator .eb-tabbar { border-bottom-color: var(--eb-olive); }
+body.eb-operator .eb-tabbar button {
+   background: var(--eb-light-tan);
+   border-color: var(--eb-line);
+   color: var(--eb-dark-gray);
+   font-weight: 600;
+   min-height: 32px;
+}
+body.eb-operator .eb-tabbar button.active {
+   background: var(--eb-olive);
+   color: var(--eb-light-tan);       /* 9.58:1 */
+   border-color: var(--eb-olive);
+   font-weight: 700;
+}
+
+/* ---- grids ---- */
+body.eb-operator .tabulator {
+   font-size: 14px;
+   color: var(--eb-dark-gray);
+   font-family: Arial, Helvetica, sans-serif;
+}
+/* Column headers: Scouting Tan, Dark Gray on it = 9.82:1 */
+body.eb-operator .tabulator .tabulator-header,
+body.eb-operator .tabulator .tabulator-header .tabulator-col {
+   background: var(--eb-tan);
+   color: var(--eb-dark-gray);
+   font-weight: 700;
+   border-bottom: 1px solid var(--eb-line);
+}
+body.eb-operator .tabulator .tabulator-header .tabulator-col .tabulator-col-content {
+   padding: 3px 6px;
+}
+body.eb-operator .tabulator .tabulator-header .tabulator-header-filter input {
+   padding: 2px 4px;
+   font-size: 13px;
+   color: var(--eb-dark-gray);
+   border: 1px solid var(--eb-line);
+}
+body.eb-operator .tabulator .tabulator-row {
+   background: #ffffff;
+   border-bottom: 1px solid #e6e2da;
+}
+/* Zebra: Light Tan is a 1.22:1 tint against white -- inside NN/g's "even a
+   5-10% grey tint is enough" -- while Dark Gray on it still reads 12.61:1. */
+body.eb-operator .tabulator .tabulator-row.tabulator-row-even {
+   background: var(--eb-light-tan);
+}
+body.eb-operator .tabulator .tabulator-row .tabulator-cell {
+   padding: 4px 8px;
+   color: var(--eb-dark-gray);
+}
+/* Selection: Scouting Tan, warmer and darker than the stripe so it reads as
+   a state rather than a stripe. Dark Gray on it = 9.82:1. */
+body.eb-operator .tabulator .tabulator-row.tabulator-selected,
+body.eb-operator .tabulator .tabulator-row.tabulator-row-even.tabulator-selected {
+   background: var(--eb-tan);
+   color: var(--eb-dark-gray);
+   box-shadow: inset 3px 0 0 var(--eb-olive);
+}
+/* Was 13x13, failing WCAG 2.5.8. This is the control the operator hits for
+   every single board, and a compliant target is what sets the row height. */
+body.eb-operator .tabulator input[type=checkbox] {
+   width: var(--eb-target);
+   height: var(--eb-target);
+   cursor: pointer;
+}
+
+/* Room cards keep cornsilk from the original for recognisability, but gain a
+   real border and an olive selected state. */
+body.eb-operator .eb-room-card { border-color: var(--eb-line); color: var(--eb-dark-gray); }
+body.eb-operator .eb-room-card.selected {
+   background: var(--eb-tan);
+   border-color: var(--eb-olive);
+   box-shadow: inset 3px 0 0 var(--eb-olive);
+}
+
+/* Modals and toasts */
+body.eb-operator .eb-modal-title {
+   background: var(--eb-olive);
+   color: var(--eb-light-tan);
+   border-bottom: none;
+}
+body.eb-operator .eb-modal-buttons button {
+   min-height: 32px;
+   padding: 5px 20px;
+   font-weight: 700;
+   color: #ffffff;
+   background: var(--eb-olive);
+   border: 1px solid var(--eb-olive);
+   border-radius: 3px;
+}
+body.eb-operator .eb-toast { color: var(--eb-dark-gray); }
+/* White on Scouting Red = 5.63:1. Red is the action/alert colour (p.54). */
+body.eb-operator .eb-toast-error { background: var(--eb-red); color: #ffffff; }
+
+/* ============================== KIOSK MODE =============================
+ * index, scout_register, adult_register, help. Touched once per person, by
+ * someone standing, in a hurry, often a Scout who has never seen it.
+ * Density is worthless here; legibility and hit area are everything.
+ * ==================================================================== */
+
+body.eb-kiosk {
+   font-family: "Trebuchet MS", Tahoma, sans-serif;   /* primary face, >=16px */
+   font-size: 18px;
+}
+
+/* p.47 hierarchy: H1/H2 at 36-48px. */
+body.eb-kiosk h1 { font-size: 42px; color: var(--eb-olive); margin: 12px 0 6px; }
+body.eb-kiosk h2 { font-size: 26px; color: var(--eb-warm-gray); font-weight: 400; }
+
+/* Sign-in buttons: 44px is the AAA floor; these are far past it so a hurried
+   thumb cannot miss them. White on olive = 11.66:1, white on red = 5.63:1. */
+body.eb-kiosk .signin-buttons { padding: 10px 50px 24px; }
+body.eb-kiosk .signin-buttons input[type=button] {
+   width: 260px;
+   height: 92px;
+   min-height: var(--eb-target-touch);
+   font-family: "Trebuchet MS", Tahoma, sans-serif;
+   font-size: 26px;
+   font-weight: 700;
+   color: #ffffff;
+   background-image: none !important;   /* text label instead of a bitmap */
+   background-color: var(--eb-olive);
+   border: 3px solid var(--eb-olive);
+   border-radius: 8px;
+}
+body.eb-kiosk .signin-buttons input[name="Leader"] {
+   background-color: var(--eb-red);
+   border-color: var(--eb-red);
+}
+
+/* Registered lists: olive band, Light Tan on it = 9.58:1. */
+body.eb-kiosk .reg-panels { width: auto; max-width: 1100px; }
+body.eb-kiosk .reg-panel { border-color: var(--eb-line); }
+body.eb-kiosk .reg-panel-title {
+   background: var(--eb-olive);
+   color: var(--eb-light-tan);
+   border-bottom: none;
+   font-family: "Trebuchet MS", Tahoma, sans-serif;
+   font-size: 22px;
+   padding: 12px 16px;
+}
+body.eb-kiosk .reg-panel-body { height: 340px; }
+/* 19px in 56px rows. The brand guide puts body copy at 9-12px (p.47), which
+   is written for marketing pages read at a desk; at 12px this list was set
+   SMALLER than the operator's dense grid, which is backwards for who reads
+   it. Colours and typefaces are unchanged -- only the size deviates, and the
+   guide's own rule that the primary face is for type >=16px agrees. */
+body.eb-kiosk .reg-panel table {
+   font-family: "Trebuchet MS", Tahoma, sans-serif;
+   font-size: 19px;
+   color: var(--eb-dark-gray);
+}
+/* Padding alone sets the row height. A td is content-box, so specifying both
+   height:56px and 16px padding stacks them into an 89px row. 17px vertical
+   around a 19px line lands on ~56px, the target between Carbon "default" 48
+   and "tall" 64. */
+body.eb-kiosk .reg-panel td {
+   padding: 17px 18px;
+   border-bottom-color: #e6e2da;
+   color: var(--eb-dark-gray);
+}
+body.eb-kiosk .reg-panel tr:nth-child(even) td { background: var(--eb-light-tan); }
+
+/* ---- registration forms ------------------------------------------------
+ * Layout follows two well-replicated findings. Baymard: multi-column forms
+ * draw attention in several directions at once, so people skip required
+ * fields -- side-by-side is reserved for fields that read as ONE item (a
+ * name, a unit). Penzo's eye-tracking, replicated by Wroblewski: top-aligned
+ * labels are completed markedly faster, because the label and its field land
+ * in a single fixation rather than a horizontal scan.
+ *
+ * Type scale is monotonic, which is what was off before: the section legend
+ * was 13px sitting above 18px fields, so the heading was smaller than the
+ * content it introduced. Now 40 / 22 / 18 / 17, with a 20px eyebrow above
+ * the title.
+ * --------------------------------------------------------------------- */
+
+/* Overrides scheduler.css, which is byte-frozen by the parity gate and sets
+   these to italic navy (#005) and #000099 -- neither is a BSA colour. */
+body.eb-kiosk .page-header {
+   display: block;
+   font-family: "Trebuchet MS", Tahoma, sans-serif;
+   font-style: normal;
+   font-size: 20px;
+   letter-spacing: 0.08em;
+   text-transform: uppercase;
+   color: var(--eb-warm-gray);          /* 7.73:1 */
+}
+body.eb-kiosk .page-subheader {
+   display: block;
+   font-family: "Trebuchet MS", Tahoma, sans-serif;
+   font-style: normal;
+   font-weight: bold;
+   font-size: 40px;
+   color: var(--eb-olive);              /* 11.66:1 */
+   margin-top: 2px;
+}
+
+/* Wider than the old fixed 640px, but still bounded: a form line that runs the
+   full width of a 1080p screen is harder to scan, not easier. The extra room
+   goes into field height and spacing rather than more columns. */
+body.eb-kiosk .reg-wrap {
+   width: auto;
+   max-width: 760px;
+   margin: 26px auto 0 auto;
+   font-family: "Trebuchet MS", Tahoma, sans-serif;
+}
+body.eb-kiosk .reg-wrap fieldset {
+   border: 1px solid var(--eb-line);
+   border-radius: 4px;
+   padding: 18px 22px 22px 22px;
+   margin: 0 0 20px 0;
+   background: #ffffff;
+}
+body.eb-kiosk .reg-wrap legend {
+   font-family: "Trebuchet MS", Tahoma, sans-serif;
+   font-size: 22px;
+   font-weight: bold;
+   color: var(--eb-olive);
+   padding: 0 8px;
+}
+
+/* One field per row, label above input. */
+body.eb-kiosk .reg-field {
+   display: flex;
+   flex-direction: column;
+   margin-bottom: 18px;
+}
+body.eb-kiosk .reg-field label {
+   margin-bottom: 6px;
+   font-size: 17px;
+   font-weight: 600;
+   color: var(--eb-dark-gray);
+   text-align: left;
+   width: auto;
+}
+body.eb-kiosk .reg-field input,
+body.eb-kiosk .reg-field select {
+   width: 100%;
+   box-sizing: border-box;
+}
+/* The documented exception: fields that read as a single item. */
+body.eb-kiosk .reg-pair {
+   display: flex;
+   gap: 20px;
+}
+body.eb-kiosk .reg-pair > .reg-field { flex: 1 1 0; }
+/* Width as an affordance -- a unit number is short, so its box says so. */
+body.eb-kiosk .reg-pair > .reg-field.reg-narrow { flex: 0 0 150px; }
+body.eb-kiosk .reg-pair > .reg-field.reg-grow   { flex: 1 1 auto; }
+
+body.eb-kiosk .reg-buttons {
+   display: flex;
+   justify-content: center;
+   gap: 28px;
+   padding: 6px 0 10px 0;
+}
+body.eb-kiosk .reg-buttons button { width: 200px; }
+/* Register is the primary action. Cancel only navigates away -- it destroys
+   nothing -- so it is white, not the red used for destructive actions. */
+body.eb-kiosk .reg-buttons button#cancelBtn {
+   color: var(--eb-olive);
+   background: #ffffff;
+   border-color: var(--eb-olive);
+}
+body.eb-kiosk #statusMsg {
+   text-align: center;
+   font-size: 18px;
+   min-height: 26px;
+   padding: 4px;
+}
+body.eb-kiosk #statusMsg.ok  { color: #1d6b2b; font-weight: bold; }   /* 5.685:1 */
+body.eb-kiosk #statusMsg.err { color: var(--eb-red); font-weight: bold; }  /* 5.63:1 */
+
+/* Registration forms: every field a 44px touch target. */
+body.eb-kiosk input[type=text],
+body.eb-kiosk input[type=email],
+body.eb-kiosk input[type=tel],
+body.eb-kiosk input[type=date],
+body.eb-kiosk select {
+   min-height: var(--eb-target-touch);
+   font-family: "Trebuchet MS", Tahoma, sans-serif;
+   font-size: 18px;
+   padding: 6px 10px;
+   color: var(--eb-dark-gray);
+   border: 1px solid var(--eb-line);
+   border-radius: 4px;
+}
+body.eb-kiosk button,
+body.eb-kiosk input[type=submit] {
+   min-height: var(--eb-target-touch);
+   font-family: "Trebuchet MS", Tahoma, sans-serif;
+   font-size: 20px;
+   font-weight: 700;
+   padding: 8px 28px;
+   color: #ffffff;
+   background: var(--eb-olive);
+   border: 2px solid var(--eb-olive);
+   border-radius: 6px;
+   cursor: pointer;
+}
+body.eb-kiosk label { font-size: 18px; color: var(--eb-dark-gray); }

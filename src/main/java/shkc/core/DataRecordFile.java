@@ -91,7 +91,7 @@ public class DataRecordFile<T extends DataRecord> {
       // members stay identical to the original binary (the parity gate).
       if (this._file.getName().toLowerCase().endsWith(".properties")) {
          StringBuffer var10 = new StringBuffer();
-         var10.append("# Eagle Board Scheduler configuration\n");
+         var10.append("# Review Board Scheduler configuration\n");
          var10.append("# Edit the values after each '='. Lines starting with # are comments.\n\n");
 
          for (DataRecord var12 : this._recordList) {

@@ -1,6 +1,6 @@
 <html>
    <head>
-      <title>Eagle Board Admin Page</title>
+      <title>Review Board Admin Page</title>
 
       <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
       <link rel="stylesheet" type="text/css" href="/tabulator/tabulator.min.css"/>
@@ -35,15 +35,15 @@
          .eb-tabbar {
             display: flex;
             gap: 2px;
-            border-bottom: 1px solid #a4bed4;
+            border-bottom: 1px solid #b6b0a4;
             margin-top: 8px;
          }
          .eb-tabbar button {
             padding: 8px 18px;
-            border: 1px solid #a4bed4;
+            border: 1px solid #b6b0a4;
             border-bottom: none;
             border-radius: 4px 4px 0 0;
-            background: #f0f4f8;
+            background: #E9E9E4;
             cursor: pointer;
             font-size: 14px;
          }
@@ -53,7 +53,7 @@
          }
          .eb-panel {
             display: none;
-            border: 1px solid #a4bed4;
+            border: 1px solid #b6b0a4;
             border-top: none;
             background: #ffffff;
             padding: 6px;
@@ -77,17 +77,17 @@
          }
          .eb-toolbar button, .eb-toolbar a.eb-btn {
             padding: 4px 12px;
-            border: 1px solid #a4bed4;
+            border: 1px solid #b6b0a4;
             border-radius: 3px;
-            background: #f0f4f8;
-            color: #333;
+            background: #E9E9E4;
+            color: #232528;
             text-decoration: none;
             font-size: 13px;
             cursor: pointer;
             display: inline-block;
          }
          .eb-toolbar .eb-sep {
-            border-left: 1px solid #a4bed4;
+            border-left: 1px solid #b6b0a4;
             height: 20px;
          }
          .eb-toolbar label {
@@ -106,9 +106,10 @@
             min-height: 0;
          }
       </style>
+      <link rel="stylesheet" type="text/css" href="eb-ui.css"/>
    </head>
-   <body>
-      <h1>Eagle Board Admin Page</h1>
+   <body class="eb-operator">
+      <h1>Review Board Admin Page</h1>
       <p>
          <a href="/scheduler">Scheduler Page</a>
       </p>
@@ -180,8 +181,8 @@
             <label>Room #: <input type="text" id="rooms-add-room" size="6"/></label>
             <label>BoardType:
                <select id="rooms-add-type">
-                  <option value="Final">Final</option>
-                  <option value="Project">Project</option>
+                  <option value="Final">Final Board</option>
+                  <option value="Project">Proposal Review</option>
                </select>
             </label>
             <button id="rooms-add">Add</button>
@@ -193,7 +194,12 @@
 
       <script>
          var UNIT_TYPES = ["Troop", "Post", "Crew", "Ship", "Pack"];
-         var BOARD_TYPES = ["Project", "Final"];
+         // A value->label map, not an array. Tabulator's list editor uses an
+         // array item as BOTH the stored value and the label, which would write
+         // "Proposal Review" into BoardType. As an object it stores the key and
+         // shows the label, so the data keeps saying "Project" / "Final" -- the
+         // values that key room assignments and the Project*/Final* timers.
+         var BOARD_TYPES = { Project: "Proposal Review", Final: "Final Board" };
          var STATUSES = ["Waiting", "InProgress", "Completed", "Postponed"];
          var RESULTS = ["Approved", "Adjourned", "NotApproved", "Postponed"];
          var ROLES = ["Chair", "Member", "Unavailable"];
@@ -208,13 +214,25 @@
             return col;
          }
 
+         // `values` is either an array (value doubles as the label) or a
+         // value->label map. With a map the editor dropdown shows labels while
+         // storing the key -- but the CELL would still render the raw stored
+         // value, so the grid would read "Project" under a dropdown offering
+         // "Proposal Review". The lookup formatter closes that gap, and the
+         // header filter is given the same map so it lists labels too.
          function selectCol(title, field, width, values) {
-            return {
+            var col = {
                title: title, field: field, width: width,
                editor: "list", editorParams: { values: values },
                headerFilter: "list",
                headerFilterParams: { valuesLookup: true, clearable: true }
             };
+            if (values && !Array.isArray(values)) {
+               col.formatter = "lookup";
+               col.formatterParams = values;
+               col.headerFilterParams = { values: values, clearable: true };
+            }
+            return col;
          }
 
          function roCol(title, field, width, extra) {

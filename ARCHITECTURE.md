@@ -1,6 +1,6 @@
 # Architecture
 
-A tour of how the Eagle Board Scheduler fits together, for someone about to
+A tour of how the Review Board Scheduler fits together, for someone about to
 change it. For *why* the code looks the way it does, read
 [PROVENANCE.md](PROVENANCE.md); for workflow rules, [CONTRIBUTING.md](CONTRIBUTING.md).
 

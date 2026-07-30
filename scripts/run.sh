@@ -1,5 +1,5 @@
 #!/bin/bash
-# Launch the Eagle Board Scheduler (rebuilt jar) with the same options the
+# Launch the Review Board Scheduler (rebuilt jar) with the same options the
 # legacy RunScheduler script used, minus the hardcoded API key.
 #
 # The SignUpGenius API key is read from the SUG_KEY environment variable,

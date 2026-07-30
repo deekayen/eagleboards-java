@@ -341,9 +341,15 @@ for p in $UI_PAGES; do
     esac
     uicount=$((uicount + 1))
 done
-curl -sf "http://127.0.0.1:$PORT_B/index.html" | grep -q "Welcome to the Eagle Board." || fail "index.html heading changed"
-curl -sf "http://127.0.0.1:$PORT_B/admin.html" | grep -qi "Eagle Board Admin Page" || fail "admin.html title changed"
-curl -sf "http://127.0.0.1:$PORT_B/scheduler.html" | grep -qi "Eagle Board Scheduler" || fail "scheduler.html heading changed"
+# Renamed from "Eagle Board" to "Review Board": Boards of Review are held for
+# every rank, so the product name no longer implies Eagle only. These headings
+# are pinned deliberately, so the rename is taught here rather than worked
+# around. The SignUpGenius title matcher in SignUpGeniusPlugin still looks for
+# "eagle" and "board" -- that matches what the district names the signup, not
+# this app, and must not follow the rebrand.
+curl -sf "http://127.0.0.1:$PORT_B/index.html" | grep -q "Welcome to Review Boards" || fail "index.html heading changed"
+curl -sf "http://127.0.0.1:$PORT_B/admin.html" | grep -qi "Review Board Admin Page" || fail "admin.html title changed"
+curl -sf "http://127.0.0.1:$PORT_B/scheduler.html" | grep -qi "Review Board Scheduler" || fail "scheduler.html heading changed"
 note "$uicount first-party UI files served clean"
 
 kill $PID_A $PID_B 2>/dev/null; wait 2>/dev/null

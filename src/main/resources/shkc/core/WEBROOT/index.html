@@ -4,33 +4,58 @@
       <link rel="stylesheet" type="text/css" href="scheduler.css"/>
       <script src="/eb-data.js"></script>
       <style>
+         /* Scouts BSA palette (BSA Brand Guidelines p.54) with the measured
+            WCAG 2.2 contrast for each pairing. eb-ui.css carries the shared
+            kiosk sizing; these are this page's own structural styles, stated
+            in brand colours rather than the greys they used to hardcode. */
          .signin-buttons { width: 800px; margin: 0 auto; display: flex; justify-content: space-between; padding: 20px 50px; box-sizing: border-box; }
          .signin-buttons input[type=button] {
-            width: 200px; height: 60px; border: 0;
-            background-position: center; background-repeat: no-repeat;
-            cursor: pointer;
+            width: 260px; height: 92px; cursor: pointer;
+            color: #ffffff; background-color: #243E2C;   /* Scouts BSA Olive, 11.66:1 */
+            border: 3px solid #243E2C; border-radius: 8px;
+            font-family: "Trebuchet MS", Tahoma, sans-serif; font-size: 26px; font-weight: bold;
          }
-         .reg-panels { width: 800px; margin: 10px auto 0 auto; display: flex; }
-         .reg-panel { flex: 1; margin: 0 5px; border: 1px solid #cecece; background: #fff; }
+         /* Scouting Red is the action colour (p.54); white on it is 5.63:1.
+            Never adjacent to olive -- those two measure 2.07:1 together. */
+         .signin-buttons input[name="Leader"] { background-color: #CE1126; border-color: #CE1126; }
+
+         .reg-panels { width: auto; max-width: 1100px; margin: 10px auto 0 auto; display: flex; }
+         .reg-panel { flex: 1; margin: 0 5px; border: 1px solid #b6b0a4; background: #fff; }
          .reg-panel-title {
-            padding: 6px 10px; background: #f4f4f4; border-bottom: 1px solid #cecece;
-            font-family: sans-serif; font-size: 13px; font-weight: bold; color: #555;
+            padding: 12px 16px; background: #243E2C;     /* olive band */
+            color: #E9E9E4;                              /* Scouting Light Tan on it, 9.58:1 */
+            font-family: "Trebuchet MS", Tahoma, sans-serif; font-size: 22px; font-weight: bold;
          }
-         .reg-panel-body { height: 268px; overflow-y: auto; }
-         .reg-panel table { width: 100%; border-collapse: collapse; font-family: sans-serif; font-size: 12px; color: #444; }
-         .reg-panel td { padding: 3px 6px; border-bottom: 1px solid #eee; text-align: left; white-space: nowrap; overflow: hidden; }
+         .reg-panel-body { height: 340px; overflow-y: auto; }
+         .reg-panel table {
+            width: 100%; border-collapse: collapse;
+            font-family: "Trebuchet MS", Tahoma, sans-serif; font-size: 19px;
+            color: #232528;                              /* Scouting Dark Gray, 15.37:1 */
+         }
+         .reg-panel td { padding: 17px 18px; border-bottom: 1px solid #e6e2da; text-align: left; white-space: nowrap; overflow: hidden; }
+         /* Zebra: Scouting Light Tan, a 1.22:1 tint against white -- NN/g's
+            "5-10% is enough" -- with Dark Gray on it still at 12.61:1. */
+         .reg-panel tr:nth-child(even) td { background: #E9E9E4; }
          .reg-panel td.c { text-align: center; }
       </style>
+      <!-- Relative, like scheduler.css above. "/eb-ui.css" resolves to
+           C:/eb-ui.css when this file is opened from disk, so the theme
+           silently would not load. -->
+      <link rel="stylesheet" type="text/css" href="eb-ui.css"/>
    </head>
-   <body>
+   <body class="eb-kiosk">
 
-      <h1>Welcome to the Eagle Board.</h1>
+      <h1>Welcome to Review Boards</h1>
       <h1><u>Please Sign In</u></h1>
 
       <div class="signin-buttons">
-         <input type="button" name="Scout" style="background-image: url('ScoutButton.png');"
+         <!-- Text labels rather than the ScoutButton/LeaderButton bitmaps: they
+              scale with the button, stay legible if an image fails to load, and
+              can be read by a screen reader. The PNGs remain in the jar (the
+              parity gate byte-compares them) but are no longer referenced. -->
+         <input type="button" name="Scout" value="I am a Scout"
                 onclick="window.location.href = '/scout_register';">
-         <input type="button" name="Leader" style="background-image: url('LeaderButton.png');"
+         <input type="button" name="Leader" value="I am a Leader"
                 onclick="window.location.href = '/adult_register';">
       </div>
 

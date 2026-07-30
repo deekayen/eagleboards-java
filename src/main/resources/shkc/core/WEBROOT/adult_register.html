@@ -1,98 +1,90 @@
 <!DOCTYPE html>
 <html>
    <head>
-      <title>Adult/Leader Sign-In</title>
+      <title>Adult Sign-In</title>
       <link rel="stylesheet" type="text/css" href="scheduler.css"/>
       <script src="/eb-data.js"></script>
-      <style>
-         .reg-wrap { width: 700px; margin: 20px auto 0 auto; font-family: sans-serif; }
-         .reg-wrap fieldset { border: 1px solid #cecece; border-radius: 3px; padding: 12px 16px; margin-bottom: 14px; background: #fff; }
-         .reg-wrap legend { font-size: 13px; color: #444; padding: 0 6px; }
-         .reg-cols { display: flex; }
-         .reg-col { flex: 1; }
-         .reg-row { margin: 7px 0; display: flex; align-items: center; }
-         .reg-row label { width: 110px; font-size: 12px; color: #444; text-align: right; padding-right: 8px; }
-         .reg-row input, .reg-row select { width: 180px; font-size: 12px; padding: 3px 4px; border: 1px solid #cecece; border-radius: 2px; box-sizing: content-box; }
-         .reg-buttons { display: flex; justify-content: space-around; padding: 8px 80px; }
-         .reg-buttons button { width: 120px; padding: 7px 0; font-size: 13px; font-weight: bold; cursor: pointer; }
-         #statusMsg { text-align: center; font-size: 13px; min-height: 18px; padding: 4px; }
-         #statusMsg.ok { color: #006600; font-weight: bold; }
-         #statusMsg.err { color: #cc0000; font-weight: bold; }
-      </style>
+      <!-- Form layout and type scale live in eb-ui.css, shared by both
+           registration pages so they cannot drift apart. The rules that were
+           here described the old two-column, right-aligned-label layout and a
+           fixed 640px width; all three are gone. -->
+      <link rel="stylesheet" type="text/css" href="eb-ui.css"/>
    </head>
-   <body style="background-color: #ffffff;">
+   <body class="eb-kiosk" style="background-color: #ffffff;">
       <div align="center" style="padding-top: 20px;">
-         <span class="page-header">Eagle Board</span><br/>
-         <span class="page-subheader" style="color: #cc0000;">Adult/Leader Sign-In</span>
+         <span class="page-header">Review Board</span><br/>
+         <span class="page-subheader">Adult Sign-In</span>
       </div>
 
+      <!-- Same single-column, top-label structure as the youth form; see the
+           note there for the research behind it. Only name and unit stay paired,
+           being the documented single-conceptual-unit exception. -->
       <div class="reg-wrap">
          <form id="regForm" autocomplete="off">
             <fieldset>
-               <legend><b>Adult/Leader Sign-In</b></legend>
-               <div class="reg-cols">
-                  <div class="reg-col">
-                     <div class="reg-row">
-                        <label for="Email">Email:</label>
-                        <input type="text" id="Email" name="Email" list="emailOptions" required
-                               title="Enter Email. If none, enter NONE.">
-                        <datalist id="emailOptions"></datalist>
-                     </div>
-                     <input type="hidden" name="ID" value="">
-                     <div class="reg-row">
-                        <label for="Last">Last:</label>
-                        <input type="text" id="Last" name="Last" required>
-                     </div>
-                     <div class="reg-row">
-                        <label for="First">First:</label>
-                        <input type="text" id="First" name="First" required>
-                     </div>
+               <legend>Adult registration</legend>
+
+               <div class="reg-field">
+                  <label for="Email">Email</label>
+                  <input type="text" id="Email" name="Email" list="emailOptions" required
+                         title="Enter Email. If none, enter NONE.">
+                  <datalist id="emailOptions"></datalist>
+               </div>
+               <input type="hidden" name="ID" value="">
+
+               <div class="reg-pair">
+                  <div class="reg-field">
+                     <label for="First">First name</label>
+                     <input type="text" id="First" name="First" required>
                   </div>
-                  <div class="reg-col">
-                     <div class="reg-row">
-                        <label for="Phone">Phone:</label>
-                        <input type="text" id="Phone" name="Phone" required>
-                     </div>
-                     <div class="reg-row">
-                        <label for="UnitType">Unit Type:</label>
-                        <select id="UnitType" name="UnitType" required>
-                           <option value="Troop">Troop</option>
-                           <option value="Post">Post</option>
-                           <option value="Crew">Crew</option>
-                           <option value="Ship">Ship</option>
-                           <option value="Pack">Pack</option>
-                        </select>
-                     </div>
-                     <div class="reg-row">
-                        <label for="Unit">Unit #:</label>
-                        <input type="text" id="Unit" name="Unit" required pattern="[0-9]+"
-                               title="Unit # must be a whole number.">
-                     </div>
+                  <div class="reg-field">
+                     <label for="Last">Last name</label>
+                     <input type="text" id="Last" name="Last" required>
                   </div>
                </div>
-               <fieldset>
-                  <legend>I can serve as:</legend>
-                  <div class="reg-cols">
-                     <div class="reg-col">
-                        <div class="reg-row">
-                           <label for="FinalBoard">Final Board:</label>
-                           <select id="FinalBoard" name="FinalBoard" required>
-                              <option value="Member">Member</option>
-                              <option value="Chair">Chair</option>
-                           </select>
-                        </div>
-                     </div>
-                     <div class="reg-col">
-                        <div class="reg-row">
-                           <label for="ProjectReview">Project Review:</label>
-                           <select id="ProjectReview" name="ProjectReview" required>
-                              <option value="Member">Member</option>
-                              <option value="Chair">Chair</option>
-                           </select>
-                        </div>
-                     </div>
+
+               <div class="reg-field">
+                  <label for="Phone">Phone</label>
+                  <input type="text" id="Phone" name="Phone" required>
+               </div>
+
+               <div class="reg-pair">
+                  <div class="reg-field reg-grow">
+                     <label for="UnitType">Unit type</label>
+                     <select id="UnitType" name="UnitType" required>
+                        <option value="Troop">Troop</option>
+                        <option value="Post">Post</option>
+                        <option value="Crew">Crew</option>
+                        <option value="Ship">Ship</option>
+                        <option value="Pack">Pack</option>
+                     </select>
                   </div>
-               </fieldset>
+                  <div class="reg-field reg-narrow">
+                     <label for="Unit">Unit #</label>
+                     <input type="text" id="Unit" name="Unit" required pattern="[0-9]+"
+                            title="Unit # must be a whole number.">
+                  </div>
+               </div>
+            </fieldset>
+
+            <fieldset>
+               <legend>I can serve as</legend>
+               <div class="reg-pair">
+                  <div class="reg-field">
+                     <label for="FinalBoard">Final Board</label>
+                     <select id="FinalBoard" name="FinalBoard" required>
+                        <option value="Member">Member</option>
+                        <option value="Chair">Chair</option>
+                     </select>
+                  </div>
+                  <div class="reg-field">
+                     <label for="ProjectReview">Proposal Review</label>
+                     <select id="ProjectReview" name="ProjectReview" required>
+                        <option value="Member">Member</option>
+                        <option value="Chair">Chair</option>
+                     </select>
+                  </div>
+               </div>
             </fieldset>
             <div id="statusMsg"></div>
             <div class="reg-buttons">
