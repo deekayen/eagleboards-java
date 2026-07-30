@@ -10,6 +10,28 @@
       <script src="/eb-data.js"></script>
 
       <style>
+         html, body { height: 100%; }
+         body {
+            margin: 0;
+            padding: 0 8px 8px 8px;
+            box-sizing: border-box;
+            /* Sized to the viewport so a whole tab fits without the page ever
+               scrolling; the grid scrolls inside its own panel instead. */
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+         }
+         /* Compact header. A default <h1> plus a paragraph spent roughly 160px
+            of height on two lines of text, which the grid needs more. */
+         body > h1 {
+            font-size: 20px;
+            margin: 8px 0 4px 0;
+         }
+         body > p {
+            margin: 0 0 6px 0;
+            font-size: 13px;
+         }
+         body > h1, body > p, .eb-tabbar { flex: 0 0 auto; }
          .eb-tabbar {
             display: flex;
             gap: 2px;
@@ -35,9 +57,16 @@
             border-top: none;
             background: #ffffff;
             padding: 6px;
+            box-sizing: border-box;
          }
+         /* The visible tab takes the rest of the viewport. min-height:0 is what
+            lets the grid inside it shrink instead of overflowing the page. */
          .eb-panel.active {
-            display: block;
+            display: flex;
+            flex-direction: column;
+            flex: 1 1 auto;
+            min-height: 0;
+            overflow: hidden;
          }
          .eb-toolbar {
             display: flex;
@@ -68,8 +97,13 @@
             font-size: 13px;
             padding: 2px 4px;
          }
+         .eb-panel .eb-toolbar { flex: 0 0 auto; }
+         /* Was a fixed 430px, which together with the header and toolbar ran off
+            the bottom of the screen. Tabulator is built with height: "100%", so
+            it fills whatever definite height flexbox hands this container. */
          .eb-grid {
-            height: 430px;
+            flex: 1 1 auto;
+            min-height: 0;
          }
       </style>
    </head>
@@ -571,6 +605,20 @@
             if (!document.hidden && grid && !grid.isEditing()) {
                grid.reloadQuiet();
             }
+         });
+
+         // The panel's height comes from flexbox now, so resizing the window
+         // changes the grid's height. Tabulator measures once at build time and
+         // has to be told to re-measure; debounced so a drag doesn't thrash.
+         var adminRedrawTimer = null;
+         window.addEventListener("resize", function () {
+            clearTimeout(adminRedrawTimer);
+            adminRedrawTimer = setTimeout(function () {
+               var grid = activeGrid();
+               if (grid && grid.table) {
+                  try { grid.table.redraw(true); } catch (e) { /* not built yet */ }
+               }
+            }, 150);
          });
       </script>
    </body>
