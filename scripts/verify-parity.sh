@@ -320,7 +320,9 @@ echo "== 5. first-party UI (rebuilt server only) =="
 # These pages were rewritten on Tabulator (dhtmlx removed); they have no
 # original-jar counterpart to diff against. Assert they serve, are free of
 # dhtmlx references, and kept the headings operators (and CI greps) rely on.
-UI_PAGES="/index.html /index_simple.html /admin.html /scheduler.html
+# index_simple.html was deleted: a second sign-in page with no lists, linked
+# from nowhere, that only duplicated index.html's purpose.
+UI_PAGES="/index.html /admin.html /scheduler.html
 /configure.html /scout_register.html /adult_register.html /eb-data.js
 /scheduler_config.js /scheduler_grid.js /scheduler_scout_grid.js
 /scheduler_adult_grid.js /scheduler_board_grid.js

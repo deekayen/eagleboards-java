@@ -196,7 +196,10 @@ SchedulerAdultGrid.prototype.sortChecked = function () {
 };
 
 SchedulerAdultGrid.prototype.checkRow = function (r_id) {
-   this.setChecked(r_id, true, false);
+   // Persist. Sel is a server column, and refresh() replaces the grid's data
+   // with whatever the server holds -- so a check that only existed locally
+   // silently vanished at the next poll, taking an auto-selected board with it.
+   this.setChecked(r_id, true, true);
    this.sortChecked();
 };
 
@@ -210,6 +213,12 @@ SchedulerAdultGrid.prototype.uncheckAll = function () {
    });
    if (patches.length > 0) {
       this.table.updateData(patches);
+      // Persist too, for the mirror-image reason: a local-only clear left Sel=1
+      // on the server, so the next poll resurrected every box the operator had
+      // just cleared. Clearing and checking have to agree on where truth lives.
+      patches.forEach(function (patch) {
+         ebSaveRow("/adult-update", "updated", patch.id, { Sel: "0" });
+      });
    }
 };
 

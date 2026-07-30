@@ -518,21 +518,34 @@
             var s_room = schedulerScoutGrid.getColumnValue(s_id, "Room");
             var s_status = schedulerScoutGrid.getColumnValue(s_id, "Status");
 
+            // Checked adults are the operator's work in progress: they have
+            // decided who is sitting this board. Clicking around the interface
+            // must not throw that away -- only the Adult panel's Clear button
+            // should. So when anything is already checked, leave the adult
+            // checkboxes and the room that goes with them completely alone.
+            var boardAlreadyChosen = schedulerLeaderGrid.getCheckedRowIds();
+
+            // Row highlight is not a selection of people; always safe to reset.
             schedulerLeaderGrid.clearSelection();
-            schedulerLeaderGrid.uncheckAll();
-            roomView.unselectAll();
             schedulerBoardGrid.clearSelection();
             schedulerScoutGrid.highlight();
+
+            if (boardAlreadyChosen) {
+               return;
+            }
+
+            schedulerLeaderGrid.uncheckAll();
+            roomView.unselectAll();
 
             if (s_status == "Seated") {
                SCHEDULER_selectAllForRoom(s_room);
             } else if (s_status == "InProgress") {
                SCHEDULER_selectAllForRoom(s_room);
-            } else if (s_status == "Registered") {
-
-            } else if (s_status == "Verified") {
-               schedulerLeaderGrid.uncheckAll();
-
+            } else if (s_status == "Registered" || s_status == "Verified") {
+               // Auto-select used to be reachable only from "Verified". Removing
+               // the Verify step left every scout "Registered", which orphaned
+               // this whole block -- clicking a scout cleared the adults and
+               // then offered nothing back. "Verified" stays for legacy records.
                var errors = [];
                var chair_arr = SCHEDULER_findBoardMembers(s_id, s_btype, ["Chair"], 1, []);
                if (chair_arr.length === 0) {
