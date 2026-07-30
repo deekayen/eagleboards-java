@@ -1,0 +1,127 @@
+name: release
+
+# Cut a release by bumping <version> in pom.xml and pushing a matching tag:
+#
+#   git commit -am "Release 2026.07.30"
+#   git tag v2026.07.30
+#   git push --follow-tags
+#
+# This builds the shaded jar, refuses to publish it if it carries a secret or
+# participant data, smoke tests the exact artifact, and attaches it to a GitHub
+# Release. Versions are CalVer (the release date); the inherited binary's date
+# is provenance, not a version -- see PROVENANCE.md.
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write        # create the release and upload the jar
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0     # need tag history for the changelog link
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: maven
+
+      - name: Tag must match the pom version
+        shell: bash
+        run: |
+          # Catches the easy mistake of tagging without bumping, which would
+          # publish v2026.08.27 containing a jar named ...-2026.07.30.jar.
+          TAG="${GITHUB_REF_NAME#v}"
+          POM=$(./mvnw -q -DforceStdout help:evaluate -Dexpression=project.version)
+          echo "tag=$TAG pom=$POM"
+          if [ "$TAG" != "$POM" ]; then
+            echo "FAIL: tag $GITHUB_REF_NAME does not match pom version $POM"
+            exit 1
+          fi
+
+      - name: Build
+        shell: bash
+        run: ./mvnw --batch-mode clean package
+
+      - name: Refuse to publish an artifact carrying secrets or participant data
+        shell: bash
+        env:
+          SUG_KEY: ${{ secrets.SUG_KEY }}
+        run: |
+          set -e
+          JAR=$(ls target/eagleboardscheduler-*.jar | grep -v original- | head -1)
+          PATTERN='signup_genius_api\.js|Master_AdultHistory|LOGIN_INFO|\.env$|\.csv$'
+
+          # Structural: files that have historically carried a key or personal
+          # information must not be in the artifact at all. signup_genius_api.js
+          # is the one that embedded a live key in the original binary.
+          if jar tf "$JAR" | grep -qE "$PATTERN"; then
+            echo "FAIL: artifact contains a key-bearing or data file:"
+            jar tf "$JAR" | grep -E "$PATTERN"
+            exit 1
+          fi
+          echo "ok: no key-bearing or data files in the artifact"
+
+          # Content: the live key must not appear anywhere inside the jar. Never
+          # echoed -- grep -q only, and GitHub masks the secret in logs anyway.
+          if [ -n "$SUG_KEY" ]; then
+            mkdir -p .scan && (cd .scan && jar xf "../$JAR")
+            if grep -rqF "$SUG_KEY" .scan; then
+              echo "FAIL: the SignUpGenius key appears inside the release artifact"
+              exit 1
+            fi
+            rm -rf .scan
+            echo "ok: SignUpGenius key absent from the artifact"
+          else
+            echo "note: SUG_KEY secret unavailable; structural checks ran, content scan skipped"
+          fi
+
+      - name: Smoke test the exact artifact being published
+        shell: bash
+        run: |
+          # A tag can be pushed from any commit, so do not assume main's CI
+          # covered this one. Header-only data, and no SignUpGenius key.
+          JAR=$(ls target/eagleboardscheduler-*.jar | grep -v original- | head -1)
+          echo 'Type,ID,Last,First,Email,Phone,UnitType,Unit,UnitName,ProjectReview,FinalBoard,RegTime,Room,Flags,Sel,BoardHistory' > ReleaseAdults.csv
+          java -jar "$JAR" -a ReleaseAdults.csv -c config.properties -port 18097 -d releaserun > server.log 2>&1 &
+          SRV=$!
+          for i in $(seq 1 30); do
+            curl -sf -o /dev/null http://127.0.0.1:18097/index.html && break
+            sleep 1
+            if [ "$i" = 30 ]; then echo "server never became ready"; cat server.log; exit 1; fi
+          done
+          set -e
+          curl -sf http://127.0.0.1:18097/index.html   | grep -q  "Welcome to the Eagle Board."
+          curl -sf http://127.0.0.1:18097/admin.html   | grep -qi "Eagle Board Admin Page"
+          curl -sf http://127.0.0.1:18097/scheduler.html | grep -qi "Eagle Board Scheduler"
+          curl -sf -o /dev/null http://127.0.0.1:18097/scout-cells
+          kill $SRV
+          echo "release artifact serves correctly"
+
+      - name: Publish the release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          JAR=$(ls target/eagleboardscheduler-*.jar | grep -v original- | head -1)
+          PREV=$(git describe --tags --abbrev=0 "${GITHUB_REF_NAME}^" 2>/dev/null || true)
+          {
+            echo "Download the jar below and run it with Java 21 or newer. See the README"
+            echo "for the command line, and CONTRIBUTING.md for building from source."
+            echo
+            echo "The SignUpGenius API key is **not** in this artifact and is never published."
+            echo 'Supply it at runtime with `-sugkey`, or via an untracked `.env` file. This'
+            echo "release build fails if a key or any participant data is found inside the jar."
+            if [ -n "$PREV" ]; then
+              echo
+              echo "**Full changelog:** https://github.com/${GITHUB_REPOSITORY}/compare/${PREV}...${GITHUB_REF_NAME}"
+            fi
+          } > release-notes.md
+          gh release create "$GITHUB_REF_NAME" "$JAR" \
+            --title "$GITHUB_REF_NAME" \
+            --notes-file release-notes.md

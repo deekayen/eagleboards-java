@@ -174,6 +174,36 @@ are about to publish something you cannot unpublish. See
 - When you fix a crash, add a regression assertion to the CI smoke test — there
   are existing examples guarding past bugs.
 
+## Cutting a release
+
+Versions are **CalVer** — the release date. That keeps them distinct from the
+inherited binary's date, which is provenance rather than a version.
+
+```sh
+# 1. bump <version> in pom.xml to today, e.g. 2026.08.27
+# 2. commit, tag to match, push both
+git commit -am "Release 2026.08.27"
+git tag v2026.08.27
+git push --follow-tags
+```
+
+Pushing the tag runs `.github/workflows/release.yml`, which builds the shaded
+jar, refuses to publish if the artifact carries a secret or participant data,
+smoke tests that exact jar, and attaches it to a GitHub Release.
+
+The tag must match the pom version or the workflow fails — that check exists so
+a release named `v2026.08.27` can never ship a jar named `...-2026.07.30.jar`.
+
+**The SignUpGenius key is never published.** It is not in the jar (it is passed
+at runtime via `-sugkey`), and the release build fails if it finds the key or
+any data file inside the artifact. Do not attach CSVs, spreadsheets, or logs to
+a release.
+
+We publish **Release assets, not GitHub Packages**. This is an end-user
+application rather than a library, and the Maven registry would make every
+downloader configure an authenticated `settings.xml` — poor for a volunteer
+setting up a Raspberry Pi.
+
 ## Where to ask
 
 Open a GitHub issue. Follow-up work and design decisions are tracked there.
