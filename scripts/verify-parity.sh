@@ -198,7 +198,40 @@ note "both servers up (:$PORT_A original, :$PORT_B rebuilt)"
 # (stripping it from the original's responses makes them comparable to the
 # de-branded rebuild; any other divergence on those pages still fails).
 # LC_ALL=C so sed survives binary bodies (PNGs) — they still diff byte-wise.
-norm() { LC_ALL=C sed -E 's/[0-9]{4}-[0-9]{2}-[0-9]{2}_[0-9]{2}:[0-9]{2}(-[0-9]{4})?/TIMESTAMP/g; s/Etowah District:? //g'; }
+# Normalizations applied to every compared response:
+#   TIMESTAMP        wall-clock stamps
+#   district name    de-branding
+#   unit type cells  UnitName widened from the original's first-letter form
+#                    ("T9999") to the whole word ("Troop9999"), because the
+#                    abbreviation collided -- Pack/Post both gave "P", and the
+#                    new District/Council/Community options would have put
+#                    Council, Community and Crew all on "C". Collapsing the
+#                    known unit types back to their initial is applied to BOTH
+#                    sides, so the unit number stays compared. It also folds
+#                    the separate UnitType cell (<cell>Troop</cell>) to
+#                    <cell>T</cell> on both sides, which is harmless: it is
+#                    symmetric, and the full value is still compared in the
+#                    CSV files by csvnorm.
+norm() {
+    LC_ALL=C sed -E '
+        s/[0-9]{4}-[0-9]{2}-[0-9]{2}_[0-9]{2}:[0-9]{2}(-[0-9]{4})?/TIMESTAMP/g
+        s/Etowah District:? //g
+        s#<cell>Troop([0-9]*)</cell>#<cell>T\1</cell>#g
+        s#<cell>Post([0-9]*)</cell>#<cell>P\1</cell>#g
+        s#<cell>Crew([0-9]*)</cell>#<cell>C\1</cell>#g
+        s#<cell>Ship([0-9]*)</cell>#<cell>S\1</cell>#g
+        s#<cell>Pack([0-9]*)</cell>#<cell>P\1</cell>#g
+        s#<cell>District([0-9]*)</cell>#<cell>D\1</cell>#g
+        s#<cell>Council([0-9]*)</cell>#<cell>C\1</cell>#g
+        s#<cell>Community([0-9]*)</cell>#<cell>C\1</cell>#g
+    '
+}
+# NOTE: the list above must cover every unit type that appears in the data,
+# not only the ones the sign-in form offers. If this section starts failing
+# after a unit type is added, check the adult history for a value the list
+# does not know. csvnorm() needs no such list -- it takes the leading
+# alphabetic run whatever it is -- so prefer extending this list rather than
+# skipping the column.
 
 req() { # method path [data] -> normalized "status + body" from one server
     local port=$1 method=$2 path=$3 data=${4:-}
@@ -264,27 +297,58 @@ compare POST /seat-board   "RoomID=1&ScoutID=BOGUS&ChairID=B&MemberIDs=C"
 compare POST /room-change  "RmID1=&RmID2="
 note "write/error endpoints compared"
 
-# Drop the intentionally-removed AdultScoutRatio column (by header name) from
-# a CSV before comparing, so the original's scout files (which still carry it)
-# compare cleanly against the rebuilt's (which no longer do). No-op on files
-# without that column. Naive comma split is safe: the fields written during a
-# parity run contain no embedded commas.
-dropcol() {
-    python3 -c '
-import sys
-lines = sys.stdin.read().splitlines()
-if lines and "AdultScoutRatio" in lines[0].split(","):
-    idx = lines[0].split(",").index("AdultScoutRatio")
-    lines = [",".join([p for i, p in enumerate(ln.split(",")) if i != idx]) for ln in lines]
-print("\n".join(lines))
-'
+# Normalize a data CSV before comparing, for the two columns that differ from
+# the original on purpose. No-op on files that have neither. Naive comma split
+# is safe: the fields written during a parity run contain no embedded commas.
+#
+#   AdultScoutRatio  dropped by header name -- the rebuilt no longer tracks it,
+#                    so the original's scout files still carry the column.
+#   UnitName         shortened back to the original's form. The original wrote
+#                    only the FIRST LETTER of the unit type, so Pack 12 and
+#                    Post 12 both came out "P12"; adding District, Council and
+#                    Community made that worse, since Council, Community and
+#                    Crew would all have collided on "C". The rebuilt writes
+#                    the whole word ("Troop9999"); this maps it back to "T9999"
+#                    so the unit number and the type's initial are still
+#                    compared rather than the column being skipped.
+#
+# awk, not python3. On Windows/MSYS2 `python3` resolves to the Microsoft Store
+# app-execution-alias stub, which prints a notice, exits 0 and writes NOTHING
+# to stdout -- which silently reduced BOTH sides of every file diff to empty
+# and made this entire section pass without comparing anything.
+csvnorm() {
+    awk -F, -v OFS=, '
+    NR == 1 {
+        for (i = 1; i <= NF; i++) {
+            if ($i == "AdultScoutRatio") drop = i
+            if ($i == "UnitName")        un   = i
+        }
+    }
+    {
+        if (un > 0 && NR > 1 && $un != "") {
+            head = $un
+            sub(/[^A-Za-z].*$/, "", head)          # leading alphabetic run
+            if (length(head) > 0) {
+                $un = substr(head, 1, 1) substr($un, length(head) + 1)
+            }
+        }
+        if (drop > 0) {
+            s = ""
+            for (i = 1; i <= NF; i++) if (i != drop) s = (s == "" ? $i : s OFS $i)
+            print s
+        } else {
+            $1 = $1
+            print
+        }
+    }
+    '
 }
 
 echo "== 3a. resulting data files =="
 sleep 1
 for f in $(cd parity/A && find testrun -type f 2>/dev/null; echo Master_AdultHistory.csv); do
     if [ ! -f "parity/B/$f" ]; then fail "file missing on rebuilt side: $f"; continue; fi
-    if ! diff <(dropcol <"parity/A/$f" | norm) <(dropcol <"parity/B/$f" | norm) >"$WORK/fdiff" 2>&1; then
+    if ! diff <(csvnorm <"parity/A/$f" | norm) <(csvnorm <"parity/B/$f" | norm) >"$WORK/fdiff" 2>&1; then
         fail "data file differs: $f"; sed 's/^/      /' "$WORK/fdiff" | head -8
     fi
 done

@@ -1,49 +1,26 @@
 <!DOCTYPE html>
 <html>
    <head>
+      <title>Review Board Sign-In</title>
+      <meta charset="UTF-8">
+      <!-- Without this a phone or tablet lays the page out at a notional
+           980px and then scales the result down, so nothing below responds to
+           the real screen no matter what the CSS says. -->
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
       <link rel="stylesheet" type="text/css" href="scheduler.css"/>
       <script src="/eb-data.js"></script>
-      <style>
-         /* Scouts BSA palette (BSA Brand Guidelines p.54) with the measured
-            WCAG 2.2 contrast for each pairing. eb-ui.css carries the shared
-            kiosk sizing; these are this page's own structural styles, stated
-            in brand colours rather than the greys they used to hardcode. */
-         .signin-buttons { width: 800px; margin: 0 auto; display: flex; justify-content: space-between; padding: 20px 50px; box-sizing: border-box; }
-         .signin-buttons input[type=button] {
-            width: 260px; height: 92px; cursor: pointer;
-            color: #ffffff; background-color: #243E2C;   /* Scouts BSA Olive, 11.66:1 */
-            border: 3px solid #243E2C; border-radius: 8px;
-            font-family: "Trebuchet MS", Tahoma, sans-serif; font-size: 26px; font-weight: bold;
-         }
-         /* Scouting Red is the action colour (p.54); white on it is 5.63:1.
-            Never adjacent to olive -- those two measure 2.07:1 together. */
-         .signin-buttons input[name="Leader"] { background-color: #CE1126; border-color: #CE1126; }
-
-         .reg-panels { width: auto; max-width: 1100px; margin: 10px auto 0 auto; display: flex; }
-         .reg-panel { flex: 1; margin: 0 5px; border: 1px solid #b6b0a4; background: #fff; }
-         .reg-panel-title {
-            padding: 12px 16px; background: #243E2C;     /* olive band */
-            color: #E9E9E4;                              /* Scouting Light Tan on it, 9.58:1 */
-            font-family: "Trebuchet MS", Tahoma, sans-serif; font-size: 22px; font-weight: bold;
-         }
-         .reg-panel-body { height: 340px; overflow-y: auto; }
-         .reg-panel table {
-            width: 100%; border-collapse: collapse;
-            font-family: "Trebuchet MS", Tahoma, sans-serif; font-size: 19px;
-            color: #232528;                              /* Scouting Dark Gray, 15.37:1 */
-         }
-         .reg-panel td { padding: 17px 18px; border-bottom: 1px solid #e6e2da; text-align: left; white-space: nowrap; overflow: hidden; }
-         /* Zebra: Scouting Light Tan, a 1.22:1 tint against white -- NN/g's
-            "5-10% is enough" -- with Dark Gray on it still at 12.61:1. */
-         .reg-panel tr:nth-child(even) td { background: #E9E9E4; }
-         .reg-panel td.c { text-align: center; }
-      </style>
       <!-- Relative, like scheduler.css above. "/eb-ui.css" resolves to
            C:/eb-ui.css when this file is opened from disk, so the theme
-           silently would not load. -->
+           silently would not load.
+
+           This page used to carry its own <style> block restating the sign-in
+           button and panel rules at fixed pixel widths, which is what made it
+           read as a second, desktop-only design sitting on top of the shared
+           one. There is now a single definition, in eb-ui.css, and it is
+           sized by the viewport. -->
       <link rel="stylesheet" type="text/css" href="eb-ui.css"/>
    </head>
-   <body class="eb-kiosk">
+   <body class="eb-public">
 
       <h1>Welcome to Review Boards</h1>
       <h1><u>Please Sign In</u></h1>
@@ -52,16 +29,23 @@
          <!-- Text labels rather than the ScoutButton/LeaderButton bitmaps: they
               scale with the button, stay legible if an image fails to load, and
               can be read by a screen reader. The PNGs remain in the jar (the
-              parity gate byte-compares them) but are no longer referenced. -->
-         <input type="button" name="Scout" value="I am a Scout"
+              parity gate byte-compares them) but are no longer referenced.
+
+              The name attributes say Youth and Adult to match the labels. They
+              were Scout and Leader, and "Leader" in particular was doing double
+              duty -- scout_register.html has an unrelated Leader field for the
+              candidate's unit leader, so a stylesheet reaching for
+              input[name="Leader"] had to be scoped carefully to avoid it. The
+              routes below are server endpoints and keep their own names. -->
+         <input type="button" name="Youth" value="I am a Youth"
                 onclick="window.location.href = '/scout_register';">
-         <input type="button" name="Leader" value="I am a Leader"
+         <input type="button" name="Adult" value="I am 21+"
                 onclick="window.location.href = '/adult_register';">
       </div>
 
       <div class="reg-panels">
          <div class="reg-panel">
-            <div class="reg-panel-title">Registered Scouts</div>
+            <div class="reg-panel-title">Registered Youth</div>
             <div class="reg-panel-body" id="scoutPanel"><table><tbody id="scoutRows"></tbody></table></div>
          </div>
          <div class="reg-panel">

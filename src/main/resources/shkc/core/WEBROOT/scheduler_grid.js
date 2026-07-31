@@ -10,6 +10,27 @@
 //   colnames     : array of server column names to request via cols=
 // ------------------------------------------------------------------------
 
+// Display form of UnitName for the scheduler's Unit columns. DISPLAY ONLY --
+// the stored value and every CSV export keep the whole word, because the CSV
+// is generated server-side and a Tabulator formatter cannot reach it.
+//
+// A numbered unit collapses to its initial and number, "Troop2" -> "T2": the
+// number is what identifies it, the type is obvious in context, and the column
+// is 70px on a screen showing four grids at once.
+//
+// A unit type with NO number keeps the whole word. Abbreviating those is
+// exactly the ambiguity the stored value was widened to fix -- "District"
+// would become "D", and "Council" and "Community" would both become "C".
+// A unit type with an empty number ("Troop" with no unit, which exists in the
+// history) also falls through to the whole word rather than a bare "T".
+function ebUnitLabel(value) {
+   if (!value) {
+      return "";
+   }
+   var numbered = /^([A-Za-z])[A-Za-z]*([0-9]+)$/.exec(value);
+   return numbered ? numbered[1] + numbered[2] : value;
+}
+
 function SchedulerGrid(container_id, title, url, columns, colnames) {
    if (!container_id) {
       return; // prototype-chain construction

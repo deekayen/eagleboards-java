@@ -1,5 +1,5 @@
 // ------------------------------------------------------------------------
-// scheduler_scout_grid.js — Scouts/Candidates panel (Tabulator).
+// scheduler_scout_grid.js — Youth panel (Tabulator).
 //
 // Columns:  # (RegNum), T (MinsSinceLastUpdate),
 //           Last, First, Unit, F/P (BoardType), RM# (Room), Status, Leader
@@ -18,7 +18,12 @@ function SchedulerScoutGrid(container_id, toolbar_id, title) {
          { title: "T", field: "MinsSinceLastUpdate", width: 44, sorter: "number" },
          { title: "Last", field: "Last", width: 90, headerFilter: "input" },
          { title: "First", field: "First", width: 90, headerFilter: "input" },
-         { title: "Unit", field: "UnitName", width: 70, headerFilter: "list", headerFilterParams: { valuesLookup: true, clearable: true } },
+         // ebUnitLabel shortens numbered units for display only; see
+         // scheduler_grid.js. The filter dropdown still lists the stored whole
+         // words, which is what makes "Council" and "Community" tellable apart
+         // when picking one.
+         { title: "Unit", field: "UnitName", width: 70, formatter: function (cell) { return ebUnitLabel(cell.getValue()); },
+           headerFilter: "list", headerFilterParams: { valuesLookup: true, clearable: true } },
          { title: "F/P", field: "BoardType", width: 70, headerFilter: "list", headerFilterParams: { valuesLookup: true, clearable: true } },
          { title: "RM#", field: "Room", width: 64, headerFilter: "list", headerFilterParams: { valuesLookup: true, clearable: true } },
          { title: "Status", field: "Status", width: 100, sorter: sort_status, headerFilter: "list", headerFilterParams: { valuesLookup: true, clearable: true } },

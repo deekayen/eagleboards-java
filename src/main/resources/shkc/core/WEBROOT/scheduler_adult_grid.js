@@ -16,7 +16,12 @@ function SchedulerAdultGrid(container_id, toolbar_id, title) {
    SchedulerGrid.call(this, container_id, title, "/adult-cells",
       [
          {
-            title: "@", field: "Sel", width: 40, hozAlign: "center",
+            // 46, not 40: the heading plus the sort arrow needs 43px, so at
+            // 40 the "@" itself was being ellipsised. Every other truncated
+            // heading on this page was fixed by reclaiming the arrow's
+            // over-reserved padding in eb-ui.css; this column was the one
+            // case genuinely too narrow for its own title.
+            title: "@", field: "Sel", width: 46, hozAlign: "center",
             sorter: "string", headerSort: true,
             formatter: function (cell) {
                var checked = cell.getValue() == "1";
@@ -43,7 +48,9 @@ function SchedulerAdultGrid(container_id, toolbar_id, title) {
          },
          { title: "Last", field: "Last", width: 90, headerFilter: "input" },
          { title: "First", field: "First", width: 90, headerFilter: "input" },
-         { title: "Unit", field: "UnitName", width: 70, headerFilter: "list", headerFilterParams: { valuesLookup: true, clearable: true } },
+         // Display-only shortening; see scheduler_grid.js.
+         { title: "Unit", field: "UnitName", width: 70, formatter: function (cell) { return ebUnitLabel(cell.getValue()); },
+           headerFilter: "list", headerFilterParams: { valuesLookup: true, clearable: true } },
          { title: "RM#", field: "Room", width: 60, headerFilter: "list", headerFilterParams: { valuesLookup: true, clearable: true } },
          { title: "Final", field: "FinalBoard", width: 90, headerFilter: "list", headerFilterParams: { valuesLookup: true, clearable: true } },
          { title: "Project", field: "ProjectReview", widthGrow: 1, headerFilter: "list", headerFilterParams: { valuesLookup: true, clearable: true } }

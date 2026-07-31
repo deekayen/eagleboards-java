@@ -156,10 +156,17 @@ without reading every label:
 
 | Colour | Meaning | Examples |
 | --- | --- | --- |
-| **Olive** `#243E2C` | primary or additive | Refresh, Seat, Complete, + Room |
-| **White** | navigate or view | Settings, Admin, Login, Help, View, CSV |
+| **Olive** `#243E2C` | the action proceeds, nothing is lost | Refresh, Seat, Complete, + Room, Change Room |
+| **White** | navigate or view, no data changes | Settings, Admin, Login, Help, View, CSV |
 | **Red** `#CE1126` | destructive, reversing, cancelling | − Room, Reset, Postpone, Clear (adults), Delete |
-| **Blue** `#003F87` | a neutral change | Change Room |
+
+Three intents, which is where Carbon, Material and USWDS all land (primary /
+secondary / danger). Blue was briefly a fourth, "a neutral change", holding one
+button — Change Room. It was retired when **Scouting Blue `#003F87` became the
+heading-band colour** above every grid: a hue that means both a surface and an
+action stops telling you what a button does. Change Room is olive now, and the
+room row reads correctly — + Room and Change Room leave the schedule intact,
+− Room is the one that takes something away.
 
 Pick by **meaning, not by label**. The two buttons named "Clear" are deliberately
 different colours: the Adult panel's unchecks people and is red, while the room
@@ -172,9 +179,18 @@ Two hard constraints when adding a colour:
   white-on-olive 11.66:1, white-on-red 5.63:1, white-on-blue 10.19:1. Three brand
   colours cannot carry text on white at all — Pale Gray 3.61, Dark Tan 2.66, Pale
   Blue 2.15 — they are background-only.
-- **Never put Scouting Red on Scouts BSA Olive.** They measure 2.07:1 against
-  each other; both look strong on white but their luminances are nearly
-  identical. Red belongs on white or tan.
+- **Olive, red and blue are mutually non-adjacent.** All three are dark and sit
+  within a whisker of each other in luminance: red/olive 2.07:1, blue/red
+  1.81:1, blue/olive 1.14:1. Each goes on white, tan or light tan — never
+  directly against another.
+
+If you need a *fourth* signal, note that the palette has no clean one left, and
+say why in the PR. Cub Scouting Gold `#FDC116` belongs to Cub Scouting (p.55),
+Scouting Dark Blue `#003366` is a derived shade of the band blue and reads as the
+same signal, Scouting Tan is 1.28:1 against the Light Tan toolbar and disappears
+into it, Scouting Pale Gray fails contrast, and Warm Gray `#515354` is already
+the disabled colour — using it for an available action puts "you can't do this"
+and "do this" in one hue.
 
 ## Never commit data or secrets
 

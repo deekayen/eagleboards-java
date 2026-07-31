@@ -2,6 +2,11 @@
 <html>
    <head>
       <title>Youth Sign-In</title>
+      <meta charset="UTF-8">
+      <!-- See index.html: without this the page is laid out at a notional
+           980px on a phone and then scaled down, and the CSS below never sees
+           the real screen width. -->
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
       <link rel="stylesheet" type="text/css" href="scheduler.css"/>
       <script src="/eb-data.js"></script>
       <!-- Form layout and type scale live in eb-ui.css, shared by both
@@ -10,9 +15,11 @@
            fixed 640px width; all three are gone. -->
       <link rel="stylesheet" type="text/css" href="eb-ui.css"/>
    </head>
-   <body class="eb-kiosk" style="background-color: #ffffff;">
-      <div align="center" style="padding-top: 20px;">
-         <span class="page-header">Review Board</span><br/>
+   <body class="eb-public" style="background-color: #ffffff;">
+      <!-- Class rather than an inline padding-top, so the stylesheet can
+           compress this block on a short screen instead of being outranked
+           by the inline style. -->
+      <div class="reg-head">
          <span class="page-subheader">Youth Sign-In</span>
       </div>
 
@@ -31,7 +38,14 @@
 
                <div class="reg-field">
                   <label for="Email">Email</label>
+                  <!-- Deliberately type="text", not type="email": the title
+                       below documents NONE as a legal value, and type="email"
+                       would reject it. inputmode still gets the @ keyboard on
+                       a tablet, and turning off autocapitalise/spellcheck
+                       stops a touch keyboard offering "Bob@" or underlining
+                       the address in red. -->
                   <input type="text" id="Email" name="Email" list="emailOptions" required
+                         inputmode="email" autocapitalize="off" autocorrect="off" spellcheck="false"
                          title="Enter Email. If none, enter NONE.">
                   <datalist id="emailOptions"></datalist>
                </div>
@@ -51,10 +65,23 @@
                <div class="reg-pair">
                   <div class="reg-field">
                      <label for="Phone">Phone</label>
-                     <input type="text" id="Phone" name="Phone" required>
+                     <!-- type=tel raises the phone keypad instead of the full
+                          keyboard. It intentionally does not constrain what
+                          may be typed: 555-1234, (555) 1234 and 5551234 are
+                          all accepted, because a rejected phone number at a
+                          check-in table costs more than an inconsistent one. -->
+                     <input type="tel" id="Phone" name="Phone" required inputmode="tel">
                   </div>
                   <div class="reg-field">
                      <label for="DOB">Birthdate</label>
+                     <!-- Left as free text on purpose. type="date" would force
+                          the browser's ISO value format on a column that no
+                          Java code parses -- DOB is stored, listed and
+                          exported as an opaque string -- so it would silently
+                          change the shape of the data next to every record
+                          already on file. A picker is also the wrong control
+                          for a birth year 15+ years back: it opens on the
+                          current month and has to be paged. -->
                      <input type="text" id="DOB" name="DOB" required>
                   </div>
                </div>

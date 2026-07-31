@@ -13,7 +13,9 @@ function SchedulerBoardGrid(container_id, title) {
          { title: "#", field: "RegNum", width: 50, sorter: "number", headerFilter: "input" },
          { title: "Last", field: "Last", width: 90, headerFilter: "input" },
          { title: "First", field: "First", width: 90, headerFilter: "input" },
-         { title: "Unit", field: "UnitName", width: 70, headerFilter: "list", headerFilterParams: { valuesLookup: true, clearable: true } },
+         // Display-only shortening; see scheduler_grid.js.
+         { title: "Unit", field: "UnitName", width: 70, formatter: function (cell) { return ebUnitLabel(cell.getValue()); },
+           headerFilter: "list", headerFilterParams: { valuesLookup: true, clearable: true } },
          { title: "Leader", field: "Leader", width: 100, headerFilter: "input" },
          { title: "Board", field: "BoardType", width: 70, headerFilter: "input" },
          { title: "Status", field: "Status", width: 90, sorter: sort_status, headerFilter: "list", headerFilterParams: { valuesLookup: true, clearable: true } },
