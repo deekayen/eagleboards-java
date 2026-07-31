@@ -26,7 +26,14 @@ was not deliberately changed.
 | Maven | none | use the bundled wrapper `./mvnw` (`mvnw.cmd` on Windows) |
 | Git | any recent | |
 
-To run the parity gate you also need `bash`, `unzip`, `curl`, and **`python3`**.
+To run the parity gate you also need `bash`, `unzip`, `curl`, `awk`, `diff` and
+`cmp` — all of which ship with macOS, Linux, and Git for Windows. It needs no
+Python. To confirm a machine has everything before you go looking for the
+inherited jar:
+
+```sh
+scripts/verify-parity.sh --check
+```
 
 ### Supported platforms
 
@@ -35,6 +42,12 @@ CI builds and runs a smoke test on every push and pull request across:
 - **Linux amd64** (`ubuntu-latest`)
 - **Windows amd64** (`windows-latest`)
 - **Linux arm64** (`ubuntu-24.04-arm`) — the Raspberry Pi deployment target
+
+**macOS** is a supported development platform — the build, the app, and the
+full parity gate all run there — but it is deliberately not a CI leg: macOS
+runners bill at 10× the minute rate on a private repository, and they would
+prove nothing the two Linux legs and the Windows leg do not already prove.
+Run `scripts/verify-parity.sh` locally on a Mac instead.
 
 The app runs anywhere with a JDK 21+. In practice it is deployed on a Windows
 admin laptop or a Raspberry Pi at the event venue. The optional Swing popup
@@ -91,7 +104,14 @@ scripts/verify-parity.sh
 **Keep it passing.** It needs `original/EagleBoardScheduler_20190618.jar`, which
 is not in the repository — it embeds an API key. Ask the maintainer for it; it
 is authenticated by the SHA-256 in [PROVENANCE.md](PROVENANCE.md). Drop it at
-that path (`original/` is gitignored) and the script will find it.
+that path (`original/` is gitignored) and the script will find it. If it is
+missing the script says so and stops; it never reports a pass it did not earn.
+
+`Master_AdultHistory.csv` is optional. When the repo root has one, both servers
+run on it; when it does not, the script generates a **synthetic header-only**
+one into the sandbox and says so. Both sides get the identical file either way,
+so the comparison stays honest — the adult lists just compare empty. Never copy
+live event data in just to make the gate look busier.
 
 What it checks:
 
@@ -109,16 +129,36 @@ with a comment saying why. There are worked examples in the script: the Jetty
 removed Verify step (`REMOVED_FEATURE`), the config schema change, and
 `help.html` leaving the byte-compared lists once its instructions were rewritten.
 
-### Running it on Windows
+### Running it off Linux
 
-Two gotchas, both of which fail *silently* or misleadingly:
+The gate runs on macOS and on Git-for-Windows as well as Linux, and the script
+is written to the portable spelling of every tool it uses. The theme of the
+bugs found here is that **a portability problem in this script does not look
+like a failure — it looks like a pass**, because a tool that quietly produces
+nothing empties out *both* sides of a comparison. Keep that in mind before
+"simplifying" any of it:
 
 - The MSYS2 / Git-for-Windows `unzip` is built with `WILD_STOP_AT_DIR`, so `*`
   does not cross `/`. The script uses `shkc/**` for this reason. If you "fix"
   that back to `shkc/*` the extraction quietly produces **zero files** and the
-  gate reports a cheerful pass having compared two empty trees.
-- `python3` and `python` on a stock Windows box are Microsoft Store alias stubs,
-  not Python. Install real Python and make sure `python3` resolves.
+  gate reports a cheerful pass having compared two empty trees. There are now
+  two guards against this: a floor on the class count, and a check that the
+  number of files extracted equals the number the jar says it holds.
+- **No Python.** The two normalizers are `awk`. A stock Windows box resolves
+  `python3` to a Microsoft Store alias stub and a stock macOS has no `python3`
+  at all (`/usr/bin/python3` is a shim that fails with an Xcode-tools notice);
+  both write nothing to stdout and exit, which used to blank both logs and pass
+  section 4 without comparing it. Do not reintroduce a Python dependency.
+- **BSD vs GNU tools** (macOS): `mktemp -d` needs an explicit template, `\+` is
+  not a repetition operator in BSD `sed` (use `sed -E` and `+`), and `wc -l`
+  pads its output with spaces. Binary bodies are compared with `cmp`, not piped
+  through `sed`, because BSD `sed` is not dependable on data containing NULs.
+- **Case-insensitive filesystems** are the default on macOS and Windows. Two
+  jar entries differing only in case would overwrite each other on extraction
+  and shrink what gets compared; the extracted-vs-listed count catches that.
+- macOS may ask whether `java` should accept incoming network connections the
+  first time the servers start. Both servers are reached over loopback, so the
+  gate works either way — allowing or denying it does not change the result.
 
 ## House style
 

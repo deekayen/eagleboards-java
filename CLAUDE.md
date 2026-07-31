@@ -31,6 +31,11 @@ original source was received) and then modernized. See `PROVENANCE.md`.
   intentionally changed (class signatures, served bytes, endpoint responses,
   data files written, startup logs). The owner cannot review Java, so this
   mechanical check — not code review — is the acceptance gate.
+  `scripts/verify-parity.sh --check` runs just the preflight (tools + inputs),
+  which is how you qualify a new machine. It runs on Linux, macOS and Git-for-
+  Windows; it needs `bash unzip curl awk diff cmp` and a JDK, and **no Python**
+  — see CONTRIBUTING "Running it off Linux" before touching any shell idiom in
+  it, because portability bugs in this script surface as a false *pass*.
 
 ## The golden rules
 

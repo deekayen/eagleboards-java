@@ -21,13 +21,81 @@ set -u
 cd "$(dirname "$0")/.."
 
 ORIG_JAR=original/EagleBoardScheduler_20190618.jar
+ADULT_FILE=Master_AdultHistory.csv
 NEW_JAR=$(ls target/eagleboardscheduler-*.jar 2>/dev/null | grep -v original- | head -1)
 PORT_A=18080
 PORT_B=18081
 FAILURES=0
+# Set here because the EXIT trap kills them, and the trap can fire before the
+# servers are started (any early exit) -- unset would abort it under `set -u`.
+PID_A=
+PID_B=
 
 fail() { echo "FAIL: $1"; FAILURES=$((FAILURES + 1)); }
 note() { echo "  ok: $1"; }
+
+# --------------------------------------------------------------- 0. preflight
+# Check every prerequisite up front, by name. The gate is only worth something
+# if a missing one is LOUD: a tool that is absent (or, worse, present as a stub
+# that exits quietly) empties out one side of a comparison further down, and an
+# empty comparison reads exactly like agreement. This has bitten this script
+# twice already -- see the notes on unzip wildcards and on python3 below.
+#
+#   scripts/verify-parity.sh --check
+#
+# runs only this section, so a new machine can be qualified before the
+# inherited jar or a build is in place.
+CHECK_ONLY=0
+[ "${1:-}" = "--check" ] && CHECK_ONLY=1
+
+missing_prereq=0
+need() { # command "what it is needed for"
+    command -v "$1" >/dev/null 2>&1 && return 0
+    echo "MISSING: $1 — $2"
+    missing_prereq=1
+}
+need java  "runs the two servers side by side"
+need javap "reads declared members for the structural comparison (a JDK, not just a JRE)"
+need unzip "extracts the classes and web assets from both jars"
+need curl  "drives the two servers"
+need awk   "normalizes CSV columns and log parameter maps"
+need diff  "compares everything"
+need cmp   "byte-compares the preserved assets"
+need sed   "normalizes timestamps and branding"
+
+if [ ! -f "$ORIG_JAR" ]; then
+    echo "MISSING: $ORIG_JAR"
+    echo "         The inherited binary is not in this repository -- it embeds a"
+    echo "         SignUpGenius key. Ask the maintainer for it, check it against"
+    echo "         the SHA-256 in PROVENANCE.md, and drop it at that path"
+    echo "         (original/ is gitignored). Without it there is nothing to"
+    echo "         compare the rebuild against."
+    missing_prereq=1
+fi
+
+if [ "$missing_prereq" -ne 0 ]; then
+    echo
+    echo "PARITY: PREREQUISITES MISSING — nothing was compared"
+    exit 1
+fi
+
+# Not fatal: the adult history is participant data and is never in the repo.
+# A synthetic header-only file is generated into the sandbox when it is absent,
+# so the gate still runs -- it just compares two empty adult lists instead of
+# two identical populated ones. Said out loud, because a silently weaker check
+# is the thing this script exists to prevent.
+if [ -f "$ADULT_FILE" ]; then
+    ADULT_FIXTURE=real
+else
+    ADULT_FIXTURE=synthetic
+fi
+
+if [ "$CHECK_ONLY" = 1 ]; then
+    echo "preflight ok: this machine has everything the parity gate needs."
+    [ "$ADULT_FIXTURE" = synthetic ] && \
+        echo "  note: no $ADULT_FILE here; the run will use a synthetic header-only one."
+    exit 0
+fi
 
 if [ -z "$NEW_JAR" ]; then
     echo "building rebuilt jar..."
@@ -35,11 +103,12 @@ if [ -z "$NEW_JAR" ]; then
     NEW_JAR=$(ls target/eagleboardscheduler-*.jar | grep -v original- | head -1)
 fi
 
-command -v javap >/dev/null || { echo "javap not found (need a JDK)"; exit 1; }
-
 # ---------------------------------------------------------------- 1. structure
 echo "== 1. structural comparison (javap declared members) =="
-WORK=$(mktemp -d)
+# Template spelled out: BSD mktemp (macOS) rejects a bare `mktemp -d`, it wants
+# a template or -t. GNU mktemp accepts the template form too, so this is the
+# one spelling that works on both.
+WORK=$(mktemp -d "${TMPDIR:-/tmp}/eb-parity.XXXXXX") || exit 1
 trap 'rm -rf "$WORK"; kill $PID_A $PID_B 2>/dev/null' EXIT
 mkdir -p "$WORK/orig" "$WORK/new"
 # '**' not '*': the MSYS2/Git-for-Windows unzip is built with WILD_STOP_AT_DIR,
@@ -55,14 +124,36 @@ unzip -qo "$NEW_JAR"  'shkc/**' 'monfox/**' -d "$WORK/new" 2>/dev/null  # monfox
 # output on another. Both looked like agreement. An empty extraction can never
 # be a real pass -- the original jar has hundreds of classes -- so refuse to
 # continue rather than let a future platform quietly repeat the trick.
+#
+# Two checks, because there are two ways to end up comparing less than you
+# think. A floor on the class count catches a wildcard that matched nothing,
+# and counting what landed against what the jar says it holds catches entries
+# that collided on the way out -- which is a live risk on macOS and Windows,
+# where the filesystem is case-insensitive by default and two entries whose
+# names differ only in case overwrite each other silently.
+# `| wc -l | tr -d` because BSD wc pads its output with spaces.
 for side in orig new; do
-    n=$(find "$WORK/$side" -name '*.class' | wc -l)
+    case "$side" in orig) jar=$ORIG_JAR ;; *) jar=$NEW_JAR ;; esac
+    n=$(find "$WORK/$side" -name '*.class' | wc -l | tr -d '[:space:]')
     if [ "$n" -lt 50 ]; then
         echo "FAIL: extracted only $n class files into $WORK/$side."
         echo "      The unzip wildcard is not matching on this platform, so the"
         echo "      structural comparison would run on an empty tree and pass"
         echo "      without checking anything. Fix the extraction before trusting"
         echo "      any result from this script."
+        exit 1
+    fi
+    listed=$(unzip -Z1 "$jar" 2>/dev/null | grep -cE '^(shkc|monfox)/.*[^/]$')
+    landed=$(find "$WORK/$side" -type f | wc -l | tr -d '[:space:]')
+    if [ "$listed" -gt 0 ] && [ "$landed" -ne "$listed" ]; then
+        echo "FAIL: $jar lists $listed entries under shkc/ and monfox/, but only"
+        echo "      $landed file(s) landed in $WORK/$side."
+        echo "      Entries are being lost during extraction — on a case-insensitive"
+        echo "      filesystem (the macOS and Windows default) two names differing"
+        echo "      only in case overwrite each other, which would shrink what this"
+        echo "      script compares without shrinking what it claims to compare."
+        unzip -Z1 "$jar" 2>/dev/null | grep -E '^(shkc|monfox)/.*[^/]$' \
+            | tr 'A-Z' 'a-z' | sort | uniq -d | sed 's/^/      collides: /' | head -5
         exit 1
     fi
 done
@@ -119,8 +210,12 @@ sig() { # normalized member signatures for one class file
       | grep -vE '^ *public static final java\.lang\.String [A-Z_]+;|^ *public static void main\(java\.lang\.String\[\]\)' \
       | sed -E "s/[$][0-9]+\((, )?[a-zA-Z0-9_.$]+(, [a-zA-Z0-9_.$]+)*\);/\$N(CAPTURES);/; s/[$][0-9]+\(\);/\$N(CAPTURES);/; s/(javax|jakarta)\.servlet/SERVLET_API/g; s/(shkc\.json\.simple\.JSONArray|com\.fasterxml\.jackson\.databind\.JsonNode)/JSON_TREE/g; s/(monfox\.log|java\.util\.logging)\.Logger/LOGGER/g" \
       | grep -v '_debugLogger' \
-      | sed 's/[[:space:]]\+/ /g' | sort
+      | sed -E 's/[[:space:]]+/ /g' | LC_ALL=C sort
 }
+# `sed -E ... +`, not `sed ... \+`: `\+` is a GNU extension to basic regular
+# expressions. BSD sed (macOS) reads it as a literal plus, so the whitespace
+# never collapses. LC_ALL=C on the sort keeps the ordering byte-wise and
+# locale-independent, so two machines produce the same normalized listing.
 
 missing=0
 while IFS= read -r cls; do
@@ -188,18 +283,29 @@ rm -rf parity && mkdir -p parity/A parity/B
 # change is already accounted for (/config-autofill is status-only and the
 # CONFIG startup-log line is normalized).
 for d in parity/A parity/B; do
-    cp Master_AdultHistory.csv "$d/"
+    if [ "$ADULT_FIXTURE" = real ]; then
+        cp "$ADULT_FILE" "$d/"
+    else
+        # Same header the CI smoke test uses. Both sides get the identical
+        # file either way, which is what makes the comparison meaningful.
+        echo 'Type,ID,Last,First,Email,Phone,UnitType,Unit,UnitName,ProjectReview,FinalBoard,RegTime,Room,Flags,Sel,BoardHistory' > "$d/$ADULT_FILE"
+    fi
     {
         echo "Type,ID,Name,RefreshTimeSecs,ProjectYellowMins,ProjectRedMins,FinalYellowMins,FinalRedMins,RegisteredColor,VerifiedColor,SeatedColor,InProgressColor,CompletedColor,PostponedColor,RegisteredHiColor,VerifiedHiColor,SeatedHiColor,InProgressHiColor,CompletedHiColor,PostponedHiColor"
         echo "CONFIG,DEFAULT,DEFAULT,30,25,40,40,50,#ffcccc,#ffffcc,#ccffff,#ccffcc,#ffffff,#909090,#ff6666,#ffff66,#66ffff,#66ff66,#eeeeee,#9f7f7f"
     } > "$d/config.csv"
 done
 
+[ "$ADULT_FIXTURE" = synthetic ] && \
+    echo "  note: no $ADULT_FILE in the repo root — running on a synthetic"
+[ "$ADULT_FIXTURE" = synthetic ] && \
+    echo "        header-only adult history, so the adult lists compare empty."
+
 ( cd parity/A && exec java -jar "../../$ORIG_JAR" -verbose \
-    -a Master_AdultHistory.csv -c config.csv -port $PORT_A -d testrun \
+    -a "$ADULT_FILE" -c config.csv -port $PORT_A -d testrun \
     >server.log 2>&1 ) & PID_A=$!
 ( cd parity/B && exec java -jar "../../$NEW_JAR" -verbose \
-    -a Master_AdultHistory.csv -c config.csv -port $PORT_B -d testrun \
+    -a "$ADULT_FILE" -c config.csv -port $PORT_B -d testrun \
     >server.log 2>&1 ) & PID_B=$!
 
 for port in $PORT_A $PORT_B; do
@@ -283,6 +389,23 @@ compare_renamed() { # method originalPath rebuiltPath [data]
     fi
 }
 
+compare_raw() { # path — status + raw bytes, no normalization at all.
+    # For the static assets. They carry no timestamp and no branding, so there
+    # is nothing to normalize, and pushing binary bodies (the PNGs) through sed
+    # is not portable: BSD sed on macOS is unreliable on data with embedded
+    # NULs, and a normalizer that mangles both sides the same way would hide a
+    # real difference rather than reveal it. Bytes are stricter anyway.
+    local path=$1
+    local a b
+    a=$(curl -s -o "$WORK/raw.a" -w '%{http_code}' "http://127.0.0.1:$PORT_A$path")
+    b=$(curl -s -o "$WORK/raw.b" -w '%{http_code}' "http://127.0.0.1:$PORT_B$path")
+    if [ "$a" != "$b" ]; then
+        fail "GET $path status differs: original=$a rebuilt=$b"
+    elif ! cmp -s "$WORK/raw.a" "$WORK/raw.b"; then
+        fail "GET $path body differs (byte comparison)"
+    fi
+}
+
 compare_status() { # method path — status code only; body is Jetty's own
                    # error page, whose HTML differs between Jetty versions.
     local method=$1 path=$2
@@ -298,9 +421,10 @@ echo "== 2a. read endpoints (parity vs original) =="
 # Server-generated responses and preserved assets must match the original.
 # /help.html is excluded for the same reason it left PRESERVED above: its
 # operator instructions were rewritten when the Verify step was removed.
-READS="/scheduler.css /NegaScheduler.png /ScoutButton.png /LeaderButton.png
-/adult-cells /adult-history-cells /room-cells /adult-autofill"
+READS_RAW="/scheduler.css /NegaScheduler.png /ScoutButton.png /LeaderButton.png"
+READS="/adult-cells /adult-history-cells /room-cells /adult-autofill"
 count=0
+for p in $READS_RAW; do compare_raw "$p"; count=$((count+1)); done
 for p in $READS; do compare GET "$p"; count=$((count+1)); done
 # Renamed scout-* -> youth-* (see compare_renamed). Same handler, same bytes.
 compare_renamed GET /scout-cells            /youth-cells;            count=$((count+1))
@@ -389,7 +513,10 @@ csvnorm() {
 
 echo "== 3a. resulting data files =="
 sleep 1
-for f in $(cd parity/A && find testrun -type f 2>/dev/null; echo Master_AdultHistory.csv); do
+# -name '.DS_Store' excluded: on macOS, anything that opens the sandbox in
+# Finder (or Spotlight indexing it) drops one in, and it would then be reported
+# as a data file missing from the rebuilt side.
+for f in $(cd parity/A && find testrun -type f ! -name '.DS_Store' 2>/dev/null; echo "$ADULT_FILE"); do
     if [ ! -f "parity/B/$f" ]; then fail "file missing on rebuilt side: $f"; continue; fi
     if ! diff <(csvnorm <"parity/A/$f" | norm) <(csvnorm <"parity/B/$f" | norm) >"$WORK/fdiff" 2>&1; then
         fail "data file differs: $f"; sed 's/^/      /' "$WORK/fdiff" | head -8
@@ -407,16 +534,37 @@ echo "== 4. startup logs =="
 # getResource/RESOURCE trace lines that no longer exist).
 normlog() { norm <"$1" | LC_ALL=C sed -E "s/:1808[01]/:PORT/g; s/[0-9]{2}:[0-9]{2}:[0-9]{2}[.,][0-9]+/TIME/g; s/[0-9]{4}-[0-9]{2}-[0-9]{2} TIME/DATETIME/g; s|parity/[AB]|parity/X|g; s/@[0-9a-fA-F]+/@ID/g; s/^size:[0-9]+$/size:N/; s/context-path=null/context-path=/" \
     | grep -vE '^(DATETIME|TIME)?[: ]*(INFO|WARN)[: ]|SLF4J|jetty|oejs|oeje|getResource: |RESOURCE: |Session workerName|Started |Logging initialized|^LOADED: CONFIG,|^NEW SCOUT RECORD:' \
-    | python3 -c '
+    | LC_ALL=C awk '
 # Parameter-map dumps ({k=[v],...}) keep the same entries but a different
 # iteration order under Jetty 12 vs 8 — sort entries so order is irrelevant.
-import sys
-for line in sys.stdin:
-    s = line.rstrip("\n")
-    if s.startswith("{") and s.endswith("}") and "=[" in s:
-        print("{" + ",".join(sorted(s[1:-1].split(","))) + "}")
-    else:
-        print(s)'; }
+#
+# awk, not python3, for the same reason csvnorm above is awk: a `python3` that
+# is not really python is exactly how this section would pass without comparing
+# anything. On Windows it is the Microsoft Store alias stub; on a stock macOS
+# there is no python3 at all, and /usr/bin/python3 is a shim that fails with an
+# Xcode-tools notice. Either way it writes nothing to stdout, which empties
+# BOTH logs and makes the diff succeed. awk ships with every Unix.
+#
+# Insertion sort rather than a pipe to sort(1), because the entries have to
+# come back as one line. `x ""` forces string comparison, so numeric-looking
+# keys order byte-wise (like python did) instead of numerically. Tested to
+# produce byte-identical output to the python it replaces, under both mawk
+# and the BWK awk that macOS ships.
+{
+    if (substr($0, 1, 1) == "{" && substr($0, length($0)) == "}" && index($0, "=[") > 0) {
+        n = split(substr($0, 2, length($0) - 2), e, ",")
+        for (i = 2; i <= n; i++) {
+            v = e[i] ""; j = i - 1
+            while (j >= 1 && (e[j] "") > v) { e[j+1] = e[j]; j-- }
+            e[j+1] = v
+        }
+        out = ""
+        for (i = 1; i <= n; i++) out = (i == 1 ? e[i] : out "," e[i])
+        print "{" out "}"
+        next
+    }
+    print
+}'; }
 if ! diff <(normlog parity/A/server.log) <(normlog parity/B/server.log) >"$WORK/ldiff" 2>&1; then
     fail "startup logs differ:"; sed 's/^/      /' "$WORK/ldiff" | head -12
 else
