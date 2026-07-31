@@ -8,7 +8,7 @@
 
 function SchedulerBoardGrid(container_id, title) {
    SchedulerGrid.call(this, container_id, title,
-      "/scout-cells?filter=Status~Seated|InProgress|Completed|Postponed",
+      "/youth-cells?filter=Status~Seated|InProgress|Completed|Postponed",
       [
          { title: "#", field: "RegNum", width: 50, sorter: "number", headerFilter: "input" },
          { title: "Last", field: "Last", width: 90, headerFilter: "input" },

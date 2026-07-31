@@ -135,7 +135,7 @@
          var statusMsg = document.getElementById("statusMsg");
 
          // Populate the Email autofill suggestions.
-         ebAutofillList("/scout-autofill").then(function (options) {
+         ebAutofillList("/youth-autofill").then(function (options) {
             var datalist = document.getElementById("emailOptions");
             options.forEach(function (value) {
                var opt = document.createElement("option");
@@ -152,7 +152,7 @@
             if (value && last_email !== value && value != "NONE" && value != "none") {
                form.elements["ID"].value = "";
                last_email = value;
-               ebAutofillRecord("/scout-autofill", "Email", value).then(function (rec) {
+               ebAutofillRecord("/youth-autofill", "Email", value).then(function (rec) {
                   if (!rec) {
                      return;
                   }
@@ -181,7 +181,7 @@
             var btn = document.getElementById("registerBtn");
             btn.disabled = true;
             setStatus("Registering...", "");
-            fetch("/register-scout", {
+            fetch("/register-youth", {
                method: "POST",
                headers: { "Content-Type": "application/x-www-form-urlencoded" },
                body: ebFormBody(fields)

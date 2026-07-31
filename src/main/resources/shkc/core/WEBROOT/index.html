@@ -97,7 +97,7 @@
             }
             loadInFlight = true;
             Promise.all([
-               ebFetchRows("/scout-cells", SCOUT_PANEL_COLS).then(function (rows) {
+               ebFetchRows("/youth-cells", SCOUT_PANEL_COLS).then(function (rows) {
                   fillPanel("scoutRows", "scoutPanel", rows, SCOUT_PANEL_COLS, ["RegTimeHM"], forceBottom);
                }),
                ebFetchRows("/adult-cells", ADULT_PANEL_COLS).then(function (rows) {

@@ -126,7 +126,7 @@
       <div class="eb-panel active" id="panel-boards">
          <div class="eb-toolbar">
             <button id="boards-refresh">Refresh</button>
-            <a class="eb-btn" href="/scout-cells?cols=Last,First,Phone,Email,BoardType,DOB,UnitType,Unit,Leader,Status,Result,BoardChair,BoardMembers,Notes&amp;fmt=csv&amp;filename=Report.csv">CSV</a>
+            <a class="eb-btn" href="/youth-cells?cols=Last,First,Phone,Email,BoardType,DOB,UnitType,Unit,Leader,Status,Result,BoardChair,BoardMembers,Notes&amp;fmt=csv&amp;filename=Report.csv">CSV</a>
             <span class="eb-sep"></span>
             <button id="boards-delete">Delete</button>
          </div>
@@ -136,7 +136,7 @@
       <div class="eb-panel" id="panel-scouts">
          <div class="eb-toolbar">
             <button id="scouts-refresh">Refresh</button>
-            <a class="eb-btn" href="/scout-cells?cols=RegTime,Last,First,DOB,UnitType,Unit,Leader,Email,Phone,BoardType,Room,Status,Result&amp;fmt=csv&amp;filename=Scouts.csv">CSV</a>
+            <a class="eb-btn" href="/youth-cells?cols=RegTime,Last,First,DOB,UnitType,Unit,Leader,Email,Phone,BoardType,Room,Status,Result&amp;fmt=csv&amp;filename=Scouts.csv">CSV</a>
             <span class="eb-sep"></span>
             <button id="scouts-delete">Delete</button>
          </div>
@@ -146,7 +146,7 @@
       <div class="eb-panel" id="panel-scheduled">
          <div class="eb-toolbar">
             <button id="scheduled-refresh">Refresh</button>
-            <a class="eb-btn" href="/scouts-scheduled-cells?cols=Last,First,DOB,UnitType,Unit,Leader,Email,Phone,BoardType&amp;fmt=csv&amp;filename=Scouts.csv">CSV</a>
+            <a class="eb-btn" href="/youth-scheduled-cells?cols=Last,First,DOB,UnitType,Unit,Leader,Email,Phone,BoardType&amp;fmt=csv&amp;filename=Scouts.csv">CSV</a>
             <span class="eb-sep"></span>
             <button id="scheduled-delete">Delete</button>
          </div>
@@ -362,8 +362,8 @@
          var boardsCols = ["Last", "First", "Phone", "Email", "BoardType", "DOB", "UnitType", "Unit", "Leader", "Status", "Result", "BoardChair", "BoardMembers", "Notes"];
          var boards = makeGrid({
             el: "#grid-boards",
-            cellsPath: "/scout-cells",
-            updatePath: "/scout-update",
+            cellsPath: "/youth-cells",
+            updatePath: "/youth-update",
             cols: boardsCols,
             refreshBtn: "boards-refresh",
             deleteBtn: "boards-delete",
@@ -389,8 +389,8 @@
          var scoutsCols = ["RegTime", "Last", "First", "DOB", "UnitType", "Unit", "Leader", "Email", "Phone", "BoardType", "Room", "Status", "Result"];
          var scouts = makeGrid({
             el: "#grid-scouts",
-            cellsPath: "/scout-cells",
-            updatePath: "/scout-update",
+            cellsPath: "/youth-cells",
+            updatePath: "/youth-update",
             cols: scoutsCols,
             refreshBtn: "scouts-refresh",
             deleteBtn: "scouts-delete",
@@ -415,8 +415,8 @@
          var scheduledCols = ["Last", "First", "DOB", "UnitType", "Unit", "Leader", "Email", "Phone", "BoardType"];
          var scheduled = makeGrid({
             el: "#grid-scheduled",
-            cellsPath: "/scouts-scheduled-cells",
-            updatePath: "/scouts-scheduled-update",
+            cellsPath: "/youth-scheduled-cells",
+            updatePath: "/youth-scheduled-update",
             cols: scheduledCols,
             refreshBtn: "scheduled-refresh",
             deleteBtn: "scheduled-delete",

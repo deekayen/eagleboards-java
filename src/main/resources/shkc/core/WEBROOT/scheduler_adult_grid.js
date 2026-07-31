@@ -1,8 +1,15 @@
 // ------------------------------------------------------------------------
 // scheduler_adult_grid.js — Adult Board Members panel (Tabulator).
 //
-// Columns:  @ (Sel checkbox), ST (availability icon), Last, First, Unit,
-//           RM# (Room), Final (FinalBoard), Project (ProjectReview)
+// Columns:  @ (Sel checkbox), Last, First, Unit, RM# (Room),
+//           Final (FinalBoard), Project (ProjectReview)
+//
+// There was an "ST" column here: a 44px person icon rendered from the Room
+// field -- plain when free, busy when seated, greyed when Room was "N/A".
+// It restated what RM# already shows as text two columns over, the heading
+// was an abbreviation spelled out nowhere, and the <img> carried no alt or
+// title, so it was unreadable by hover or by screen reader. Removed rather
+// than captioned; RM# is the readable form of the same field.
 // Behavior: checking an adult marks them for the next Seat action and
 //           bubbles checked rows to the top; row text turns red when the
 //           adult is assigned to a room and grey when disabled (Room=N/A).
@@ -31,19 +38,6 @@ function SchedulerAdultGrid(container_id, toolbar_id, title) {
                if (e.target && e.target.tagName === "INPUT") {
                   this_obj.onCheck(cell.getRow().getIndex(), e.target.checked);
                }
-            }
-         },
-         {
-            title: "ST", field: "Room", width: 44, hozAlign: "center", headerSort: false,
-            formatter: function (cell) {
-               var room = cell.getValue() || "";
-               var icon = "im-user.png";
-               if (room === "N/A") {
-                  icon = "im-user-offline.png";
-               } else if (room.length > 0) {
-                  icon = "im-user-busy.png";
-               }
-               return "<img style='vertical-align: middle' src='/images/24x24/" + icon + "'/>";
             }
          },
          { title: "Last", field: "Last", width: 90, headerFilter: "input" },

@@ -1,7 +1,7 @@
 // ------------------------------------------------------------------------
 // scheduler_scout_grid.js — Youth panel (Tabulator).
 //
-// Columns:  # (RegNum), T (MinsSinceLastUpdate),
+// Columns:  # (RegNum), Min (MinsSinceLastUpdate),
 //           Last, First, Unit, F/P (BoardType), RM# (Room), Status, Leader
 // Toolbar:  Seat / Complete | Locate / View-Hide / Reset /
 //           Postpone — enabled according to the selected scout's status.
@@ -12,10 +12,67 @@
 // ------------------------------------------------------------------------
 
 function SchedulerScoutGrid(container_id, toolbar_id, title) {
-   SchedulerGrid.call(this, container_id, title, "/scout-cells",
+   SchedulerGrid.call(this, container_id, title, "/youth-cells",
       [
-         { title: "#", field: "RegNum", width: 46, sorter: "number" },
-         { title: "T", field: "MinsSinceLastUpdate", width: 44, sorter: "number" },
+         // sorter:"number" was wrong here -- these values are "P3"/"W1", and
+         // parseFloat of those is NaN. sort_regnum orders pre-registered above
+         // walk-ins, then numerically within each; see scheduler_config.js.
+         //
+         // The prefix is the only place the pre-registered/walk-in distinction
+         // appears in the UI, and "P"/"W" say nothing on their own, so both the
+         // heading and every cell carry a tooltip that spells it out.
+         {
+            title: "#", field: "RegNum", width: 46, sorter: sort_regnum,
+            headerTooltip: "P = pre-registered, matched a sign-up. "
+                         + "W = walk-in, nothing matched at sign-in. "
+                         + "The number is the order they signed in within their group. "
+                         + "Sorted pre-registered first, so walk-ins queue behind them.",
+            tooltip: function (e, cell) {
+               var v = cell.getValue() || "";
+               var n = v.replace(/^[A-Za-z]+/, "");
+               if (v.charAt(0) === "P") {
+                  return "Pre-registered — matched a sign-up. #" + n + " of the pre-registered to sign in.";
+               }
+               if (v.charAt(0) === "W") {
+                  return "Walk-in — no pre-registration matched. #" + n + " of the walk-ins to sign in.";
+               }
+               return "";
+            }
+         },
+         // Was "T", which said nothing. "Min" names the unit rather than the
+         // meaning, deliberately: the value is minutes since the record last
+         // CHANGED, and seating changes it. A Registered youth's count is how
+         // long they have waited, but the moment they are seated it restarts
+         // and measures how long the board has been running. "Wait" would have
+         // been wrong for every row on a board; a unit name is true for both.
+         //
+         // The two meanings are not interchangeable and the second is
+         // load-bearing: checkTimers compares this same number against
+         // ProjectYellowMins/FinalYellowMins to colour the room cards. Do not
+         // "fix" it into a true wait time. The tooltip below says which of the
+         // two a given cell means; Status and RM# beside it already
+         // distinguish the cases at a glance.
+         {
+            title: "Min", field: "MinsSinceLastUpdate", width: 56, sorter: "number",
+            tooltip: function (e, cell) {
+               var mins = cell.getValue();
+               if (mins === "" || mins == null) {
+                  return "";
+               }
+               // Spell out what the count is measuring for THIS row. Completed
+               // and Postponed rows are reachable through the View toggle, and
+               // calling their count a wait would be as wrong as calling an
+               // in-progress board's one.
+               var status = cell.getRow().getData().Status;
+               if (status === "InProgress") {
+                  return "On a board for " + mins + " min";
+               }
+               if (status === "Completed" || status === "Postponed") {
+                  return mins + " min since finishing";
+               }
+               return "Waiting " + mins + " min";
+            }
+         },
          { title: "Last", field: "Last", width: 90, headerFilter: "input" },
          { title: "First", field: "First", width: 90, headerFilter: "input" },
          // ebUnitLabel shortens numbered units for display only; see
@@ -36,6 +93,17 @@ function SchedulerScoutGrid(container_id, toolbar_id, title) {
    this.showCompleted = false;    // old "Filter" two-state button, off = hide Completed/Postponed
    this.roomTimerUpdateFunction = null;
    this.lastNotice = {};          // row id -> last minute count a notice fired at
+
+   // Default order: the pre-registered queue first, walk-ins beneath it, each
+   // group still in the order its people signed in. Without this the grid
+   // renders in server order -- one arrival sequence with walk-ins mixed
+   // through it -- and a walk-in who happened to arrive early sits above
+   // people who booked a slot. Sorting by RegNum expresses the priority,
+   // because the prefix records how they got here and the counter records
+   // when. An operator can still click any header to reorder.
+   this.ready.then(function () {
+      this_obj.table.setSort([{ column: "RegNum", dir: "asc" }]);
+   });
 
    this.toolbar = document.getElementById(toolbar_id);
    this.buttons = {};

@@ -54,9 +54,9 @@ jobs:
           grep -q "Welcome to Review Boards" index.out
           curl -sf http://127.0.0.1:18099/admin.html -o admin.out
           grep -qi "Review Board Admin Page" admin.out
-          curl -sf -o /dev/null http://127.0.0.1:18099/scout-cells
+          curl -sf -o /dev/null http://127.0.0.1:18099/youth-cells
           curl -sf -o /dev/null http://127.0.0.1:18099/room-cells
-          curl -sf -X POST --data "Last=Smoke&First=Test&Email=s@example.org&UnitType=Troop&Unit=1&BoardType=Final" http://127.0.0.1:18099/register-scout -o /dev/null
+          curl -sf -X POST --data "Last=Smoke&First=Test&Email=s@example.org&UnitType=Troop&Unit=1&BoardType=Final" http://127.0.0.1:18099/register-youth -o /dev/null
           test -f smokerun/scouts.csv && grep -q "Smoke" smokerun/scouts.csv
           # Regression guard: seating a board with no members must NOT crash
           # the server (was a NullPointerException -> 500 in SeatBoardHandler).
@@ -67,7 +67,7 @@ jobs:
           if [ "$seat_code" = "500" ]; then echo "REGRESSION: seat-board 500 on missing members"; cat server.log; exit 1; fi
           # And the server must still serve pages afterward (no wedge).
           curl -sf -o /dev/null http://127.0.0.1:18099/index.html
-          curl -sf -o /dev/null http://127.0.0.1:18099/scout-cells
+          curl -sf -o /dev/null http://127.0.0.1:18099/youth-cells
           kill $SRV
           echo "runtime smoke passed on ${{ matrix.os }}"
       - name: SignUpGenius live API check

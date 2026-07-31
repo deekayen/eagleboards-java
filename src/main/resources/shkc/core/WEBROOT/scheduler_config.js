@@ -110,6 +110,36 @@ function sort_status(a, b) {
    return sort2num(a) - sort2num(b);
 }
 
+// Tabulator column sorter for the RegNum ("#") column.
+//
+// RegNum is assigned at sign-in by RegisterScoutHandler: "P" plus a counter
+// when the youth matches a pre-registration record (by ID, or by email), "W"
+// plus a counter when nothing matches -- a walk-in. Each counter increments
+// in sign-in order, so ordering by prefix then number keeps everyone in the
+// order they arrived WITHIN their group, while holding walk-ins below the
+// pre-registered queue where their lower priority is visible.
+//
+// The column previously declared sorter:"number", which cannot work on these
+// values -- parseFloat("W1") is NaN, so clicking the header produced an
+// arbitrary order.
+function regnum2rank(regnum) {
+   var s = regnum || "";
+   if (s.charAt(0) === "P") { return 0; }   // pre-registered
+   if (s.charAt(0) === "W") { return 1; }   // walk-in
+   return 2;                                // unprefixed/legacy: last
+}
+
+function sort_regnum(a, b) {
+   var rank = regnum2rank(a) - regnum2rank(b);
+   if (rank !== 0) {
+      return rank;
+   }
+   // Numeric, not lexical: "W10" must follow "W9", not sit between W1 and W2.
+   var na = parseInt(String(a || "").replace(/^[A-Za-z]+/, ""), 10);
+   var nb = parseInt(String(b || "").replace(/^[A-Za-z]+/, ""), 10);
+   return (isNaN(na) ? 0 : na) - (isNaN(nb) ? 0 : nb);
+}
+
 // Returns {background, selected} styling info for a status.
 function status2style(status, selected) {
    if (selected) {

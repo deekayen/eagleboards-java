@@ -238,16 +238,16 @@ public class EagleBoardScheduler {
          System.out.println("\n   no prereg-file or SignupGenius DB loaded \n\n");
       }
 
-      this._server.addHandler("/register-scout", new EagleBoardScheduler.RegisterScoutHandler());
+      this._server.addHandler("/register-youth", new EagleBoardScheduler.RegisterScoutHandler());
       this._server.addHandler("/register-adult", new EagleBoardScheduler.RegisterAdultHandler());
       this._server.addHandler("/update-config", new EagleBoardScheduler.UpdateConfigHandler());
-      this._server.addHandler("/scout-cells", new EagleBoardScheduler.ScoutCellsHandler());
-      this._server.addHandler("/scouts-scheduled-cells", new EagleBoardScheduler.ScoutsScheduledCellsHandler());
+      this._server.addHandler("/youth-cells", new EagleBoardScheduler.ScoutCellsHandler());
+      this._server.addHandler("/youth-scheduled-cells", new EagleBoardScheduler.ScoutsScheduledCellsHandler());
       this._server.addHandler("/adult-cells", new EagleBoardScheduler.AdultCellsHandler());
       this._server.addHandler("/adult-history-cells", new EagleBoardScheduler.AdultHistoryCellsHandler());
       this._server.addHandler("/room-cells", new EagleBoardScheduler.RoomCellsHandler());
-      this._server.addHandler("/scout-update", new EagleBoardScheduler.ScoutUpdateHandler());
-      this._server.addHandler("/scouts-scheduled-update", new EagleBoardScheduler.ScoutsScheduledUpdateHandler());
+      this._server.addHandler("/youth-update", new EagleBoardScheduler.ScoutUpdateHandler());
+      this._server.addHandler("/youth-scheduled-update", new EagleBoardScheduler.ScoutsScheduledUpdateHandler());
       this._server.addHandler("/adult-update", new EagleBoardScheduler.AdultUpdateHandler());
       this._server.addHandler("/adult-history-update", new EagleBoardScheduler.AdultHistoryUpdateHandler());
       this._server.addHandler("/room-update", new EagleBoardScheduler.RoomUpdateHandler());
@@ -258,7 +258,7 @@ public class EagleBoardScheduler {
       this._server.addHandler("/postpone-board", new EagleBoardScheduler.PostponeBoardHandler());
       this._server.addHandler("/reset-board", new EagleBoardScheduler.ResetBoardHandler());
       this._server.addHandler("/adult-autofill", new EagleBoardScheduler.AutoFillHandler<>(this._adultHistoryRecords, "Email"));
-      this._server.addHandler("/scout-autofill", new EagleBoardScheduler.AutoFillHandler<>(this._scoutsScheduledRecords, "Email"));
+      this._server.addHandler("/youth-autofill", new EagleBoardScheduler.AutoFillHandler<>(this._scoutsScheduledRecords, "Email"));
       this._server.addHandler("/config-autofill", new EagleBoardScheduler.AutoFillHandler<>(this._configRecords, "Name"));
    }
 
