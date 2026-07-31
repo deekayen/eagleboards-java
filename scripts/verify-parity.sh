@@ -49,6 +49,24 @@ mkdir -p "$WORK/orig" "$WORK/new"
 unzip -qo "$ORIG_JAR" 'shkc/**' 'monfox/**' -d "$WORK/orig"
 unzip -qo "$NEW_JAR"  'shkc/**' 'monfox/**' -d "$WORK/new" 2>/dev/null  # monfox/** absent post-swap
 
+# Guard, because this gate has twice reported "ok" while comparing nothing: the
+# unzip glob above extracted 0 files on one platform, and the CSV comparison
+# further down ran through a `python3` that printed a notice and produced no
+# output on another. Both looked like agreement. An empty extraction can never
+# be a real pass -- the original jar has hundreds of classes -- so refuse to
+# continue rather than let a future platform quietly repeat the trick.
+for side in orig new; do
+    n=$(find "$WORK/$side" -name '*.class' | wc -l)
+    if [ "$n" -lt 50 ]; then
+        echo "FAIL: extracted only $n class files into $WORK/$side."
+        echo "      The unzip wildcard is not matching on this platform, so the"
+        echo "      structural comparison would run on an empty tree and pass"
+        echo "      without checking anything. Fix the extraction before trusting"
+        echo "      any result from this script."
+        exit 1
+    fi
+done
+
 # Compiler-internal artifacts with no behavior of their own; javac 25 emits
 # them differently than javac 7 did (nestmates replaced access$ bridges).
 # NetTest.class: the original jar misfiled this default-package class under
