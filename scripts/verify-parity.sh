@@ -412,7 +412,7 @@ echo "== 5. first-party UI (rebuilt server only) =="
 # index_simple.html was deleted: a second sign-in page with no lists, linked
 # from nowhere, that only duplicated index.html's purpose.
 UI_PAGES="/index.html /admin.html /scheduler.html
-/configure.html /scout_register.html /adult_register.html /eb-data.js
+/configure.html /youth_register.html /adult_register.html /eb-data.js
 /scheduler_config.js /scheduler_grid.js /scheduler_scout_grid.js
 /scheduler_adult_grid.js /scheduler_board_grid.js
 /process_seat.js

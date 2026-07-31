@@ -11,7 +11,7 @@ a small web server on the local network; every screen is a browser page.
 
 ```
   Check-in station (browser)          Admin computer (browser)
-        |  /  /scout_register               |  /admin   /scheduler   /configure
+        |  /  /youth_register               |  /admin   /scheduler   /configure
         |  /adult_register                  |
         +---------------+-------------------+
                         |  HTTP, LAN only
@@ -100,7 +100,7 @@ GPL dhtmlxSuite.
 | File | Role |
 | --- | --- |
 | `index.html` | check-in station landing page; live registered lists |
-| `scout_register.html`, `adult_register.html` | check-in forms |
+| `youth_register.html`, `adult_register.html` | check-in forms |
 | `scheduler.html` | the operator's main screen |
 | `admin.html` | tabular admin over every record type |
 | `configure.html` | Settings |

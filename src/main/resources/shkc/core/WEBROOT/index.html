@@ -33,12 +33,12 @@
 
               The name attributes say Youth and Adult to match the labels. They
               were Scout and Leader, and "Leader" in particular was doing double
-              duty -- scout_register.html has an unrelated Leader field for the
+              duty -- youth_register.html has an unrelated Leader field for the
               candidate's unit leader, so a stylesheet reaching for
               input[name="Leader"] had to be scoped carefully to avoid it. The
               routes below are server endpoints and keep their own names. -->
          <input type="button" name="Youth" value="I am a Youth"
-                onclick="window.location.href = '/scout_register';">
+                onclick="window.location.href = '/youth_register';">
          <input type="button" name="Adult" value="I am 21+"
                 onclick="window.location.href = '/adult_register';">
       </div>

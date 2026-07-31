@@ -116,8 +116,8 @@
 
       <div class="eb-tabbar" id="tabbar">
          <button data-tab="boards" class="active">Boards</button>
-         <button data-tab="scouts">Scouts</button>
-         <button data-tab="scheduled">Scouts Scheduled</button>
+         <button data-tab="scouts">Youth</button>
+         <button data-tab="scheduled">Youth Scheduled</button>
          <button data-tab="adults">Adults</button>
          <button data-tab="history">Adult History</button>
          <button data-tab="rooms">Rooms</button>
@@ -136,7 +136,7 @@
       <div class="eb-panel" id="panel-scouts">
          <div class="eb-toolbar">
             <button id="scouts-refresh">Refresh</button>
-            <a class="eb-btn" href="/youth-cells?cols=RegTime,Last,First,DOB,UnitType,Unit,Leader,Email,Phone,BoardType,Room,Status,Result&amp;fmt=csv&amp;filename=Scouts.csv">CSV</a>
+            <a class="eb-btn" href="/youth-cells?cols=RegTime,Last,First,DOB,UnitType,Unit,Leader,Email,Phone,BoardType,Room,Status,Result&amp;fmt=csv&amp;filename=Youth.csv">CSV</a>
             <span class="eb-sep"></span>
             <button id="scouts-delete">Delete</button>
          </div>
@@ -146,7 +146,7 @@
       <div class="eb-panel" id="panel-scheduled">
          <div class="eb-toolbar">
             <button id="scheduled-refresh">Refresh</button>
-            <a class="eb-btn" href="/youth-scheduled-cells?cols=Last,First,DOB,UnitType,Unit,Leader,Email,Phone,BoardType&amp;fmt=csv&amp;filename=Scouts.csv">CSV</a>
+            <a class="eb-btn" href="/youth-scheduled-cells?cols=Last,First,DOB,UnitType,Unit,Leader,Email,Phone,BoardType&amp;fmt=csv&amp;filename=Youth.csv">CSV</a>
             <span class="eb-sep"></span>
             <button id="scheduled-delete">Delete</button>
          </div>
@@ -385,7 +385,7 @@
             ]
          });
 
-         // ---- Scouts tab (registered scouts) ----
+         // ---- Youth tab (registered youth) ----
          var scoutsCols = ["RegTime", "Last", "First", "DOB", "UnitType", "Unit", "Leader", "Email", "Phone", "BoardType", "Room", "Status", "Result"];
          var scouts = makeGrid({
             el: "#grid-scouts",
@@ -411,7 +411,7 @@
             ]
          });
 
-         // ---- Scouts Scheduled tab ----
+         // ---- Youth Scheduled tab ----
          var scheduledCols = ["Last", "First", "DOB", "UnitType", "Unit", "Leader", "Email", "Phone", "BoardType"];
          var scheduled = makeGrid({
             el: "#grid-scheduled",
@@ -489,7 +489,7 @@
             columns: [
                { title: "Room", field: "Room", width: 90, hozAlign: "center", sorter: "number" },
                selectCol("BoardType", "BoardType", 130, BOARD_TYPES),
-               { title: "Scout", field: "Scout", width: 260 },
+               { title: "Youth", field: "Scout", width: 260 },
                { title: "Leaders", field: "Leaders" }
             ]
          });
