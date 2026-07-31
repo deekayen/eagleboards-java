@@ -22,7 +22,13 @@ cd "$(dirname "$0")/.."
 
 ORIG_JAR=original/EagleBoardScheduler_20190618.jar
 ADULT_FILE=Master_AdultHistory.csv
-NEW_JAR=$(ls target/eagleboardscheduler-*.jar 2>/dev/null | grep -v original- | head -1)
+# `ls -t` (newest first), not a plain `ls`: the version is a DATE, so an
+# alphabetical sort puts the OLDEST jar first, and `./mvnw package` never
+# removes the previous version's. Left as `ls | head -1`, this gate would
+# happily certify a months-old build as being at parity with the original --
+# the one outcome it exists to make impossible.
+pick_jar() { ls -t target/eagleboardscheduler-*.jar 2>/dev/null | grep -v original- | head -1; }
+NEW_JAR=$(pick_jar)
 PORT_A=18080
 PORT_B=18081
 FAILURES=0
@@ -100,7 +106,18 @@ fi
 if [ -z "$NEW_JAR" ]; then
     echo "building rebuilt jar..."
     ./mvnw -q package || { echo "build failed"; exit 1; }
-    NEW_JAR=$(ls target/eagleboardscheduler-*.jar | grep -v original- | head -1)
+    NEW_JAR=$(pick_jar)
+fi
+
+# Name the artifact under test. A result that does not say what it tested is
+# not evidence, and older jars in target/ are the way this gate would end up
+# reporting on something other than the tree you are sitting in.
+echo "testing: $NEW_JAR"
+others=$(ls target/eagleboardscheduler-*.jar 2>/dev/null | grep -v original- | grep -vF "$NEW_JAR")
+if [ -n "$others" ]; then
+    echo "WARNING: target/ holds other builds, which are NOT what was tested:"
+    echo "$others" | sed 's/^/           /'
+    echo "         Run './mvnw clean package' if the result looks wrong."
 fi
 
 # ---------------------------------------------------------------- 1. structure

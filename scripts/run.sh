@@ -12,11 +12,29 @@ if [ -z "${SUG_KEY:-}" ] && [ -f .env ]; then
     . ./.env
 fi
 
-JAR=$(ls target/eagleboardscheduler-*.jar 2>/dev/null | grep -v original- | head -1)
+# `ls -t` (newest first), not a plain `ls`: the version is a DATE, so sorting
+# alphabetically puts the OLDEST jar first. `./mvnw package` never removes the
+# previous version's jar, so they accumulate in target/ and a plain `head -1`
+# quietly launches a months-old build -- which looks by every outward sign like
+# the current one, because the window, the port and the pages are all the same.
+pick_jar() { ls -t target/eagleboardscheduler-*.jar 2>/dev/null | grep -v original- | head -1; }
+
+JAR=$(pick_jar)
 if [ -z "$JAR" ]; then
     echo "No built jar found — building with ./mvnw package ..."
     ./mvnw -q package
-    JAR=$(ls target/eagleboardscheduler-*.jar | grep -v original- | head -1)
+    JAR=$(pick_jar)
+fi
+
+# Say which build is starting, and name any older ones still sitting there.
+# Picking the newest is a good guess, not a guarantee -- the only way to be
+# certain target/ holds exactly what the source says is a clean build.
+others=$(ls target/eagleboardscheduler-*.jar 2>/dev/null | grep -v original- | grep -vF "$JAR" || true)
+if [ -n "$others" ]; then
+    echo "NOTE: target/ holds more than one build. Starting the newest:"
+    echo "        $JAR"
+    echo "      Older jars are still there; './mvnw clean package' clears them:"
+    echo "$others" | sed 's/^/        /'
 fi
 
 # -w pops up the Swing window with the check-in URL. The app force-disables

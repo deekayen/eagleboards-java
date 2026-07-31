@@ -76,6 +76,33 @@ between a routine commit and publishing a minor's personal information.
 WEBROOT file keeps getting packaged into the jar and keeps being served. This
 has bitten us for real.
 
+### "I rebuilt, but I'm still looking at the old app"
+
+Two independent causes, and both are silent — the app looks entirely normal,
+just out of date:
+
+1. **Stale resources**, as above. Renaming `scout_register.html` to
+   `youth_register.html` leaves the old file in `target/classes`, and a plain
+   `package` ships both. Check with:
+
+   ```sh
+   unzip -l target/eagleboardscheduler-*.jar | grep -E 'scout_register|index_simple|signup_genius_api|process_verify'
+   ```
+
+   Anything listed means the jar is stale — those files were all deleted or
+   renamed. After a clean build it prints nothing.
+
+2. **An older jar being picked.** `target/` accumulates one jar per version,
+   because `package` never removes the previous one. The version is a *date*,
+   so `ls target/eagleboardscheduler-*.jar | head -1` selects the **oldest**
+   build — alphabetically first. `scripts/run.sh` and `scripts/verify-parity.sh`
+   both use `ls -t` now and name the jar they picked; if you write a new script
+   that reaches into `target/`, sort by time, never by name. `ls -la
+   target/*.jar` shows what is actually there.
+
+`./mvnw clean package` resolves both, and is the only way to be sure `target/`
+holds exactly what the source tree says.
+
 ## Run it locally
 
 Never point a development build at live event data. Use a scratch directory,
