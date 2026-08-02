@@ -37,6 +37,24 @@ if [ -n "$others" ]; then
     echo "$others" | sed 's/^/        /'
 fi
 
+# WebServer.sendResponseFile checks the FILESYSTEM before the classpath: it
+# tries `new File("WEBROOT", name)` first and only falls back to the copy
+# packaged in the jar when that does not exist. The path is relative, so it
+# resolves against this working directory -- the repo root, thanks to the cd
+# above. A stray WEBROOT/ here therefore shadows the entire UI, and every
+# rebuild is both real and completely ignored. Original inherited behaviour
+# (it let operators patch a page without rebuilding), so this warns rather
+# than refusing, and does not touch the folder.
+if [ -d WEBROOT ]; then
+    echo "WARNING: a WEBROOT/ directory exists in $(pwd)."
+    echo "         The server serves pages from there IN PREFERENCE to the ones"
+    echo "         built into the jar, so what you see will be whatever that"
+    echo "         folder holds no matter how many times you rebuild."
+    echo "         Move it aside if you did not put it there deliberately."
+    echo "         (The parity gate does not see this: it runs the servers in"
+    echo "         parity/A and parity/B, where no WEBROOT/ exists.)"
+fi
+
 # -w pops up the Swing window with the check-in URL. The app force-disables
 # java.awt.headless, so on a machine with no display (e.g. a headless
 # Raspberry Pi) -w would crash at startup — only add it when a display exists.

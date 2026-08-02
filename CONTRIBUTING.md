@@ -92,7 +92,33 @@ just out of date:
    Anything listed means the jar is stale — those files were all deleted or
    renamed. After a clean build it prints nothing.
 
-2. **An older jar being picked.** `target/` accumulates one jar per version,
+2. **A `WEBROOT/` folder on disk shadowing the jar.** This one survives any
+   amount of rebuilding, so check it first if a clean build changed nothing.
+   `WebServer.sendResponseFile` tries `new File("WEBROOT", name)` *before* the
+   classpath, and that path is relative to the working directory — the repo
+   root, since `run.sh` cds there. So a stray `WEBROOT/` serves the whole UI
+   and the jar is never consulted. The original app was deployed as a jar
+   beside such a folder, so an inherited one is easy to end up with.
+
+   The verbose log tells you which source answered:
+
+   ```
+   looking for: dir=WEBROOT, fname=/index.html
+   sendResponseFile:/index.html                       <- served from DISK
+   ```
+   ```
+   looking for: dir=WEBROOT, fname=/index.html
+   [1] not in filesystem, checking classpath ...      <- served from the JAR
+   sendResponseFile:/index.html
+   ```
+
+   `run.sh` warns when it sees one. **The parity gate does not** — it runs both
+   servers in `parity/A` and `parity/B`, where no `WEBROOT/` exists, so parity
+   can pass while the app you launch serves pages from 2019. The filesystem-
+   first order is inherited behaviour and is deliberately left alone; it is how
+   an operator patches a page at an event without a toolchain.
+
+3. **An older jar being picked.** `target/` accumulates one jar per version,
    because `package` never removes the previous one. The version is a *date*,
    so `ls target/eagleboardscheduler-*.jar | head -1` selects the **oldest**
    build — alphabetically first. `scripts/run.sh` and `scripts/verify-parity.sh`
