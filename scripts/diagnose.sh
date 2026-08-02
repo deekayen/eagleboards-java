@@ -144,6 +144,35 @@ else
     echo "   responded, but with neither marker — check by hand"
 fi
 
+# --- 6b. every instance on this machine --------------------------------------
+# The question none of the checks above can answer: is the page in the browser
+# even coming from the server we just inspected? A second instance on another
+# port, or a deployed one on another host, looks identical in the tab. List
+# every scheduler answering anywhere locally, with its age, so the URL in the
+# address bar can be matched against it.
+echo
+echo "6b. EVERY SCHEDULER INSTANCE ANSWERING ON THIS MACHINE"
+found_any=0
+if command -v lsof >/dev/null 2>&1; then
+    # NAME column is second-to-last ("*:8080"), (LISTEN) is last.
+    for p in $(lsof -nP -iTCP -sTCP:LISTEN 2>/dev/null \
+               | awk '/^java/ {print $(NF-1)}' | sed 's/.*://' | sort -u); do
+        body=$(curl -s --max-time 3 "http://127.0.0.1:$p/scheduler.html" 2>/dev/null)
+        case "$body" in
+            *"$NEW_MARK"*) echo "   http://127.0.0.1:$p  →  '$NEW_MARK' (current)"; found_any=1 ;;
+            *"$OLD_MARK"*) echo "   http://127.0.0.1:$p  →  '$OLD_MARK' (OLD)"; found_any=1
+                           verdict "An OLD instance is answering on port $p, which is NOT the
+      port checked above. If this is the one your browser is pointed
+      at, that is your answer -- stop it and use :$PORT instead." ;;
+        esac
+    done
+fi
+[ "$found_any" -eq 0 ] && echo "   none found locally"
+echo "   Compare these with the URL in your browser's address bar. If it does"
+echo "   not match any line here, you are looking at a DIFFERENT MACHINE (a"
+echo "   Raspberry Pi or laptop at the venue, or a stale bookmark) and nothing"
+echo "   in this checkout can affect it."
+
 # --- 7. the browser ----------------------------------------------------------
 # Cannot be tested from here, and it is the one cause that survives fixing
 # every other one, so it gets said out loud rather than checked.
