@@ -78,8 +78,18 @@ has bitten us for real.
 
 ### "I rebuilt, but I'm still looking at the old app"
 
-Two independent causes, and both are silent — the app looks entirely normal,
-just out of date:
+```sh
+scripts/diagnose.sh          # checks every cause below and names the culprit
+```
+
+Run that first. There are several independent causes, all of them silent — the
+app looks entirely normal, just out of date — and guessing between them by hand
+wastes an afternoon. The reliable age test needs no version number: the app was
+renamed from "Eagle Board Scheduler" to "Review Board Scheduler", so the old
+name in the page title means an old build, as does a **Verify** button (that
+step was removed).
+
+The causes, in the order the script checks them:
 
 1. **Stale resources**, as above. Renaming `scout_register.html` to
    `youth_register.html` leaves the old file in `target/classes`, and a plain
@@ -126,8 +136,31 @@ just out of date:
    that reaches into `target/`, sort by time, never by name. `ls -la
    target/*.jar` shows what is actually there.
 
-`./mvnw clean package` resolves both, and is the only way to be sure `target/`
-holds exactly what the source tree says.
+4. **A forgotten server still holding the port.** `run.sh` hardcodes port 8080,
+   and the app **exits** when it cannot bind:
+
+   ```
+   ERROR: Failed to bind to 0.0.0.0/0.0.0.0:8080
+   ```
+
+   So an instance left running from an earlier session keeps serving while
+   every restart you launch dies on startup. Nothing in the browser changes,
+   which makes it the most convincing of these — it survives a clean build, a
+   fresh jar, and a correct checkout, because none of them are what is
+   answering. Find and end it:
+
+   ```sh
+   lsof -nP -iTCP:8080 -sTCP:LISTEN     # macOS / Linux
+   kill <pid>
+   ```
+
+5. **The browser's own cache.** These are plain static pages. If everything
+   above is clean and the tab still looks old, hard-reload (Cmd-Shift-R) or
+   open a private window.
+
+`./mvnw clean package` resolves causes 1 and 3, and is the only way to be sure
+`target/` holds exactly what the source tree says. It cannot help with 2, 4 or
+5 — which is why `diagnose.sh` checks all of them.
 
 ## Run it locally
 
