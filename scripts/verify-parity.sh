@@ -373,6 +373,10 @@ norm() {
 # does not know. csvnorm() needs no such list -- it takes the leading
 # alphabetic run whatever it is -- so prefer extending this list rather than
 # skipping the column.
+#
+# Deliberately absent: "Team". Varsity Scout Teams were discontinued in 2017,
+# so the type is not offered anywhere and a Team value in an adult history is
+# stale data to be corrected at the source, not normalized around here.
 
 req() { # method path [data] -> normalized "status + body" from one server
     local port=$1 method=$2 path=$3 data=${4:-}
@@ -549,6 +553,30 @@ echo "== 4. startup logs =="
 # differs between the original's bundled Jetty 8 and the rebuild's Jetty 12
 # (startup banners, SLF4J notices, and the old Jetty-8-era ResourceHandler
 # getResource/RESOURCE trace lines that no longer exist).
+#
+# SCOPE: startup only. Each log is cut at its first request, so what is
+# compared is the boot path -- argument handling, config load, and every
+# record parsed out of the data files (the LOADED: lines, which on a real
+# adult history is ~900 records proving both jars read the file identically).
+#
+# The request traffic that follows is NOT compared here, and must not be:
+# sections 2/3 deliberately drive the two servers differently, so their logs
+# cannot line up no matter how they are normalized.
+#   - Renamed endpoints: 2a asks the original for /scout-cells and the rebuild
+#     for /youth-cells (see compare_renamed), so the two logs name different
+#     targets for the same logical request.
+#   - Retired-name probes: the 404 check above hits /scout-* on the REBUILT
+#     server only, adding whole blocks side B has and side A does not.
+#   - Section 5 fetches 18 UI files from the rebuilt server only.
+# Nothing is lost by cutting here. Every one of those requests is already
+# compared far more strictly than a log line: 2a/2b diff the response bytes,
+# 3 diffs the write endpoints, and 3a diffs the data files they produced --
+# which is why, for instance, dropping the per-request "NEW ADULT RECORD:"
+# chatter is safe: the record it announces is compared in adults.csv.
+#
+# Do not "fix" a future failure here by widening the cut. If two startup logs
+# differ, the boot path differs, and that is the signal this section exists
+# to give.
 normlog() { norm <"$1" | LC_ALL=C sed -E "s/:1808[01]/:PORT/g; s/[0-9]{2}:[0-9]{2}:[0-9]{2}[.,][0-9]+/TIME/g; s/[0-9]{4}-[0-9]{2}-[0-9]{2} TIME/DATETIME/g; s|parity/[AB]|parity/X|g; s/@[0-9a-fA-F]+/@ID/g; s/^size:[0-9]+$/size:N/; s/context-path=null/context-path=/" \
     | grep -vE '^(DATETIME|TIME)?[: ]*(INFO|WARN)[: ]|SLF4J|jetty|oejs|oeje|getResource: |RESOURCE: |Session workerName|Started |Logging initialized|^LOADED: CONFIG,|^NEW SCOUT RECORD:' \
     | LC_ALL=C awk '
@@ -567,6 +595,37 @@ normlog() { norm <"$1" | LC_ALL=C sed -E "s/:1808[01]/:PORT/g; s/[0-9]{2}:[0-9]{
 # keys order byte-wise (like python did) instead of numerically. Tested to
 # produce byte-identical output to the python it replaces, under both mawk
 # and the BWK awk that macOS ships.
+# Startup ends at the first request the server dispatches; see the SCOPE note
+# above for why the traffic after it cannot be compared line-by-line. Cutting
+# here rather than filtering the request lines out keeps the cut honest: a
+# filter would silently swallow any NEW startup line that happened to match it.
+/^LocalDefaultHandler: target=/ { exit }
+# "LOADED: ADULT,..." lines are CSV-shaped, so the <cell> rules in norm() never
+# reach their UnitName column and every adult line would differ on the widened
+# unit type alone ("C1109" vs "Crew1109"). Fold column 9 with the same
+# leading-alphabetic-run rule csvnorm() uses: it is symmetric, so the original
+# and the rebuild both come out "C1109", and the unit number is still compared.
+# Field 9 by position, and a naive comma split, for the same reason csvnorm
+# splits naively -- these columns hold no embedded commas. Guarded on NF so a
+# row that ever did would be left alone rather than silently rewritten.
+# ADULT only: the parity run starts with an empty testrun/, so the scout file
+# has no rows to load and "LOADED: SCOUT" never appears (its UnitName sits in a
+# different column, so it would need its own index).
+/^LOADED: ADULT,/ {
+    n = split($0, f, ",")
+    if (n == 16 && f[9] != "") {
+        head = f[9]
+        sub(/[^A-Za-z].*$/, "", head)
+        if (length(head) > 0) {
+            f[9] = substr(head, 1, 1) substr(f[9], length(head) + 1)
+            out = f[1]
+            for (i = 2; i <= n; i++) out = out "," f[i]
+            $0 = out
+        }
+    }
+    print
+    next
+}
 {
     if (substr($0, 1, 1) == "{" && substr($0, length($0)) == "}" && index($0, "=[") > 0) {
         n = split(substr($0, 2, length($0) - 2), e, ",")
