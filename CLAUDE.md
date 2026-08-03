@@ -93,7 +93,9 @@ original source was received) and then modernized. See `PROVENANCE.md`.
   `FinalYellowMins` / `FinalRedMins`, minutes since seating. Note: saving via
   the Settings page rewrites the file and does not preserve `#` comments.
 - **Branding is district-neutral** — never reintroduce "Etowah" or a specific
-  district/council name; that's tracked as configurable-branding work.
+  district/council name. This is the settled end state, not a waypoint:
+  configurable branding was considered and declined (issue #1, closed not
+  planned), so the app never displays whose district it is.
 
 ## Workflow
 
