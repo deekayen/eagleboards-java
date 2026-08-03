@@ -1,0 +1,281 @@
+# What's changed since the original
+
+This is a cumulative summary of how the app differs from the **inherited 2019
+binary** (`EagleBoardScheduler_20190618.jar`) that this project was rebuilt
+from — see `PROVENANCE.md` for how that reconstruction was done.
+
+It is deliberately **not** a release-to-release changelog. Everything below is
+phrased as "the original did X, it now does Y", so anyone who knew the old
+program can read this once and understand the whole delta. Entries are grouped
+by what they affect, not by when they landed.
+
+Releases are versioned by date (e.g. `2026.07.31`). For commit-level detail,
+`git log` is the record.
+
+---
+
+## At a glance
+
+- The board of review workflow lost two steps — **Verify** and **Start** are
+  gone, so a youth goes straight from signed-in to sitting a board.
+- The entire browser interface was rebuilt, because the toolkit it was built on
+  was **GPL-licensed and unmaintained**.
+- Every screen now **refreshes itself**; the old one only updated when someone
+  pressed a button.
+- "Scout" is now **"Youth"** and "Eagle Board" is now **"Review Board"**
+  throughout the interface.
+- Every bundled library was **replaced or upgraded** — the original shipped a
+  2013 web server and a 2012 JSON parser.
+- A **live API key** that was baked into the original jar is gone.
+
+---
+
+## The board of review workflow
+
+**The lifecycle is shorter.** It was:
+
+```
+Registered → Verified → Seated → InProgress → Completed / Postponed
+```
+
+It is now:
+
+```
+Registered → InProgress → Completed / Postponed
+```
+
+- **Verify is gone.** It was a paperwork gate: the operator ticked boxes and the
+  server recorded the youth as Verified. Paperwork is checked off-screen, so a
+  registered youth is now seated directly. The Verify button, its dialog, and
+  the `/verify-board` endpoint were all removed.
+- **Seat and Start are merged.** Seating a board used to park it in a transient
+  *Seated* state that needed a second **Start** click. Seating now goes straight
+  to *InProgress* in one action, and the Start button is gone.
+- **Old records still work.** Anything left in a `Verified` state by an earlier
+  run is still seatable rather than stranded.
+
+**Other workflow changes**
+
+- Board results record **"Adjourned"** where they used to say "Suspended".
+  Archived spreadsheets keep the old word; nothing is rewritten.
+- The Complete dialog no longer asks for **Project Cost, BSA Hours, or Other
+  Hours**, and the "Collect Statistics" startup reminder is gone. (The server
+  still accepts them if sent, so the fields could come back without a code
+  change.)
+- The **Completion Notes** box starts empty instead of pre-filled with
+  placeholder text.
+- **Room warning timers are per board type** and count from the moment the board
+  is seated: Project turns yellow at 25 minutes and red at 40; Final turns
+  yellow at 40 and red at 50. All four are editable in Settings. The original
+  had a single pair of alert/reminder values shared by every board.
+
+---
+
+## The interface
+
+**Rebuilt on a different toolkit.** The original UI was built on **dhtmlxSuite
+4.1.2**, which is GPL-licensed and no longer maintained. Every page was rewritten
+on **Tabulator 6.5.2** (MIT). This was a front-end-only rework — the server, its
+endpoints, and its wire formats were held frozen so the behaviour could be proven
+unchanged.
+
+**It now looks like a Scouting app.** The inherited pale-blue-and-grey was
+replaced with the Scouts BSA sub-brand palette (tan, gray, olive, with Scouting
+Red for actions). Colour carries meaning: olive for primary actions, white for
+navigation, red for destructive, blue for neutral changes. Every text/background
+pairing was measured against WCAG 2.2 contrast rather than picked by eye.
+
+**The sign-in forms were redesigned.** Both registration pages were two columns
+with right-aligned labels; they are now a single column with labels above the
+fields, and field width hints at the expected input length instead of every box
+being the same size. Controls also got bigger: the checkbox the operator hits for
+every board was 13×13 pixels, below the 24×24 accessibility minimum, and
+disabled buttons were too faint to read.
+
+**Screens fit the screen.** Both the scheduler and the admin page used to run off
+the bottom and had to be scrolled during an event. Each is now a
+viewport-height layout where the grids scroll internally and the page itself
+does not. On the scheduler, Youth and Adult Board Members sit side by side in a
+top row, as they did in the original.
+
+**Screens refresh themselves.** New registrations used to appear only when
+someone pressed Refresh. The check-in page, the admin page, and the scheduler
+now all poll on the existing `RefreshTimeSecs` setting, so one setting drives
+every screen. The check-in page repaints rather than appending, and only
+auto-scrolls if the viewer was already at the bottom. Background failures are
+silent on the check-in screen, which faces the youth signing in.
+
+**Smaller interface fixes**
+
+- **Chosen board members survive clicking around.** Selecting a youth used to
+  wipe every adult checkbox, throwing away a board the operator had assembled by
+  hand. Only the Adult panel's Clear button empties them now.
+- The **B/S column** (adult:scout ratio) was removed from the youth grid and
+  from the report export — it was computed and stored but not used.
+- The six **XML export buttons** were removed; CSV export is unchanged. The XML
+  format was the old toolkit's internal grid format and nothing consumed it.
+- The startup **URL popup** (`-w`) centres its text and adds a clickable link
+  straight to that host's scheduler page.
+
+---
+
+## Names and wording
+
+- **"Scout" → "Youth"** across the interface: the admin tabs, the Rooms grid
+  heading, the sign-in page (now at `/youth_register`), and the downloaded file
+  name (`Youth.csv`, previously `Scouts.csv`).
+- **Six endpoints were renamed** to match — this is the one place the frozen
+  server contract was deliberately broken:
+
+  | Original | Now |
+  |---|---|
+  | `/scout-cells` | `/youth-cells` |
+  | `/scouts-scheduled-cells` | `/youth-scheduled-cells` |
+  | `/scout-update` | `/youth-update` |
+  | `/scouts-scheduled-update` | `/youth-scheduled-update` |
+  | `/scout-autofill` | `/youth-autofill` |
+  | `/register-scout` | `/register-youth` |
+
+  The old names now return 404 rather than quietly continuing to work, so a
+  stale bookmark fails loudly instead of half-working.
+
+- **"Eagle Board" → "Review Board"** in the interface: "Review Board Sign-In",
+  "Review Board Admin Page", "Scheduler: Review Board". The **board types** read
+  **"Final Board"** and **"Proposal Review"**, though the values stored on disk
+  stay `Final` and `Project` — they key room assignments and the board-type
+  timers, so the labels are a display mapping only.
+- **District branding was removed.** Pages are district-neutral so any district
+  can run the app. Export filenames are generic too (`Report.csv`, `Youth.csv`,
+  `Adults.csv`, `Rooms.csv`, `AdultHistory.csv`) rather than district-prefixed.
+  Making the name configurable instead of absent was considered and declined —
+  the app deliberately never displays whose district it is.
+- **Unit types were updated for programs that no longer exist.** *Team*
+  (Varsity Scouting, discontinued) is no longer offered; *Post* (Exploring) was
+  added. Youth sign-in offers Troop, Post, Crew, and Ship; adult sign-in adds
+  Pack, District, Council, and Community. Existing historical records with
+  retired unit types still display.
+- **Unit labels are spelled out.** The original abbreviated a unit to the first
+  letter of its type plus its number, so Troop 1776 became `T1776`. That
+  collided — Pack and Post both gave `P`, and the new Council/Community/Crew
+  options would all have given `C` — so the whole word is written now
+  (`Troop1776`).
+
+---
+
+## Settings and configuration
+
+- **Config moved from CSV to `config.properties`** — a plain `key=value` file
+  that supports `#` comments for hand-editing, which is the normal Java choice
+  for flat configuration. The CSV reader is retained so the original binary and
+  the parity gate still work. Note that saving from the Settings page rewrites
+  the file and does not preserve comments.
+- The old shared alert/reminder fields were replaced by the four board-type
+  timers described above.
+- **Fixed:** saving settings appended a duplicate record each time instead of
+  updating the existing one.
+
+---
+
+## Running the app
+
+- **New `-bind <ip-prefix>` option.** A machine with Hyper-V or WSL adapters
+  would pop up one window per interface and listen on all of them. `-bind`
+  restricts both the advertised URLs and the listening socket to the interface
+  whose IPv4 address starts with the given prefix (e.g. `192.168.`). A prefix
+  rather than a fixed address, so DHCP moving the host within the subnet still
+  works; `127.0.0.1` stays reachable either way. Without `-bind`, behaviour is
+  exactly what it was.
+- The default config file is `config.properties` (was `config.csv`).
+- `scripts/run.sh` and `run.bat` wrap startup and drop the `-w` popup
+  automatically when there is no display, e.g. a headless Pi.
+- `scripts/diagnose.sh` reports which of five known causes is behind a browser
+  showing stale pages, and lists every running instance.
+- Tagged builds are published to GitHub Releases.
+
+---
+
+## Under the hood
+
+### Libraries
+
+| Component | Original (2019 jar) | Now |
+|---|---|---|
+| Web server | Jetty 8.1.11 (2013, end-of-life) | Jetty 12.1.11 |
+| Servlet API | `javax.servlet` 3.0 | `jakarta.servlet` (Jetty EE11) |
+| Browser UI toolkit | dhtmlxSuite 4.1.2 (GPL, unmaintained) | Tabulator 6.5.2 (MIT) |
+| JSON parsing | json-simple 1.1, vendored and repackaged as `shkc.json.simple` | Jackson Databind 2.22.1 |
+| Logging | `monfox.log`, a vendored ~2010 library | `java.util.logging` (JDK built-in) |
+| Bytecode | Java 7 (class major version 51) | targets Java 21, built on JDK 25 |
+| Build | none — only the compiled jar was received | Maven, single self-contained jar |
+
+Dependency updates are now proposed automatically every week, and the build is
+tested on 64-bit Linux, Windows, and ARM Linux.
+
+### Reliability
+
+- **A failing request can no longer take down the web service.** All request
+  handling is wrapped so an unexpected error is logged and returns a clean 500
+  for that one request, instead of leaving every subsequent page load broken.
+- **Fixed a crash when seating a board with no members selected** — a
+  null-handling bug present in the original binary. It now rejects the request
+  with a clear message.
+
+### Dead code removed
+
+`ConfigWindow` and `NetTest` (unused classes), `old_saved_script.js`,
+`index_simple.html` (a second sign-in page with no lists), and the scripts
+behind the removed Verify and Start steps. Roughly 928 files of the old UI
+toolkit — about 3 MB — went with it.
+
+---
+
+## Security and privacy
+
+- **A live SignUpGenius API key was embedded in the original jar**, in
+  `signup_genius_api.js`. That file is not carried over at all: nothing used it
+  at runtime, since the server takes the key from the `-sugkey` option. The
+  build checks both that the file stays absent and that the original's key
+  appears nowhere in the rebuilt jar.
+- **The original jar is never committed**, because it contains that key. It is
+  kept offline and authenticated by checksum.
+- **Participant data cannot be committed by accident.** All CSV/XLS files, dated
+  folders, and adult-history files are ignored by git and blocked by a
+  pre-commit hook. The only configuration committed is `config.properties`,
+  which holds colours and timings and no personal data.
+
+### Licensing
+
+**GPL-2.0 → Apache-2.0.** The original choice was forced by the bundled GPL
+dhtmlx toolkit; removing that toolkit in favour of MIT-licensed Tabulator
+removed the constraint. GPL-2.0 had also become a poor fit, since Apache-2.0
+(Jackson's license, shaded into the distributed jar) is generally treated as
+incompatible with it. Apache-2.0 additionally covers inbound contributions,
+grants patent rights explicitly, and disclaims trademarks. A `NOTICE` file was
+added to carry attribution.
+
+The grant is **contingent**: the application code is reconstructed from a third
+party's binary, so it becomes effective only once written permission from the
+original author is obtained and recorded in `NOTICE`. See `PROVENANCE.md`.
+
+---
+
+## What deliberately did *not* change
+
+This matters as much as the list above. Except for the six renamed youth
+endpoints, the server's **endpoints and wire formats are frozen**, and so are
+the **CSV data files** on disk. Field names that appear in the wire format or in
+`rooms.csv` kept their original spelling even where the visible column heading
+changed. The XML export format is still supported server-side even though the
+buttons are gone, so it can be restored if a downstream tool ever needs it.
+
+## How this is verified
+
+The owner of this project does not review Java, so correctness is established
+mechanically rather than by code review. `scripts/verify-parity.sh` boots the
+original inherited jar and the rebuilt jar side by side and proves they behave
+identically — class structure, served bytes, endpoint responses, the data files
+they write, and their startup logs.
+
+Every intentional difference listed on this page is registered in that script
+with a comment explaining why, so the gate stays green and any *unintended*
+change shows up immediately. See `CLAUDE.md` for the rules contributors follow.
