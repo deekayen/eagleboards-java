@@ -162,9 +162,23 @@ code review.
 
 ## License
 
-GPL-2.0 (see [LICENSE](LICENSE)). This was originally dictated by the bundled
-dhtmlxSuite UI library; that library has since been replaced by MIT-licensed
-Tabulator, so the project license can be revisited — but only after the rights
-to the reconstructed application code are settled with its original author.
+Apache-2.0 (see [LICENSE](LICENSE) and [NOTICE](NOTICE)). The project was
+previously GPL-2.0, which the bundled dhtmlxSuite UI library required; that
+library has been replaced by MIT-licensed Tabulator, so nothing compels
+copyleft any more.
+
+**That grant is not yet effective.** The application code is reconstructed from
+a third party's binary, and the rights are not settled with its original
+author. A license can only be granted by whoever holds the rights, so until
+written permission is obtained and recorded in `NOTICE`, this is a staged
+choice rather than an operative one.
 
 **The repository is private until then. Do not redistribute it.**
+
+## Trademarks
+
+Not affiliated with, endorsed by, or sponsored by Scouting America (Boy Scouts
+of America). "Scouts BSA", "Eagle Scout" and related marks belong to their
+owner and are used here only to describe what the software is for. The
+interface follows published brand guidance for visual consistency; that is not
+a claim of any trademark right, and Apache-2.0 §6 grants none.

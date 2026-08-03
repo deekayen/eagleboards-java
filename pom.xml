@@ -18,6 +18,17 @@
   <description>Check-in and room scheduler for Eagle Scout Boards of Review,
     reconstructed from the inherited EagleBoardScheduler_20190618.jar binary.</description>
 
+  <!-- Contingent: the sources derive from a third party's binary, so this
+       grant is effective only once written permission from the original
+       author is recorded in NOTICE. See PROVENANCE.md. -->
+  <licenses>
+    <license>
+      <name>Apache-2.0</name>
+      <url>https://www.apache.org/licenses/LICENSE-2.0</url>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>
+
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <maven.compiler.release>21</maven.compiler.release>

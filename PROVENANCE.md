@@ -53,5 +53,22 @@ then migrated to current, supported Jetty 12 (jakarta.servlet) —
 
 ## Licensing note
 
-The bundled dhtmlxSuite 4.1.2 Standard Edition is GPL-licensed, so this
-repository is licensed GPL-2.0 (see `LICENSE`) to remain distributable.
+`LICENSE` holds the Apache-2.0 text, but **the grant is staged, not operative**
+— see the rights paragraph at the end of this section, and `NOTICE`. The
+project is used privately and is not distributed.
+
+The repository was previously GPL-2.0, which the bundled dhtmlxSuite 4.1.2
+Standard Edition required. That library has been removed — the interface was
+rewritten on MIT-licensed Tabulator — so no bundled component compels copyleft
+any more. What remains is Jetty (EPL-2.0), the Jakarta Servlet API (EPL-2.0 or
+GPL-2.0 with Classpath Exception), Jackson (Apache-2.0), SLF4J (MIT) and
+Tabulator (MIT). GPL-2.0 was also a poor fit once dhtmlx was gone, because
+Apache-2.0 — which Jackson uses, and which is shaded into the distributed
+jar — is generally treated as incompatible with GPL-2.0.
+
+**The Apache-2.0 grant is contingent and not yet effective.** The Java sources
+are a derivative of a third party's binary (see "Reconstruction method" above),
+and that author retains copyright in the original. A license can only be
+granted by someone holding the rights, so this project is not cleared for
+public distribution until written permission is obtained and recorded in
+`NOTICE`. The repository stays private until then.

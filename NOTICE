@@ -1,0 +1,40 @@
+Eagle Board Scheduler
+Copyright 2026 David Norman
+
+This product includes software developed for a Scouting district board of
+review check-in and room scheduler.
+
+------------------------------------------------------------------------------
+ORIGINAL WORK
+------------------------------------------------------------------------------
+
+This project is a reconstruction of a pre-existing application that was
+received only as a compiled JAR (EagleBoardScheduler_20190618.jar). The Java
+sources here were produced by decompiling that binary and then modernizing it;
+they are a derivative of the original author's work.
+
+    Original author:  <<TO BE COMPLETED FROM THE WRITTEN PERMISSION>>
+    Copyright:        <<TO BE COMPLETED>>
+    Permission:       <<DATE AND FORM OF THE GRANT>>
+
+Relicensing under Apache-2.0 is effective only upon that written permission.
+Until it is recorded above, this notice is incomplete and the project is not
+cleared for public distribution. See PROVENANCE.md for the full reconstruction
+method and the rights status.
+
+------------------------------------------------------------------------------
+THIRD-PARTY COMPONENTS
+------------------------------------------------------------------------------
+
+This product bundles the following third-party software. Each is distributed
+under its own license; see that component for full terms.
+
+    Eclipse Jetty              Eclipse Public License 2.0
+    Jakarta Servlet API        EPL 2.0 / GPL 2.0 with Classpath Exception
+    Jackson (FasterXML)        Apache License 2.0
+    SLF4J (QOS.ch)             MIT License
+    Tabulator (Oliver Folkerd) MIT License
+
+The original binary additionally bundled dhtmlxSuite 4.1.2 (GPL) and a
+repackaged json-simple. Neither is present in this tree: the user interface was
+rewritten on Tabulator, and json-simple was replaced by Jackson.
