@@ -657,7 +657,7 @@ UI_PAGES="/index.html /admin.html /scheduler.html
 /configure.html /youth_register.html /adult_register.html /eb-data.js
 /scheduler_config.js /scheduler_grid.js /scheduler_scout_grid.js
 /scheduler_adult_grid.js /scheduler_board_grid.js
-/process_seat.js
+/process_seat.js /process_start.js
 /process_complete.js /process_postpone.js /process_reset.js
 /tabulator/tabulator.min.js /tabulator/tabulator.min.css"
 uicount=0

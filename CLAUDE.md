@@ -81,13 +81,26 @@ original source was received) and then modernized. See `PROVENANCE.md`.
   `Throwable` safety net in `WebServer.service` that logs a stack trace and
   returns a clean 500 for that one request. Still, null-guard handler inputs
   (`getParameter` can be null; `new StringTokenizer(null,…)` throws).
-- **Board lifecycle:** Registered → Verified → (Seat) → InProgress → Completed /
-  Postponed. "Seat" and "Start" were merged — seating goes straight to
-  InProgress; there is no separate Seated state or Start button anymore.
-  (Being revisited: GTA 8.0.3.0 #8 has the board convene 30 minutes before the
-  scout is called in, which needs the two phases timed separately. The server
-  side still supports it — `/seat-board` only hardcodes `InProgress` where it
-  once set `Seated`, and `/inprogress-board` still expects `Seated`.)
+- **Board lifecycle:** Registered → Seated → InProgress → Completed /
+  Postponed (`Verified` survives on legacy records only; nothing sets it).
+  Seating and starting are **two steps again**, after a period when they were
+  merged into one:
+  - **Seat Board** (`/seat-board`) → `Seated`. The members get the room and the
+    paperwork — application, references, project workbook — and the scout is
+    still outside. GTA 8.0.3.0 #8.
+  - **Start Review** (`/inprogress-board`) → `InProgress`. The scout is brought
+    in. Only now may the board be completed.
+
+  They were merged on the view that the second step was redundant; separating
+  them again is what lets the two phases be *timed apart*, which is the whole
+  point. Room-card timers run on `MinsSinceLastUpdate`, so the clock restarts
+  by itself at each transition — `ConveneRedMins` caps the convening phase
+  (red only, no yellow: it is a limit, not a target), and
+  `FinalYellowMins`/`FinalRedMins` then time the interview from Start Review.
+  **Watch for code that assumed `Seated` was unreachable.** `/complete-board`
+  accepted a `Seated` scout, which was harmless while nothing was ever left in
+  that state and became "record a result for a review that never happened" the
+  moment it was restored; there is now a CI guard for exactly that.
 - **Board composition rules** (`process_seat.js`, warned client-side at seating):
   three to six members, per Guide to Advancement 8.0.0.3 — fewer is refused,
   four to six asks for confirmation, seven is refused outright. Adults from the

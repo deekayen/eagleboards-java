@@ -107,7 +107,7 @@ function SchedulerScoutGrid(container_id, toolbar_id, title) {
 
    this.toolbar = document.getElementById(toolbar_id);
    this.buttons = {};
-   var names = ["Seat", "Complete", "Locate", "Filter", "Reset", "Postpone"];
+   var names = ["Seat", "Start", "Complete", "Locate", "Filter", "Reset", "Postpone"];
    for (var i = 0; i < names.length; i++) {
       this.buttons[names[i]] = this.toolbar.querySelector("[data-action='" + names[i] + "']");
    }
@@ -134,6 +134,8 @@ function SchedulerScoutGrid(container_id, toolbar_id, title) {
 
       if (id === "Seat") {
          ProcessSeatBoard(s_id);
+      } else if (id === "Start") {
+         ProcessStartReview(s_id);
       } else if (id === "Complete") {
          ProcessCompleteBoard(s_id);
       } else if (id === "Postpone") {
@@ -199,18 +201,33 @@ SchedulerScoutGrid.prototype.updateHidden = function (state) {
    this.table.refreshFilter();
 };
 
-// Minutes-since-seated at which an active board's room card turns yellow
-// (warning) then red (overdue). Board-type specific; configurable via
-// config.properties (see SCHEDULER_*Mins in scheduler_config.js).
+// Minutes at which a board's room card turns yellow (warning) then red
+// (overdue). The clock runs on MinsSinceLastUpdate, so it restarts by itself
+// when the status changes -- which is what keeps the two phases timed apart:
+//
+//   "Seated"      the board is convening, reading the paperwork before the
+//                 scout is called in. One cap, no yellow: returning the same
+//                 value for both means the card stays okay and then goes
+//                 straight to red once the board has held the room too long.
+//   "InProgress"  the scout is in the room. Board-type specific yellow/red.
+//
+// Configurable via config.properties (see SCHEDULER_*Time in
+// scheduler_config.js).
 SchedulerScoutGrid.prototype.getYellowTime = function (status, btype) {
-   if (status != "Seated" && status != "InProgress") {
+   if (status == "Seated") {
+      return SCHEDULER_ConveneRedTime;
+   }
+   if (status != "InProgress") {
       return 0;
    }
    return (btype == "Final") ? SCHEDULER_FinalYellowTime : SCHEDULER_ProjectYellowTime;
 };
 
 SchedulerScoutGrid.prototype.getRedTime = function (status, btype) {
-   if (status != "Seated" && status != "InProgress") {
+   if (status == "Seated") {
+      return SCHEDULER_ConveneRedTime;
+   }
+   if (status != "InProgress") {
       return 0;
    }
    return (btype == "Final") ? SCHEDULER_FinalRedTime : SCHEDULER_ProjectRedTime;
@@ -268,9 +285,12 @@ SchedulerScoutGrid.prototype.updateButtonStatus = function (s_id) {
       // Legacy records only: nothing sets this status anymore, but a carried-
       // over scout must still be seatable rather than stuck.
       this.setButtonStatus(["Seat", "Reset", "Postpone", "Locate", "Filter"]);
-   } else if (status === "Seated" || status === "InProgress") {
-      // Seat and Start are merged: seating goes straight to InProgress.
-      // Legacy "Seated" records (if any) are treated the same as active.
+   } else if (status === "Seated") {
+      // Board is convening -- members have the room and the paperwork, the
+      // scout is still outside. "Start Review" is the only way forward;
+      // Complete is withheld until the scout has actually been reviewed.
+      this.setButtonStatus(["Start", "Reset", "Locate", "Filter"]);
+   } else if (status === "InProgress") {
       this.setButtonStatus(["Reset", "Complete", "Locate", "Filter"]);
    } else if (status === "Completed") {
       this.setButtonStatus(["Locate", "Filter"]);

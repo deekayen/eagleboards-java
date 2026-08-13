@@ -10,6 +10,7 @@
       <script src="eb-data.js"></script>
       <script src="scheduler_config.js"></script>
       <script src="process_seat.js"></script>
+      <script src="process_start.js"></script>
       <script src="process_complete.js"></script>
       <script src="process_postpone.js"></script>
       <script src="process_reset.js"></script>
@@ -243,8 +244,9 @@
       <div class="eb-panel">
          <div class="eb-panel-title">Youth</div>
          <div class="eb-toolbar" id="scout-toolbar">
-            <button data-action="Seat" title="Seat Board (starts the board)">Seat</button>
-            <button data-action="Complete" title="Complete Board">Complete</button>
+            <button data-action="Seat" title="Put the board members in a room to read the application, references and project workbook. The scout stays outside until you press Start Review.">Seat Board</button>
+            <button data-action="Start" title="Bring the scout into the room and begin the interview. Press this once the members are done reading and are ready for the candidate.">Start Review</button>
+            <button data-action="Complete" title="Finish the review and record the result. Available once the scout has been brought in.">Complete</button>
             <span class="eb-sep"></span>
             <button data-action="Locate" title="Locate Leaders/Parents">Locate</button>
             <button data-action="Filter" title="Show Completed Records">View</button>

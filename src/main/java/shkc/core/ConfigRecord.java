@@ -8,6 +8,7 @@ public class ConfigRecord extends DataRecord {
       "ID",
       "Name",
       "RefreshTimeSecs",
+      "ConveneRedMins",
       "ProjectYellowMins",
       "ProjectRedMins",
       "FinalYellowMins",
@@ -38,12 +39,17 @@ public class ConfigRecord extends DataRecord {
       this.setIfNotSet("ID", "DEFAULT");
       this.setIfNotSet("Name", "DEFAULT");
       this.setIfNotSet("RefreshTimeSecs", "30");
-      // Minutes since a board was seated at which its room card turns yellow
-      // (warning) then red (overdue), per board type.
+      // How long the board may spend convening -- reading the application,
+      // references and project workbook -- before the scout is brought in.
+      // There is no yellow stage: this window is a cap, not a target, and a
+      // board still previewing past it is keeping the candidate waiting.
+      this.setIfNotSet("ConveneRedMins", "30");
+      // Minutes since the scout was brought in at which the room card turns
+      // yellow (warning) then red (overdue), per board type.
       this.setIfNotSet("ProjectYellowMins", "25");
       this.setIfNotSet("ProjectRedMins", "40");
-      this.setIfNotSet("FinalYellowMins", "40");
-      this.setIfNotSet("FinalRedMins", "50");
+      this.setIfNotSet("FinalYellowMins", "30");
+      this.setIfNotSet("FinalRedMins", "45");
       this.setIfNotSet("RegisteredColor", "#ffcccc");
       this.setIfNotSet("VerifiedColor", "#ffffcc");
       this.setIfNotSet("SeatedColor", "#ccffff");

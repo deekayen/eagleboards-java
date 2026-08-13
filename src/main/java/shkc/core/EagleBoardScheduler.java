@@ -481,7 +481,14 @@ public class EagleBoardScheduler {
                ScoutRecord var11 = EagleBoardScheduler.this._scoutRecords.get(var5);
                if (var11 == null) {
                   this.sendError("Invalid Scout ID" + var5, var3);
-               } else if (!var11.getStatus().equals("InProgress") && !var11.getStatus().equals("Seated")) {
+               // "Seated" is deliberately no longer accepted. It used to be,
+               // harmlessly, because seating went straight to InProgress and
+               // no record was ever left sitting in Seated. Now that seating
+               // only convenes the board, a Seated scout is one still waiting
+               // outside the room, and completing there would record a result
+               // for a review that never happened. The error message already
+               // said "expected 'InProgress'" -- the check now matches it.
+               } else if (!var11.getStatus().equals("InProgress")) {
                   this.sendError("Invalid Scout Status '" + var11.getStatus() + "' expected '" + "InProgress" + "'", var3);
                } else {
                   RoomRecord var12 = null;
@@ -1089,10 +1096,15 @@ public class EagleBoardScheduler {
                   var9.setScout(var10.getFullName());
                   var9.setLeaders(var22);
                   var10.setRoom(var9.getRoom());
-                  // Seat and Start are merged: seating a board makes it active
-                  // ("InProgress") in one step. The separate Seated state and
-                  // the Start button were redundant and have been removed.
-                  var10.setStatus("InProgress");
+                  // Seating convenes the board only: the members get the room
+                  // to go over the application, references and project workbook
+                  // BEFORE the scout is called in. "Start Review" (the
+                  // /inprogress-board endpoint) is what admits the scout and
+                  // makes the board active. Seat and Start were merged once, on
+                  // the view that the second step was redundant; separating
+                  // them again is what lets the two phases be timed apart --
+                  // the preview is capped, the interview has its own window.
+                  var10.setStatus("Seated");
                   var10.setBoardMembers(var23);
                   var10.setBoardMemberIDs(var8);
                   if (var11 != null) {

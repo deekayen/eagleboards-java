@@ -11,14 +11,20 @@
 
 var SCHEDULER_refreshTime = 10;
 
-// Board-type room-card warning thresholds, in minutes since a board was
-// seated. Yellow = warning, Red = overdue. Defaults below; override in
-// config.properties with keys ProjectYellowMins / ProjectRedMins /
-// FinalYellowMins / FinalRedMins.
+// How long the board may spend convening (status "Seated") before the scout
+// is brought in. Red only -- the window is a cap, not something to aim at, so
+// there is no yellow stage to warn that the board is approaching it. Override
+// in config.properties with ConveneRedMins.
+var SCHEDULER_ConveneRedTime = 30;
+
+// Board-type room-card warning thresholds, in minutes since the scout was
+// brought in (status "InProgress"). Yellow = warning, Red = overdue. Defaults
+// below; override in config.properties with keys ProjectYellowMins /
+// ProjectRedMins / FinalYellowMins / FinalRedMins.
 var SCHEDULER_ProjectYellowTime = 25;
 var SCHEDULER_ProjectRedTime = 40;
-var SCHEDULER_FinalYellowTime = 40;
-var SCHEDULER_FinalRedTime = 50;
+var SCHEDULER_FinalYellowTime = 30;
+var SCHEDULER_FinalRedTime = 45;
 
 var SCHEDULER_Config = null;
 
@@ -64,6 +70,7 @@ var SCHEDULER_configReady = fetch("/config-autofill?Name=DEFAULT&fmt=json")
       SCHEDULER_Config = ebParseLooseJSON(text);
       if (SCHEDULER_Config) {
          SCHEDULER_refreshTime = parseInt(SCHEDULER_Config.RefreshTimeSecs, 10) || SCHEDULER_refreshTime;
+         SCHEDULER_ConveneRedTime = parseInt(SCHEDULER_Config.ConveneRedMins, 10) || SCHEDULER_ConveneRedTime;
          SCHEDULER_ProjectYellowTime = parseInt(SCHEDULER_Config.ProjectYellowMins, 10) || SCHEDULER_ProjectYellowTime;
          SCHEDULER_ProjectRedTime = parseInt(SCHEDULER_Config.ProjectRedMins, 10) || SCHEDULER_ProjectRedTime;
          SCHEDULER_FinalYellowTime = parseInt(SCHEDULER_Config.FinalYellowMins, 10) || SCHEDULER_FinalYellowTime;
