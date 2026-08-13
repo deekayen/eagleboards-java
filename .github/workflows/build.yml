@@ -34,6 +34,14 @@ jobs:
           grep -q "shkc/core/EagleBoardScheduler.class" jar-contents.txt
           jar xf "$NEW_JAR" META-INF/MANIFEST.MF
           grep -q "Main-Class: shkc.core.EagleBoardScheduler" META-INF/MANIFEST.MF
+      - name: Board composition rules (same-unit conflict detection)
+        shell: bash
+        # The scheduler must flag board members from the scout's own unit --
+        # a council rule the reviewer may override, but must never miss. The
+        # rule lives in client-side JS, so no server request exercises it and
+        # the runtime smoke test below cannot see it. Node is preinstalled on
+        # all three runners; no packages are installed and no network is used.
+        run: node scripts/test-seat-conflicts.js
       - name: Runtime smoke test (start server, exercise endpoints)
         shell: bash
         run: |

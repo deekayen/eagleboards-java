@@ -25,6 +25,8 @@ original source was received) and then modernized. See `PROVENANCE.md`.
 - Build: `./mvnw package` → `target/eagleboardscheduler-*.jar` (JDK 25, targets 21).
 - Run: `scripts/run.sh` (reads `SUG_KEY` from env or `.env`; drops the `-w`
   popup automatically when there's no display, e.g. a headless Pi).
+- Board composition rules: `node scripts/test-seat-conflicts.js` (headless, no
+  framework, no network). Runs in CI on all three platforms.
 - **Parity gate: `scripts/verify-parity.sh` — run it after every change and keep
   it green.** It boots the original inherited jar and the rebuilt jar side by
   side and proves they behave identically for everything that wasn't
@@ -82,6 +84,20 @@ original source was received) and then modernized. See `PROVENANCE.md`.
 - **Board lifecycle:** Registered → Verified → (Seat) → InProgress → Completed /
   Postponed. "Seat" and "Start" were merged — seating goes straight to
   InProgress; there is no separate Seated state or Start button anymore.
+  (Being revisited: GTA 8.0.3.0 #8 has the board convene 30 minutes before the
+  scout is called in, which needs the two phases timed separately. The server
+  side still supports it — `/seat-board` only hardcodes `InProgress` where it
+  once set `Seated`, and `/inprogress-board` still expects `Seated`.)
+- **Board composition rules** (`process_seat.js`, warned client-side at seating):
+  three to six members, per Guide to Advancement 8.0.0.3 — fewer is refused,
+  four to six asks for confirmation, seven is refused outright. Adults from the
+  scout's own unit raise an overridable warning naming every one of them: this
+  council forbids them entirely, and the override falls back to the national
+  rule (GTA 8.0.3.0 #2), which still requires at least one member from outside
+  the unit — so a board made *entirely* of the scout's unit is refused with no
+  override. Age is attested by the "I am 21+" button on the sign-in page, and
+  the parent/relative rule is handled by unit matching, so neither needs a field
+  on `AdultRecord`. Keep the rules pure and tested — see the test script above.
 - **Config lives in `config.properties`** (JDK `java.util.Properties`,
   `key=value`, `#` comments) as one CONFIG record, loaded into `ConfigRecord`
   (columns must be listed in `ConfigRecord.COLUMNS` to be served via
