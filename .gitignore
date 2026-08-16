@@ -29,7 +29,8 @@ RunScheduler.bat
 target/
 parity/
 .DS_Store
-.claude/
+.claude/*
+!.claude/skills/
 
 # The inherited binary stays out of git entirely: it embeds a SignUpGenius
 # API key in its web resources. Local copies live at the repo root (runtime)
