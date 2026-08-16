@@ -1,164 +1,197 @@
 # Review Board Scheduler
 
-Check-in and room-scheduling application for Eagle Scout Boards of Review.
+This program runs the check-in desk and the room assignments on a board of
+review night. Scouts and adults sign themselves in on a laptop or tablet at the
+door. You sit at the admin computer, put each scout with a board and a room, and
+record the result when they come out.
 
-On an event night it runs a small web server on the local network. Scouts and
-board members check themselves in from a browser at the registration station,
-while an administrator manages people and assigns them to rooms from the admin
-computer. Data is stored as CSV files next to the application; each event night
-writes its own dated folder and a board-results spreadsheet.
+It runs on one computer at the event. It does not need the internet, only a
+local network that the check-in station can reach.
 
-This repository reconstructs the application's source from an inherited binary
-and modernizes it to build and run on current Java LTS releases. See
-[PROVENANCE.md](PROVENANCE.md) for that history, and
-[ARCHITECTURE.md](ARCHITECTURE.md) for how the pieces fit together.
+**If you are here to run an event night, this page is the whole manual.** The
+technical material lives in [RUNNING.md](RUNNING.md).
 
-## Documentation
+## Before the first night
+
+You need three things.
+
+1. **A computer to run it on.** A laptop is fine. A Raspberry Pi is fine. It
+   needs Java installed; see [RUNNING.md](RUNNING.md) if it is not set up yet.
+2. **A second screen for the door.** A laptop or tablet with a web browser,
+   on the same network as the first computer. This is the check-in station.
+3. **Your room list.** Which rooms you have, and whether each one is for
+   project proposal reviews or for final boards.
+
+## Starting it up
+
+Open the Review Board Scheduler shortcut on the desktop.
+
+Java may ask whether to allow access on local or public networks. Click
+**Allow**. If you say no, the check-in station will not be able to reach it.
+
+Two windows open:
+
+- a **black window** full of text. Leave it alone. Closing it stops the program.
+- a small **grey window** showing a web address, something like
+  `http://192.168.1.50:8080`.
+
+That address is what you type into the check-in station's browser.
+
+On the admin computer, use the same address with a word on the end:
+
+| What you want | Address to type |
+| --- | --- |
+| The check-in screen | the address by itself |
+| **The scheduler** (where you will spend the night) | the address + `/scheduler` |
+| The record lists | the address + `/admin` |
+| Colors and timers | the address + `/configure` |
+| Built-in help | the address + `/help` |
+
+## Set up your rooms first
+
+Do this before anyone arrives. The program cannot seat a board without a room.
+
+1. Go to `/admin` on the admin computer.
+2. Click the **Rooms** tab.
+3. Add each room. Mark it **Project** or **Final**.
+
+Mark rooms by what you will use them for that night, not by what they are
+called. The program uses that mark to suggest the right room later.
+
+If you run more than one project review in the same physical room, add it more
+than once with different names, like `200A` and `200B`. Each one can hold a
+board.
+
+## The night, step by step
+
+### 1. People sign in
+
+At the check-in station, a scout taps **I am a Youth** and an adult taps
+**I am 21+**. They fill in their name, contact details, unit, and (for scouts)
+whether they are there for a project proposal review or a final board. Adults
+say which kind of board they are willing to sit on.
+
+Adults who have served before are recognized once they enter their email, and
+the rest of the form fills itself in.
+
+The lists on the screens update themselves about every half minute. You do not
+need to press anything to see new arrivals.
+
+### 2. Check the paperwork
+
+This happens away from the computer. Look over the scout's application,
+references, and project workbook while they wait.
+
+If something is missing and cannot be fixed tonight, select the scout on the
+scheduler and press **Postpone**. They can come back next month.
+
+### 3. Seat the board
+
+On the scheduler, click the scout's name. The program picks a chair, the right
+number of members, and a room, and ticks them in the lists.
+
+You can change any of it. Tick and untick adults in the adult list, and click a
+different room, until it is the board you want.
+
+Press **Seat Board**. A small window asks you to confirm who is chairing.
+Confirm it, and the board members go to the room with the paperwork.
+
+**The scout does not go in yet.** The members read the application, the
+references, and the project workbook first. The scout waits outside.
+
+The program will stop you or ask a question in these cases:
+
+| What it sees | What happens |
+| --- | --- |
+| Fewer than 3 members on a final board (2 on a project review) | Refused. Add more adults. |
+| More members than needed | Asks you to confirm. This is fine. |
+| More than 6 members on a final board | Refused. National rules cap a board at six. |
+| Adults from the scout's own unit | Warns you and names them. You may override it. |
+| **Every** member from the scout's own unit | Refused. At least one member must come from outside the unit, and there is no override. |
+| A final board put in a project room, or the reverse | Asks you to confirm. |
+
+### 4. Start the review
+
+When the members have finished reading and are ready for the candidate, select
+the scout and press **Start Review**.
+
+The program tells you where to find the scout's Scoutmaster or Life to Eagle
+coach, who walks them in and introduces them. The **Locate** button looks them
+up again if you missed the message.
+
+### 5. Record the result
+
+When the board comes out, select the scout and press **Complete**. Choose
+**Approved**, **Adjourned**, or **NotApproved**, and add any notes.
+
+That frees the room and the adults for the next scout.
+
+## Reading the screen
+
+Each scout's row is colored by where they are:
+
+| Color | Meaning |
+| --- | --- |
+| Pink | Signed in, waiting |
+| Pale yellow | Paperwork checked |
+| Pale blue | Board is in the room reading |
+| Pale green | Scout is in with the board |
+| White | Finished |
+| Grey | Postponed |
+
+Room cards change color when a board is taking a long time. They are a nudge to
+go check, not an alarm, and nothing stops a board that needs longer.
+
+| Stage | Turns yellow | Turns red |
+| --- | --- | --- |
+| Board reading the paperwork | — | 30 minutes |
+| Final board with the scout | 30 minutes | 45 minutes |
+| Project review with the scout | 25 minutes | 40 minutes |
+
+You can change these on the `/configure` screen.
+
+## When something goes wrong
+
+**A scout is not in the list.** They have not signed in yet, or they signed in
+as an adult by mistake. Check the `/admin` lists.
+
+**"Not enough adults" or no room offered.** Every room of that type is busy, or
+too few adults have signed in and marked themselves available for that kind of
+board. Wait for a board to finish, or add a room.
+
+**You seated the wrong board.** Select the scout and press **Reset**. That puts
+them back to waiting and frees the adults and the room. It works whether the
+board is still reading or already interviewing.
+
+**You need to postpone after seating.** Press **Reset** first, then
+**Postpone**.
+
+**The check-in station cannot reach the address.** Both machines must be on the
+same network. Check the address in the grey window, and check that you clicked
+Allow when Java asked about network access.
+
+**The black window closed.** The program stopped. Start it again from the
+shortcut. Work already recorded is saved.
+
+## Where the information goes
+
+Everything is written to files on the computer running the program, in a folder
+named for tonight's date. Nothing is sent anywhere.
+
+Those files hold names, phone numbers, emails, and birthdates of adults **and
+minors**. Treat them the way you would treat a paper roster: keep them on that
+machine, do not email them, and do not put them anywhere shared.
+
+## For whoever set this up
 
 | Document | What it covers |
 | --- | --- |
-| [ARCHITECTURE.md](ARCHITECTURE.md) | How the app is built: web layer, data layer, UI, board lifecycle |
-| [CONTRIBUTING.md](CONTRIBUTING.md) | Setup, build, the parity gate, house style, PR process |
+| [RUNNING.md](RUNNING.md) | Installing, building, command-line options, settings file, known quirks |
+| [ARCHITECTURE.md](ARCHITECTURE.md) | How the program is put together |
+| [CONTRIBUTING.md](CONTRIBUTING.md) | Making changes, and the parity gate that checks them |
 | [SECURITY.md](SECURITY.md) | Handling participant data and the API key |
-| [PROVENANCE.md](PROVENANCE.md) | Where the code came from and how it is authenticated |
-| [CLAUDE.md](CLAUDE.md) | Condensed working notes for anyone (human or AI) editing the repo |
+| [PROVENANCE.md](PROVENANCE.md) | Where this code came from |
 | [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) | Expected conduct, including youth protection |
-
-## Requirements
-
-- **Java 21 or newer.** The build targets Java 21 bytecode; CI uses Temurin 25.
-- **Maven is not required** — use the bundled wrapper, `./mvnw` (`mvnw.cmd` on
-  Windows).
-
-### Supported platforms
-
-Every push and pull request is built and smoke-tested on:
-
-| Platform | Notes |
-| --- | --- |
-| Linux amd64 | |
-| Windows amd64 | typical admin laptop |
-| Linux arm64 | Raspberry Pi deployment target |
-
-Anything with a JDK 21+ should work. The optional Swing popup is skipped
-automatically when there is no display, so a headless Pi is fine.
-
-## Quick start
-
-```sh
-git clone https://github.com/deekayen/eagleboards.git
-cd eagleboards
-git config core.hooksPath scripts/hooks   # required; see SECURITY.md
-./mvnw package
-```
-
-That produces a self-contained jar at `target/eagleboardscheduler-*.jar`.
-
-Then run it:
-
-```sh
-scripts/run.sh        # Linux / macOS / Raspberry Pi
-scripts\run.bat       # Windows
-```
-
-Or invoke it directly:
-
-```sh
-java -jar target/eagleboardscheduler-*.jar \
-  -verbose -w -a Master_AdultHistory.csv -c config.properties \
-  -port 8080 -bind 192.168. -sugkey "$SUG_KEY"
-```
-
-Two windows appear: a console and a small grey window showing the URL to open on
-the check-in station.
-
-## Using it on an event night
-
-| Screen | URL | Who uses it |
-| --- | --- | --- |
-| Check-in | `http://<ip>:8080/` | Scouts and adults, at the registration station |
-| Scheduler | `http://<ip>:8080/scheduler` | The operator assigning boards to rooms |
-| Admin | `http://<ip>:8080/admin` | Managing records directly |
-| Settings | `http://<ip>:8080/configure` | Colors and warning timings |
-| Help | `http://<ip>:8080/help` | Operator instructions |
-
-The board lifecycle is **Registered → InProgress → Completed** (or Postponed),
-with a result of Approved, Adjourned, or NotApproved. The check-in, admin, and
-scheduler screens refresh themselves on the `RefreshTimeSecs` interval, so new
-arrivals appear without anyone pressing Refresh.
-
-## Command-line options
-
-| Option | Argument | Meaning |
-| --- | --- | --- |
-| `-d`, `-dir` | directory | Where the event's data files live. Defaults to today's date, `YYYY-MM-DD`. |
-| `-a`, `-adults` | file | Adult auto-fill history. Must exist, or startup fails. |
-| `-c`, `-config` | file | Config file. `.properties` is parsed as key=value; anything else as CSV. |
-| `-p`, `-prereg` | file | Pre-registration CSV from the district website. Takes priority over SignUpGenius. |
-| `-port` | number | Listen port. Default `8080`. |
-| `-bind` | ip-prefix | Only listen on, and advertise, the interface whose IPv4 starts with this (e.g. `192.168.`). `127.0.0.1` stays reachable either way. Default: every interface. |
-| `-sugkey` | key | SignUpGenius API key, enabling the pre-registration import. |
-| `-sugid` | id | Specific SignUpGenius signup ID. Optional; otherwise auto-detected. |
-| `-w`, `-windows` | | Show the popup dialog with the check-in URL. |
-| `-v`, `-verbose` | | Verbose logging. **Prints the API key** — see SECURITY.md. |
-| `-debug` | | Write `eagle-board-scheduler.log`. |
-| `-h`, `-help`, `-?` | | Print usage. |
-
-## Configuration
-
-`config.properties` (committed; colors and timings only, no personal data):
-
-| Key | Meaning |
-| --- | --- |
-| `RefreshTimeSecs` | How often the check-in, admin, and scheduler screens poll |
-| `ProjectYellowMins`, `ProjectRedMins` | Minutes since seating before a Project review's room card turns yellow, then red |
-| `FinalYellowMins`, `FinalRedMins` | The same, for Final boards |
-| `*Color`, `*HiColor` | Row and highlight colors per status |
-
-All of it is editable from the Settings page. Note that saving there rewrites the
-file and does not preserve `#` comments.
-
-The SignUpGenius key is read from the `SUG_KEY` environment variable or an
-untracked `.env` file — copy `.env.example` and fill it in.
-
-## Data and privacy — read before committing
-
-The application's data files sit in the working directory and contain personal
-information about adults **and minors**. They are never committed.
-
-- `.gitignore` excludes all CSV and spreadsheet formats, dated `YYYY-MM-DD/`
-  folders, `Master_AdultHistory*`, `*Board_Results*`, `LOGIN_INFO*`, the legacy
-  `RunScheduler.*` scripts (they embed an API key), `original/`, and `.env`.
-- `scripts/hooks/pre-commit` hard-fails any commit that stages one of those or a
-  literal API key. Install it once per clone with the `git config` line above,
-  and do not bypass it with `--no-verify`.
-
-Full detail in [SECURITY.md](SECURITY.md).
-
-## Known quirks
-
-Things that have cost real debugging time:
-
-- **`-c` with an absolute path is silently ignored.** The path is validated and
-  then rebuilt relative to the data directory, so it falls back to
-  `config.properties` in the working directory. Pass a relative path and run
-  from the directory that holds it.
-- **`./mvnw package` does not remove deleted resources** from `target/classes`,
-  so a deleted WEBROOT file keeps being packaged and served. Use `clean package`
-  after deleting or renaming anything.
-- **The SignUpGenius import filters by calendar month, not by day.** Two board
-  nights in the same month both import.
-- **A short API key is silently ignored.** The app requires more than 10
-  characters, and the launcher scripts skip the flag entirely if the value is
-  still `replace-with-real-key`. Both produce "no prereg-file or SignupGenius DB
-  loaded" rather than an error.
-
-## Contributing
-
-See [CONTRIBUTING.md](CONTRIBUTING.md). In short: install the pre-commit hook,
-build with the wrapper, develop against synthetic data, and keep
-`scripts/verify-parity.sh` passing — it is this project's acceptance test, not
-code review.
 
 ## License
 
