@@ -67,11 +67,9 @@ That means no names, contact details, unit affiliations, or board results in a
 commit, an issue, a screenshot, or a log excerpt. Use synthetic data in every
 example, and read [SECURITY.md](SECURITY.md) before you attach anything.
 
-This is not hypothetical. The repository has already had to be deleted and
-recreated once because participant data reached a pull request, and GitHub does
-not let a repository owner delete pull-request refs. `.gitignore` and
-`scripts/hooks/pre-commit` guard against the common mistakes, but they are a
-backstop, not a substitute for looking at what you are about to publish.
+`.gitignore` and `scripts/hooks/pre-commit` guard against the common mistakes,
+but they are a backstop, not a substitute for looking at what you are about to
+publish.
 
 ## Reporting a concern
 

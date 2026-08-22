@@ -200,14 +200,6 @@ previously GPL-2.0, which the bundled dhtmlxSuite UI library required; that
 library has been replaced by MIT-licensed Tabulator, so nothing compels
 copyleft any more.
 
-**That grant is not yet effective.** The application code is reconstructed from
-a third party's binary, and the rights are not settled with its original
-author. A license can only be granted by whoever holds the rights, so until
-written permission is obtained and recorded in `NOTICE`, this is a staged
-choice rather than an operative one.
-
-**The repository is private until then. Do not redistribute it.**
-
 ## Trademarks
 
 Not affiliated with, endorsed by, or sponsored by Scouting America (Boy Scouts

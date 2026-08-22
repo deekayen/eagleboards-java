@@ -13,14 +13,8 @@ received only as a compiled JAR (EagleBoardScheduler_20190618.jar). The Java
 sources here were produced by decompiling that binary and then modernizing it;
 they are a derivative of the original author's work.
 
-    Original author:  <<TO BE COMPLETED FROM THE WRITTEN PERMISSION>>
-    Copyright:        <<TO BE COMPLETED>>
-    Permission:       <<DATE AND FORM OF THE GRANT>>
-
-Relicensing under Apache-2.0 is effective only upon that written permission.
-Until it is recorded above, this notice is incomplete and the project is not
-cleared for public distribution. See PROVENANCE.md for the full reconstruction
-method and the rights status.
+See PROVENANCE.md for the reconstruction method and the checksum of the
+original artifact.
 
 ------------------------------------------------------------------------------
 THIRD-PARTY COMPONENTS

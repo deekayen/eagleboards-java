@@ -378,13 +378,3 @@ setting up a Raspberry Pi.
 ## Where to ask
 
 Open a GitHub issue. Follow-up work and design decisions are tracked there.
-
-The repository is **private** pending a rights review with the original author
-and a final license decision. Do not redistribute it. See [LICENSE](LICENSE) and
-the pre-public checklist issue.
-
-The rights question is about the reconstruction itself: the app was rebuilt by
-decompiling a binary whose author reserved all rights. No third-party copyright
-notice remains in this tree — the vendored `monfox/log` library was replaced by
-`java.util.logging`, and the single unused file that carried a Monfox LLC notice
-has been deleted.

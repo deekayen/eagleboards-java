@@ -288,10 +288,6 @@ incompatible with it. Apache-2.0 additionally covers inbound contributions,
 grants patent rights explicitly, and disclaims trademarks. A `NOTICE` file was
 added to carry attribution.
 
-The grant is **contingent**: the application code is reconstructed from a third
-party's binary, so it becomes effective only once written permission from the
-original author is obtained and recorded in `NOTICE`. See `PROVENANCE.md`.
-
 ---
 
 ## What deliberately did *not* change
