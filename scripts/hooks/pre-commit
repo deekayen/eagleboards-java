@@ -27,6 +27,18 @@ for f in $staged; do
             echo "BLOCKED: $f — the inherited binary embeds an API key; keep it out of git" >&2
             fail=1 ;;
     esac
+    # Skill data. The eagle-boards-email skill keeps its scoutmaster directory
+    # and its address lists as TOML beside the skill, and .gitignore alone did
+    # not hold: the root ignore file un-ignores .claude/skills/ wholesale, so
+    # scoutmasters.toml and scoutmaster_overrides.toml were committed in 86bec5c
+    # with 45 real addresses in them. Templates ending .example.toml are fine.
+    case "$f" in
+        .claude/skills/*.example.toml|.claude/skills/*/*.example.toml)
+            : ;;
+        .claude/skills/*.toml|.claude/skills/*/*.toml)
+            echo "BLOCKED: $f — skill TOML holds real names, units and email addresses" >&2
+            fail=1 ;;
+    esac
 done
 
 # Block a real SignUpGenius API key in staged content: a -sugkey argument or
