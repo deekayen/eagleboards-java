@@ -191,7 +191,7 @@ machine, do not email them, and do not put them anywhere shared.
 | [CONTRIBUTING.md](CONTRIBUTING.md) | Making changes, and the parity gate that checks them |
 | [SECURITY.md](SECURITY.md) | Handling participant data and the API key |
 | [PROVENANCE.md](PROVENANCE.md) | Where this code came from |
-| [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) | Expected conduct, including youth protection |
+| [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) | Conduct, on the Scout Oath and Law, and youth protection |
 
 ## License
 

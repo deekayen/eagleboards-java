@@ -131,11 +131,23 @@ original source was received) and then modernized. See `PROVENANCE.md`.
 - Branch is `main`, tracks `origin/main`. Commits are made and pushed from the
   working directory; there's usually nothing to `git pull` unless a Dependabot
   PR was merged on GitHub.
-- Follow-up work and decisions are tracked as GitHub issues on
-  `deekayen/eagleboards`. The repo is **private** until a rights review with the
-  original author and a final license decision — see the pre-public checklist
-  issue. The rights question is that the app was reconstructed by decompiling a
-  binary whose author reserved all rights; no Monfox LLC copyright notice
+- **Do not open pull requests on this repo. Push to `main`.** GitHub keeps
+  `refs/pull/N/head` forever and gives the owner no way to delete it, so
+  anything that reaches a PR survives every history rewrite. That is exactly how
+  a directory of participant data outlived a `filter-repo` purge and forced the
+  repository to be deleted and recreated on 2026-08-22.
+- Issue history did not survive that recreation. What was tracked there and is
+  still open:
+  - **Rotate the SignUpGenius API key.** It was embedded in the inherited binary
+    and lived in pre-scrub git history. The old repository and that history are
+    both gone and the repo has only ever been private, so this is hygiene rather
+    than a live incident, but the key in use is still the original one.
+  - **Branch protection** needs GitHub Pro on a private repo; revisit if this
+    ever goes public.
+- The repo is **private** until a rights review with the original author and a
+  final license decision. The rights question is that the app was reconstructed
+  by decompiling a binary whose author reserved all rights; no Monfox LLC
+  copyright notice
   remains in this tree (the vendored `monfox/log` library was replaced by
   `java.util.logging`, and the one file that carried the notice was unused and
   has been deleted).
