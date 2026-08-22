@@ -16,8 +16,12 @@ Releases are versioned by date (e.g. `2026.07.31`). For commit-level detail,
 
 ## At a glance
 
-- The board of review workflow lost two steps — **Verify** and **Start** are
-  gone, so a youth goes straight from signed-in to sitting a board.
+- The board of review workflow lost the **Verify** gate, and the two stages
+  that remain are now timed apart: seating convenes the board, and a second
+  click brings the youth in.
+- **Seating a board is now checked against the Guide to Advancement** for size
+  and for members from the youth's own unit; the original accepted whatever the
+  operator picked.
 - The entire browser interface was rebuilt, because the toolkit it was built on
   was **GPL-licensed and unmaintained**.
 - Every screen now **refreshes itself**; the old one only updated when someone
@@ -41,18 +45,45 @@ Registered → Verified → Seated → InProgress → Completed / Postponed
 It is now:
 
 ```
-Registered → InProgress → Completed / Postponed
+Registered → Seated → InProgress → Completed / Postponed
 ```
 
 - **Verify is gone.** It was a paperwork gate: the operator ticked boxes and the
   server recorded the youth as Verified. Paperwork is checked off-screen, so a
   registered youth is now seated directly. The Verify button, its dialog, and
   the `/verify-board` endpoint were all removed.
-- **Seat and Start are merged.** Seating a board used to park it in a transient
-  *Seated* state that needed a second **Start** click. Seating now goes straight
-  to *InProgress* in one action, and the Start button is gone.
+- **Seat and Start still mean different things.** *Seated* is the convening
+  phase: the members have the room and the paperwork — application, references,
+  project workbook — and the youth is still outside, per Guide to Advancement
+  8.0.3.0 #8. **Start Review** is what brings the youth in and moves the board
+  to *InProgress*. An interim version of this program merged the two, on the
+  view that the second click was redundant. Keeping them separate is what lets
+  the convening phase and the interview be timed apart, which is the point of
+  the room-card clocks below.
+- **A board cannot be completed while it is still convening.** `/complete-board`
+  refuses a *Seated* youth, so no result can be recorded for a review that never
+  started.
 - **Old records still work.** Anything left in a `Verified` state by an earlier
-  run is still seatable rather than stranded.
+  run is still seatable rather than stranded. Nothing sets that state any more.
+
+**Seating now checks who is on the board.** The original accepted any set of
+members the operator picked. Seating is now checked against the Guide to
+Advancement before it goes through:
+
+- **Board size** must be three to six members, per GTA 8.0.0.3. Fewer than three
+  is refused. Four to six is legal and asks for confirmation first. Seven is
+  refused outright.
+- **Adults from the youth's own unit** raise a warning that names every one of
+  them, because this council forbids them entirely. The warning can be
+  overridden, which falls back to the national rule, GTA 8.0.3.0 #2: at least
+  one member must come from outside the unit. A board made up *entirely* of the
+  youth's own unit is therefore refused with no override available.
+- Age is attested by the **"I am 21+"** button on the sign-in page, and the
+  parent/relative rule is covered by the unit match, so neither needs a field on
+  the adult record.
+
+The rules are pure functions with no server round trip, covered by
+`scripts/test-seat-conflicts.js` and run in CI on all three platforms.
 
 **Other workflow changes**
 
@@ -64,10 +95,14 @@ Registered → InProgress → Completed / Postponed
   change.)
 - The **Completion Notes** box starts empty instead of pre-filled with
   placeholder text.
-- **Room warning timers are per board type** and count from the moment the board
-  is seated: Project turns yellow at 25 minutes and red at 40; Final turns
-  yellow at 40 and red at 50. All four are editable in Settings. The original
-  had a single pair of alert/reminder values shared by every board.
+- **Room warning timers are per board type, and each phase is timed on its
+  own.** The clock runs on the record's last update, so it restarts by itself at
+  every transition. Convening is capped by `ConveneRedMins`, 30 minutes, which
+  goes straight to red with no yellow stage because it is a limit rather than a
+  target. From **Start Review** the interview is paced by its own pair: Project
+  turns yellow at 25 minutes and red at 40; Final turns yellow at 30 and red at
+  45. All five are editable in Settings. The original had a single pair of
+  alert/reminder values shared by every board.
 
 ---
 
@@ -224,7 +259,7 @@ tested on 64-bit Linux, Windows, and ARM Linux.
 
 `ConfigWindow` and `NetTest` (unused classes), `old_saved_script.js`,
 `index_simple.html` (a second sign-in page with no lists), and the scripts
-behind the removed Verify and Start steps. Roughly 928 files of the old UI
+behind the removed Verify step. Roughly 928 files of the old UI
 toolkit — about 3 MB — went with it.
 
 ---

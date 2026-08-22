@@ -121,6 +121,31 @@ jobs:
           grep -q ",Completed," liferun/scouts.csv || { echo "FAIL: complete after Start Review did not complete"; exit 1; }
           kill $SRV
           echo "board lifecycle passed on ${{ matrix.os }}"
+      - name: Windows launcher (run.bat picks the newest jar, warns on shadowed WEBROOT)
+        if: matrix.os == 'windows-latest'
+        shell: cmd
+        # run.bat is what the app is actually launched with at an event, and it
+        # silently sat two fixes behind run.sh: it took whatever the wildcard
+        # glob happened to return, and it never warned about a WEBROOT\ folder
+        # shadowing the jar's UI. Nothing on Linux or macOS can exercise
+        # cmd.exe, so this leg is the only check the Windows launcher gets.
+        # EB_DRYRUN stops the script before it launches Java.
+        run: |
+          for %%j in (target\eagleboardscheduler-*.jar) do set "REALJAR=%%~nxj"
+          rem A decoy that sorts LAST alphabetically but is OLD on the clock.
+          rem A plain glob starts it; ordering by timestamp does not.
+          copy /y "target\%REALJAR%" target\eagleboardscheduler-9999.12.31.jar >nul
+          powershell -NoProfile -Command "(Get-Item 'target\eagleboardscheduler-9999.12.31.jar').LastWriteTime = (Get-Date).AddDays(-30)"
+          mkdir WEBROOT
+          set EB_DRYRUN=1
+          call scripts\run.bat > runbat.out 2>&1
+          type runbat.out
+          rmdir /s /q WEBROOT
+          findstr /c:"DRYRUN: would start target\%REALJAR%" runbat.out >nul || (echo FAIL: run.bat did not start the newest jar & exit /b 1)
+          findstr /c:"holds more than one build" runbat.out >nul || (echo FAIL: run.bat did not flag the extra jar in target\ & exit /b 1)
+          findstr /c:"a WEBROOT\ directory exists" runbat.out >nul || (echo FAIL: run.bat did not warn about the shadowing WEBROOT\ folder & exit /b 1)
+          echo run.bat launcher checks passed
+
       - name: SignUpGenius live API check
         # One leg only, push only: secrets are absent on fork/Dependabot PRs,
         # and one API call per commit is plenty.
