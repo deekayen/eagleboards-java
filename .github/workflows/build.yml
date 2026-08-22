@@ -143,7 +143,11 @@ jobs:
           rmdir /s /q WEBROOT
           findstr /c:"DRYRUN: would start target\%REALJAR%" runbat.out >nul || (echo FAIL: run.bat did not start the newest jar & exit /b 1)
           findstr /c:"holds more than one build" runbat.out >nul || (echo FAIL: run.bat did not flag the extra jar in target\ & exit /b 1)
-          findstr /c:"a WEBROOT\ directory exists" runbat.out >nul || (echo FAIL: run.bat did not warn about the shadowing WEBROOT\ folder & exit /b 1)
+          rem No backslash-space in a findstr /c: literal: findstr eats the
+          rem backslash there and the match fails even though the line is
+          rem present. Backslash before a letter, as in the DRYRUN line above,
+          rem is fine. Match the part of the warning that has neither.
+          findstr /c:"WARNING: a WEBROOT" runbat.out >nul || (echo FAIL: run.bat did not warn about the shadowing WEBROOT folder & exit /b 1)
           echo run.bat launcher checks passed
 
       - name: SignUpGenius live API check
