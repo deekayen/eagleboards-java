@@ -27,11 +27,11 @@ for f in $staged; do
             echo "BLOCKED: $f — the inherited binary embeds an API key; keep it out of git" >&2
             fail=1 ;;
     esac
-    # Skill data. The eagle-boards-email skill keeps its scoutmaster directory
-    # and its address lists as TOML beside the skill, and .gitignore alone did
-    # not hold: the root ignore file un-ignores .claude/skills/ wholesale, so
-    # scoutmasters.toml and scoutmaster_overrides.toml were committed in 86bec5c
-    # with 45 real addresses in them. Templates ending .example.toml are fine.
+    # Skill data. A skill under .claude/ once kept a directory of real people --
+    # names, units, and 45 email addresses -- as TOML beside its code, and it
+    # was committed because .gitignore un-ignored .claude/skills/ wholesale.
+    # .claude/ is fully ignored now and that skill is gone from this repo; this
+    # stays as the second line of defense. Templates ending .example.toml pass.
     case "$f" in
         .claude/skills/*.example.toml|.claude/skills/*/*.example.toml)
             : ;;

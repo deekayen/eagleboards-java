@@ -29,8 +29,12 @@ RunScheduler.bat
 target/
 parity/
 .DS_Store
-.claude/*
-!.claude/skills/
+# Everything under .claude/ is local tooling, not part of the application.
+# There was once a `!.claude/skills/` negation here so one skill could be
+# versioned. It un-ignored the whole tree rather than just the code in it,
+# and the skill's scoutmaster directory -- names, units, and 45 email
+# addresses -- rode in behind it. The skill lives on disk only now.
+.claude/
 
 # The inherited binary stays out of git entirely: it embeds a SignUpGenius
 # API key in its web resources. Local copies live at the repo root (runtime)
