@@ -368,6 +368,16 @@ function SendSeatRequest(room_id, s_id, chair_id, member_ids) {
       .then(function (res) {
          if (res.ok) {
             ebMessage("Seated Successful", "Success: " + s_first + " " + s_last + " Seated OK");
+            // Mark these adults occupied and unchecked in the local grid right
+            // away, rather than waiting on refresh_all() below. Without this, a
+            // fast click to the next Registered scout re-runs auto-select
+            // against the pre-seat local data (the server round trip hasn't
+            // landed yet) and re-picks members who are now in this room; worse,
+            // the server never clears Sel on seat, so left alone it stays "1"
+            // forever and getCheckedRowIds() keeps reporting them as the
+            // operator's already-chosen board for every scout seated after.
+            var rm_data = roomView.get(room_id);
+            schedulerLeaderGrid.markSeated(member_ids.split(","), rm_data ? rm_data.Room : "");
          } else {
             ebAlert("Seat Error", s_first + " " + s_last + " Seat Failed.<br/> " + res.text);
          }

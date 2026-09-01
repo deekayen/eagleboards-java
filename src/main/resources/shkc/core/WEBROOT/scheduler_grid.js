@@ -44,6 +44,7 @@ function SchedulerGrid(container_id, title, url, columns, colnames) {
    this.url = url;
    this.title = title;
    this.COLNAMEARR = colnames;
+   this.containerEl = document.getElementById(container_id);
 
    // Selection is managed here rather than by Tabulator so that it
    // behaves exactly like the old grid: a click always selects (never
@@ -142,17 +143,26 @@ SchedulerGrid.prototype.fetchRows = function () {
 SchedulerGrid.prototype.refresh = function () {
    var t = this;
    var selected = this.getSelectedRowId();
+   // replaceData's redraw scrolls the table back to the top; a poll landing
+   // mid-scroll (this fires every RefreshTimeSecs, unprompted by the user)
+   // must not yank the view out from under whoever is reading it.
+   var holder = this.containerEl ? this.containerEl.querySelector(".tabulator-tableholder") : null;
+   var scrollTop = holder ? holder.scrollTop : 0;
 
    Promise.all([this.fetchRows(), SCHEDULER_configReady, this.ready])
       .then(function (results) {
          var rows = results[0];
          t.prepareRows(rows);
+         rows = t.mergeIncoming(rows);
          return t.table.replaceData(rows).then(function () {
             if (selected && !t.table.getRow(selected)) {
                t._selectedId = null;    // selected record disappeared
             }
             t.highlight();
             t.doAfterLoad();
+            if (holder) {
+               holder.scrollTop = scrollTop;
+            }
          });
       })
       .catch(function (e) {
@@ -162,6 +172,13 @@ SchedulerGrid.prototype.refresh = function () {
 
 // Hook to massage row data before it hits the table.
 SchedulerGrid.prototype.prepareRows = function (rows) {
+};
+
+// Hook for a subclass to reassert a local edit that is still in flight to
+// the server (see SchedulerAdultGrid.mergeIncoming) -- a poll's fetch can
+// resolve with pre-save data and would otherwise stomp it back.
+SchedulerGrid.prototype.mergeIncoming = function (rows) {
+   return rows;
 };
 
 SchedulerGrid.prototype.doAfterLoad = function () {

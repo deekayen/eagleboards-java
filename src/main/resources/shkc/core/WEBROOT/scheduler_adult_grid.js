@@ -55,6 +55,14 @@ function SchedulerAdultGrid(container_id, toolbar_id, title) {
 
    this.showAll = false;   // old "Filter" two-state: off = hide assigned/unavailable adults
 
+   // r_id -> "0"/"1" for a Sel write whose /adult-update save hasn't
+   // resolved yet. The periodic poll (refresh_polling, every RefreshTimeSecs)
+   // fetches independently of that save, so it can win the race and land with
+   // the pre-click value; mergeIncoming reasserts the local value until the
+   // save is confirmed, so the poll can't un-check a box out from under
+   // whoever just clicked it.
+   this._pendingSel = {};
+
    this.toolbar = document.getElementById(toolbar_id);
    this.buttons = {};
    var names = ["Filter", "Clear", "Enable", "Disable"];
@@ -184,8 +192,30 @@ SchedulerAdultGrid.prototype.onCheck = function (r_id, state) {
 SchedulerAdultGrid.prototype.setChecked = function (r_id, state, persist) {
    this.table.updateData([{ id: r_id, Sel: state ? "1" : "0" }]);
    if (persist) {
-      ebSaveRow("/adult-update", "updated", r_id, { Sel: state ? "1" : "0" });
+      var this_obj = this;
+      var value = state ? "1" : "0";
+      this._pendingSel[r_id] = value;
+      ebSaveRow("/adult-update", "updated", r_id, { Sel: value }).then(function () {
+         // Only clear if nothing re-checked/unchecked this row since: a
+         // later click's own pending write must not be cleared by an
+         // earlier click's save resolving after it.
+         if (this_obj._pendingSel[r_id] === value) {
+            delete this_obj._pendingSel[r_id];
+         }
+      });
    }
+};
+
+// Reassert any Sel write still in flight to the server over a poll's
+// possibly-stale fetch. See _pendingSel above.
+SchedulerAdultGrid.prototype.mergeIncoming = function (rows) {
+   var pending = this._pendingSel;
+   for (var i = 0; i < rows.length; i++) {
+      if (Object.prototype.hasOwnProperty.call(pending, rows[i].id)) {
+         rows[i].Sel = pending[rows[i].id];
+      }
+   }
+   return rows;
 };
 
 SchedulerAdultGrid.prototype.sortChecked = function () {
@@ -217,8 +247,15 @@ SchedulerAdultGrid.prototype.uncheckAll = function () {
       // Persist too, for the mirror-image reason: a local-only clear left Sel=1
       // on the server, so the next poll resurrected every box the operator had
       // just cleared. Clearing and checking have to agree on where truth lives.
+      // Routed through _pendingSel like setChecked, so a poll landing between
+      // this save and its response can't resurrect the box either.
       patches.forEach(function (patch) {
-         ebSaveRow("/adult-update", "updated", patch.id, { Sel: "0" });
+         this_obj._pendingSel[patch.id] = "0";
+         ebSaveRow("/adult-update", "updated", patch.id, { Sel: "0" }).then(function () {
+            if (this_obj._pendingSel[patch.id] === "0") {
+               delete this_obj._pendingSel[patch.id];
+            }
+         });
       });
    }
 };
@@ -266,6 +303,32 @@ SchedulerAdultGrid.prototype.updateHidden = function (state) {
    }
    this.table.refreshFilter();
    this.updateButtonStatus();
+};
+
+// Called by SendSeatRequest right after a successful /seat-board. The
+// server (SeatBoardHandler) sets Room on each member but never touches Sel,
+// so without this their checkbox stays "1" indefinitely -- which makes
+// getCheckedRowIds() report them as an operator-chosen board for every
+// scout selected afterward (SCHEDULER_autoSelect then leaves the stale
+// checks alone instead of auto-picking fresh members). Setting Room here
+// too closes the window before refresh_all() lands where a fast click to
+// the next scout would still see these adults as available and re-pick
+// them into a second board while they sit in this one.
+SchedulerAdultGrid.prototype.markSeated = function (member_ids, room_value) {
+   var this_obj = this;
+   var patches = member_ids.map(function (id) {
+      return { id: id, Room: room_value, Sel: "0" };
+   });
+   this.table.updateData(patches);
+   this.highlight();
+   member_ids.forEach(function (id) {
+      this_obj._pendingSel[id] = "0";
+      ebSaveRow("/adult-update", "updated", id, { Sel: "0" }).then(function () {
+         if (this_obj._pendingSel[id] === "0") {
+            delete this_obj._pendingSel[id];
+         }
+      });
+   });
 };
 
 SchedulerAdultGrid.prototype.selectForRoom = function (room_num) {

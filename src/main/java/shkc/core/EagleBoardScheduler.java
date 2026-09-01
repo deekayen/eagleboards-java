@@ -1061,7 +1061,6 @@ public class EagleBoardScheduler {
                } else {
                   AdultRecord var11 = EagleBoardScheduler.this._adultRecords.get(var7);
                   ArrayList<AdultRecord> var12 = new ArrayList<>();
-                  StringBuffer var13 = new StringBuffer();
                   StringBuffer var14 = new StringBuffer();
                   StringTokenizer var15 = new StringTokenizer(var8, ",", false);
 
@@ -1078,23 +1077,21 @@ public class EagleBoardScheduler {
                         return;
                      }
 
-                     if (var13.length() > 0) {
-                        var13.append(",");
-                     }
-
-                     var13.append(var17.getShortName());
                      if (var14.length() > 0) {
                         var14.append(",");
                      }
 
+                     // Full name, not getShortName()'s "F. Last": the room
+                     // card is how someone looks up which room an adult is
+                     // in, and initial-only made that lookup by first name
+                     // impossible without already knowing their last name.
                      var14.append(var17.getFullName());
                      var12.add(var17);
                   }
 
-                  String var22 = var13.toString();
                   String var23 = var14.toString();
                   var9.setScout(var10.getFullName());
-                  var9.setLeaders(var22);
+                  var9.setLeaders(var23);
                   var10.setRoom(var9.getRoom());
                   // Seating convenes the board only: the members get the room
                   // to go over the application, references and project workbook

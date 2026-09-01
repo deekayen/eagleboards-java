@@ -145,6 +145,22 @@ silent on the check-in screen, which faces the youth signing in.
 - **Chosen board members survive clicking around.** Selecting a youth used to
   wipe every adult checkbox, throwing away a board the operator had assembled by
   hand. Only the Adult panel's Clear button empties them now.
+- **Seating a board no longer leaves its members checked.** The server only
+  ever set `Room` on a seated adult, not `Sel` — so their checkbox stayed on
+  indefinitely, which made auto-select skip picking anyone new for the next
+  youth (it treats any existing check as "the operator already chose") and let
+  a fast click to the next youth briefly re-offer adults who were just seated,
+  before the delayed refresh caught up. The client now clears the checkbox and
+  marks the room locally the moment seating succeeds.
+- **The periodic poll no longer interrupts hand-picking board members.** It
+  used to fully replace the Adult grid's data every `RefreshTimeSecs`, which
+  reset the scroll position and could occasionally overwrite a checkbox click
+  whose save hadn't reached the server yet. The poll now preserves scroll
+  position and defers to any checkbox change still in flight.
+- **Room cards show adults by full first name, not an initial.** `Leaders`
+  used to read like "J. Smith, K. Doe"; matching a name someone gives you
+  verbally to that list meant already knowing their last name. It now reads
+  "Jordan Smith, Kelly Doe".
 - The **B/S column** (adult:scout ratio) was removed from the youth grid and
   from the report export — it was computed and stored but not used.
 - The six **XML export buttons** were removed; CSV export is unchanged. The XML
