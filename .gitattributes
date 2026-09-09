@@ -15,6 +15,11 @@ src/main/resources/shkc/core/WEBROOT/**  text eol=lf
 *.xml    text eol=lf
 *.md     text eol=lf
 *.properties text eol=lf
+# Workflow run: blocks are shell executed by bash on the Linux and macOS
+# runners; a CR at end of line breaks them there. text=auto already normalises
+# these, but every other format that matters here is pinned explicitly.
+*.yml    text eol=lf
+*.yaml   text eol=lf
 
 # Shell scripts and the Maven wrapper must stay LF to run.
 *.sh     text eol=lf
