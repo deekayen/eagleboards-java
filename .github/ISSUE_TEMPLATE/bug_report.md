@@ -25,7 +25,6 @@ assignees: ''
 
 - [ ] During setup or first run
 - [ ] While building
-- [ ] Running the parity gate
 - [ ] Mid-event (please say what was on screen and what you had just clicked)
 
 ## Environment

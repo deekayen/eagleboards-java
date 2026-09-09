@@ -84,7 +84,7 @@ import.
 
 `DataRecordFile.load`/`store` picks its format from the file extension:
 `.properties` uses `java.util.Properties` (`key=value`, `#` comments), anything
-else is CSV. The CSV path is kept so the original binary and the parity gate
+else is CSV. The CSV path is kept so the original binary and its comparison
 still work. Note that saving config from the Settings page rewrites the file and
 does **not** preserve comments.
 
@@ -173,4 +173,4 @@ personal information about minors and are never committed — see
 2. `eb-data.js` — the client/server contract in one screen
 3. `scheduler.html` plus `scheduler_scout_grid.js` — the operator's workflow
 4. One `process_*.js` — how a single lifecycle action travels end to end
-5. `scripts/verify-parity.sh` — what "correct" is defined as here
+5. `.github/workflows/build.yml` — what "correct" is defined as here

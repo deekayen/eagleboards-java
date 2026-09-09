@@ -9,14 +9,14 @@ came from — it explains why parts of it look the way they do.
 ## The one unusual thing about this project
 
 The source was **reconstructed by decompiling an inherited binary**. No original
-source was ever received. That single fact drives most of the conventions below:
-the odd variable names, the reluctance to reformat, and above all the parity
-gate, which is the project's acceptance test.
+source was ever received. That single fact drives most of the conventions
+below: the odd variable names and the reluctance to reformat.
 
-The maintainer does not read Java. **`scripts/verify-parity.sh` — not code
-review — is what proves a change is safe.** It boots the original jar and the
-rebuilt jar side by side and shows they behave identically for everything that
-was not deliberately changed.
+The maintainer does not read Java, so **CI is what proves a change is safe.**
+`.github/workflows/build.yml` builds on four platforms, runs both test scripts,
+exercises the endpoints and the whole board lifecycle, and guards specific bugs
+that have bitten before. Keep it green, and add a case when you change
+behavior — a rule with no test is a rule that comes back.
 
 ## Prerequisites
 
@@ -26,14 +26,13 @@ was not deliberately changed.
 | Maven | none | use the bundled wrapper `./mvnw` (`mvnw.cmd` on Windows) |
 | Git | any recent | |
 
-To run the parity gate you also need `bash`, `unzip`, `curl`, `awk`, `diff` and
-`cmp` — all of which ship with macOS, Linux, and Git for Windows. It needs no
-Python. To confirm a machine has everything before you go looking for the
-inherited jar:
-
-```sh
-scripts/verify-parity.sh --check
-```
+The test scripts also need `bash`, `curl` and `awk` — all of which ship with
+macOS, Linux, and Git for Windows. They need no Python, deliberately: there is
+no single interpreter name that works on all three (Debian and Raspberry Pi OS
+have `python3` and no bare `python`; a Windows box may have the reverse, with
+`python3` resolving to a Microsoft Store stub that exits without reading its
+input). A silently empty filter turns a test into a rubber stamp, so these
+stick to `awk`.
 
 ### Supported platforms
 
@@ -42,12 +41,15 @@ CI builds and runs a smoke test on every push and pull request across:
 - **Linux amd64** (`ubuntu-latest`)
 - **Windows amd64** (`windows-latest`)
 - **Linux arm64** (`ubuntu-24.04-arm`) — the Raspberry Pi deployment target
+- **macOS** (`macos-latest`) — a development platform, not a deployment target
 
-**macOS** is a supported development platform — the build, the app, and the
-full parity gate all run there — but it is deliberately not a CI leg: macOS
-runners bill at 10× the minute rate on a private repository, and they would
-prove nothing the two Linux legs and the Windows leg do not already prove.
-Run `scripts/verify-parity.sh` locally on a Mac instead.
+macOS was once left out because those runners bill at 10× the minute rate on a
+private repository and were judged to prove nothing the other legs did not. It
+is a leg now because the repo grew shell test scripts and macOS is the only
+BSD-userland platform in the matrix — where `sed`, `awk`, `stat` and `seq` all
+differ from GNU, and where a portability bug would otherwise show up as a
+false PASS rather than a failure. If the billing outweighs that, this is the
+line to delete.
 
 The app runs anywhere with a JDK 21+. In practice it is deployed on a Windows
 admin laptop or a Raspberry Pi at the event venue. The optional Swing popup
@@ -122,17 +124,17 @@ The causes, in the order the script checks them:
    sendResponseFile:/index.html
    ```
 
-   `run.sh` warns when it sees one. **The parity gate does not** — it runs both
-   servers in `parity/A` and `parity/B`, where no `WEBROOT/` exists, so parity
-   can pass while the app you launch serves pages from 2019. The filesystem-
-   first order is inherited behaviour and is deliberately left alone; it is how
-   an operator patches a page at an event without a toolchain.
+   `run.sh` and `scripts/run.bat` both warn when they see one; nothing else
+   does, so a stray `WEBROOT/` can leave you staring at pages from 2019 while
+   every rebuild succeeds. The filesystem-first order is inherited behaviour and
+   is deliberately left alone; it is how an operator patches a page at an event
+   without a toolchain.
 
 3. **An older jar being picked.** `target/` accumulates one jar per version,
    because `package` never removes the previous one. The version is a *date*,
    so `ls target/eagleboardscheduler-*.jar | head -1` selects the **oldest**
-   build — alphabetically first. `scripts/run.sh` and `scripts/verify-parity.sh`
-   both use `ls -t` now and name the jar they picked; if you write a new script
+   build — alphabetically first. `scripts/run.sh` names the jar it picked and
+   `scripts/run.bat` sorts by timestamp; if you write a new script
    that reaches into `target/`, sort by time, never by name. `ls -la
    target/*.jar` shows what is actually there.
 
@@ -181,83 +183,75 @@ with it, the app pulls **real registrant names and emails** from the live API.
 
 See the [README](README.md#command-line-options) for the full option list.
 
-## The parity gate
+## Verifying a change
+
+CI is the check that matters — `.github/workflows/build.yml`, on every push and
+pull request, across all four platforms. Locally, the two test scripts are the
+fast feedback loop:
 
 ```sh
-scripts/verify-parity.sh
+node scripts/test-seat-conflicts.js     # the composition rules, as pure functions
+bash scripts/test-board-evening.sh      # a whole evening against a real server
 ```
 
-**Keep it passing.** It needs `original/EagleBoardScheduler_20190618.jar`, which
-is not in the repository — it embeds an API key. Ask the maintainer for it; it
-is authenticated by the SHA-256 in [PROVENANCE.md](PROVENANCE.md). Drop it at
-that path (`original/` is gitignored) and the script will find it. If it is
-missing the script says so and stops; it never reports a pass it did not earn.
+Neither needs network access or any installed package, and both refuse to touch
+real data: the evening test seeds a throwaway directory with synthetic names on
+a spare port. **Never copy live event data in to make a test look busier.**
 
-`Master_AdultHistory.csv` is optional. When the repo root has one, both servers
-run on it; when it does not, the script generates a **synthetic header-only**
-one into the sandbox and says so. Both sides get the identical file either way,
-so the comparison stays honest — the adult lists just compare empty. Never copy
-live event data in just to make the gate look busier.
+`scripts/verify-parity.sh` also exists. It boots the inherited 2019 binary
+beside the rebuilt one and reports every difference in class signatures, served
+bytes, endpoint responses, data files and startup logs. It was the acceptance
+gate while the rebuild was being proved correct against the original; that job
+is finished, and it is now **an optional diagnostic** — reach for it if you
+suspect a change disturbed behaviour inherited from the original and you want to
+see exactly what moved. It is not required for a pull request, it does not run
+in CI, and it needs the inherited jar, which is deliberately kept out of the
+repository and off GitHub.
 
-What it checks:
+### Running the shell scripts off Linux
 
-1. **Structure** — every class's declared members still match (`javap`)
-2. **Reads** — both servers return identical bytes for pages, assets, and data endpoints
-3. **Writes** — identical requests produce identical files on disk
-4. **Startup logs** — identical, modulo time and port
-5. **First-party UI** — the rewritten pages serve, carry no dhtmlx references, and keep their headings
+They run on macOS and Git-for-Windows as well as Linux, and are written to the
+portable spelling of every tool they use. The theme of the bugs found here is
+that **a portability problem in a test script does not look like a failure — it
+looks like a pass**, because a tool that quietly produces nothing empties out
+*both* sides of a comparison. Keep that in mind before "simplifying" any of it:
 
-### When you change behavior on purpose
-
-Do not just let the gate fail. **Teach it** that the divergence is deliberate,
-with a comment saying why. There are worked examples in the script: the Jetty
-8→12 migration (`MIGRATED`), the Jackson and JUL swaps (`REMOVED_VENDORED`), the
-removed Verify step (`REMOVED_FEATURE`), the config schema change, and
-`help.html` leaving the byte-compared lists once its instructions were rewritten.
-
-### Running it off Linux
-
-The gate runs on macOS and on Git-for-Windows as well as Linux, and the script
-is written to the portable spelling of every tool it uses. The theme of the
-bugs found here is that **a portability problem in this script does not look
-like a failure — it looks like a pass**, because a tool that quietly produces
-nothing empties out *both* sides of a comparison. Keep that in mind before
-"simplifying" any of it:
-
-- The MSYS2 / Git-for-Windows `unzip` is built with `WILD_STOP_AT_DIR`, so `*`
-  does not cross `/`. The script uses `shkc/**` for this reason. If you "fix"
-  that back to `shkc/*` the extraction quietly produces **zero files** and the
-  gate reports a cheerful pass having compared two empty trees. There are now
-  two guards against this: a floor on the class count, and a check that the
-  number of files extracted equals the number the jar says it holds.
-- **No Python.** The two normalizers are `awk`. A stock Windows box resolves
-  `python3` to a Microsoft Store alias stub and a stock macOS has no `python3`
+- **No Python.** The normalizers are `awk`. A stock Windows box resolves
+  `python3` to a Microsoft Store alias stub, and a stock macOS has no `python3`
   at all (`/usr/bin/python3` is a shim that fails with an Xcode-tools notice);
-  both write nothing to stdout and exit, which used to blank both logs and pass
-  section 4 without comparing it. Do not reintroduce a Python dependency.
+  both write nothing to stdout and exit, which once blanked both sides of a
+  comparison and passed a section without comparing it. There is also no single
+  interpreter name that works everywhere — Debian and Raspberry Pi OS have
+  `python3` and no bare `python`. Do not reintroduce a Python dependency.
+- **Bash 3.2 on macOS.** The runners still ship it, so no `mapfile`, no
+  `declare -A`, no `${var,,}`. `test-board-evening.sh` uses positional
+  parameters instead of arrays for exactly this reason.
 - **BSD vs GNU tools** (macOS): `mktemp -d` needs an explicit template, `\+` is
-  not a repetition operator in BSD `sed` (use `sed -E` and `+`), and `wc -l`
-  pads its output with spaces. Binary bodies are compared with `cmp`, not piped
-  through `sed`, because BSD `sed` is not dependable on data containing NULs.
-- **Case-insensitive filesystems** are the default on macOS and Windows. Two
-  jar entries differing only in case would overwrite each other on extraction
-  and shrink what gets compared; the extracted-vs-listed count catches that.
+  not a repetition operator in BSD `sed` (use `sed -E` and `+`), `wc -l` pads
+  its output with spaces, and there is no `sha256sum` (`shasum -a 256` instead).
+  Compare binary bodies with `cmp` rather than piping through `sed`, which is
+  not dependable on data containing NULs.
+- **The MSYS2 / Git-for-Windows `unzip`** is built with `WILD_STOP_AT_DIR`, so
+  `*` does not cross `/`; use `shkc/**`, not `shkc/*`, or the extraction quietly
+  produces zero files.
+- **Case-insensitive filesystems** are the default on macOS and Windows, so two
+  paths differing only in case collide.
 - macOS may ask whether `java` should accept incoming network connections the
-  first time the servers start. Both servers are reached over loopback, so the
-  gate works either way — allowing or denying it does not change the result.
+  first time a server starts. The tests use loopback, so allowing or denying it
+  does not change the result.
 
 ## House style
 
 - **Leave the decompiled variable names alone.** `var1`, `var10` and friends are
-  everywhere. Sweeping renames widen the parity diff and add risk for no
-  functional gain. Keep edits minimal and local.
+  everywhere. Sweeping renames widen the diff against the decompiled baseline
+  and add risk for no functional gain. Keep edits minimal and local.
 - **Name anything you write descriptively.** New locals, parameters, and fields
   get self-documenting names (`bindPrefix`, `boundAddress`, `connector`) — not
-  `var27`. Renaming a *local* is parity-safe: the gate compares declared
+  `var27`. Renaming a *local* is safe: only declared
   members, and local names are not part of a javap signature.
 - **Editing a method body does not change a class's signature; adding or
   removing a field or method does.** This is why you can add null-guards freely,
-  but removing a member means teaching the parity gate about it. Prefer a
+  but removing a member changes the class's declared signature. Prefer a
   targeted filter in the gate's `sig()` function, which keeps the rest of that
   class compared, over exempting the whole class — an exemption skips every
   signature in it.
@@ -339,9 +333,9 @@ are about to publish something you cannot unpublish. See
 - Write commit messages in the imperative mood with a short subject line, then a
   body explaining **why**. Look at `git log` for the register: they explain the
   problem, the fix, and the consequences, not just the diff.
-- Say in the PR whether `verify-parity.sh` passed, and if you taught it a new
-  exemption, say which and why.
-- CI must be green on all three platforms.
+- Say in the PR if you deliberately diverged from the original binary's
+  behavior, and why.
+- CI must be green on all four platforms.
 - When you fix a crash, add a regression assertion to the CI smoke test — there
   are existing examples guarding past bugs.
 
