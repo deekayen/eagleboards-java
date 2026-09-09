@@ -100,7 +100,13 @@ jobs:
           # Scout in Troop 1234; three members from other units, so the
           # same-unit rule does not interfere with this lifecycle check.
           curl -sf -X POST --data "Last=Life&First=Test&Email=l@example.org&UnitType=Troop&Unit=1234&UnitName=T1234&BoardType=Final" $B/register-youth -o /dev/null
-          for u in 901 902 903; do
+          # Rep901 is registered as a Chair, not a Member: SeatBoardHandler
+          # requires a Final board to be chaired by someone whose FinalBoard
+          # role is Chair. Three plain Members is not a seatable board, so a
+          # fixture built from them would fail at /seat-board before this step
+          # ever reached the lifecycle it is here to check.
+          curl -sf -X POST --data "Last=Rep901&First=M&Email=r901@example.org&UnitType=Troop&Unit=901&UnitName=T901&ProjectReview=Chair&FinalBoard=Chair" $B/register-adult -o /dev/null
+          for u in 902 903; do
             curl -sf -X POST --data "Last=Rep$u&First=M&Email=r$u@example.org&UnitType=Troop&Unit=$u&UnitName=T$u&ProjectReview=Member&FinalBoard=Member" $B/register-adult -o /dev/null
           done
           curl -sf -X POST --data '!nativeeditor_status=inserted&gr_id=ROOM:1&Room=1&BoardType=Final' $B/room-update -o /dev/null
