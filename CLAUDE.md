@@ -48,6 +48,18 @@ original source was received) and then modernized. See `PROVENANCE.md`.
   Windows; it needs `bash unzip curl awk diff cmp` and a JDK, and **no Python**
   — see CONTRIBUTING "Running it off Linux" before touching any shell idiom in
   it, because portability bugs in this script surface as a false *pass*.
+  **CI runs it too**, in the `parity` job, on Linux and macOS. The inherited jar
+  can't be committed, so that job downloads it from the private
+  `parity-reference` prerelease and checks its SHA-256 first — see PROVENANCE.md,
+  including what has to happen to that release before the repo is ever public.
+
+**Prefer pushing over re-running the suite locally.** `build.yml` already runs
+the build, the structural check, both test scripts, the runtime smoke test, the
+lifecycle check and `run.bat` across four platforms, and `parity` runs the gate
+— all in about a minute. Re-running those by hand proves nothing extra, and a
+local pass only describes the working tree at the moment it ran, not what
+landed. Run things locally to *debug* a failure CI has already found, or to
+iterate quickly — then let the push be the verification.
 
 ## The golden rules
 
