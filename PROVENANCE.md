@@ -27,32 +27,11 @@ rebuilt jar.
 | Bytecode | major version 51 (Java 7) |
 | App class dates | 2017-10-24 (core), jar assembled 2019-06-18 |
 
-### Where CI gets it, and what to do before going public
-
-`scripts/verify-parity.sh` needs this binary, and the `parity` job in
-`.github/workflows/build.yml` is the project's acceptance gate — so CI needs it
-too. It cannot be committed: it is gitignored, blocked by
-`scripts/hooks/pre-commit`, and carries both the embedded key described above
-and the unresolved rights question. CI therefore downloads it from a
-**private prerelease** in this repository, tagged `parity-reference`, and
-checks it against the SHA-256 above before trusting it — parity run against the
-wrong reference binary is worse than no parity at all, because it still reports
-PASS.
-
-> **⚠ Pre-public checklist.** Release assets inherit repository visibility.
-> **Delete the `parity-reference` release and its asset before this repository
-> is made public**, or the binary and the key inside it are published with it.
-> Rotate the SignUpGenius key if there is any doubt. The parity job will then
-> fail on the missing asset, which is the correct outcome: it should be
-> loud, not silently skipped.
-
-To (re)create it from a machine that has the jar:
-
-```sh
-gh release create parity-reference original/EagleBoardScheduler_20190618.jar \
-  --title "Parity reference binary (do not delete; do not make public)" \
-  --prerelease --notes "CI input for scripts/verify-parity.sh. Not for distribution."
-```
+The binary stays **off this machine's git entirely** — gitignored, blocked by
+`scripts/hooks/pre-commit`, and never uploaded anywhere. It carries the embedded
+key described above and the unresolved rights question, so it is kept only as a
+local file by whoever is running `scripts/verify-parity.sh`. CI does not have it
+and does not run that script.
 
 ## What the JAR bundles
 

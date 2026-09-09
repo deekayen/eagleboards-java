@@ -4,12 +4,11 @@
 
 ## Parity gate
 
-<!-- scripts/verify-parity.sh is the acceptance test for this project. It now
-     runs in CI (the `parity` job, Linux + macOS), so this is no longer a
-     checkbox to tick on your honor -- the run is the answer. -->
+<!-- scripts/verify-parity.sh is the acceptance test for this project. It runs
+     only on a machine that has the inherited jar; CI cannot run it. -->
 
-The `parity` job must be green. If it is red, say why here rather than merging
-past it.
+- [ ] `scripts/verify-parity.sh` passes
+- [ ] Not run — why:
 
 If you deliberately diverged from the original binary's behavior, say which
 exemption or normalization you added to the script, and why:
