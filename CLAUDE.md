@@ -37,19 +37,30 @@ original source was received) and then modernized. See `PROVENANCE.md`.
   `bash curl awk` and a JDK — **no Python**, for the reason in the parity note
   below. Runs in CI on all three platforms. Add a case here when you change how
   a board is seated, run, or torn down.
-- **Parity gate: `scripts/verify-parity.sh` — run it after every change and keep
-  it green.** It boots the original inherited jar and the rebuilt jar side by
-  side and proves they behave identically for everything that wasn't
-  intentionally changed (class signatures, served bytes, endpoint responses,
-  data files written, startup logs). The owner cannot review Java, so this
-  mechanical check — not code review — is the acceptance gate.
-  `scripts/verify-parity.sh --check` runs just the preflight (tools + inputs),
-  which is how you qualify a new machine. It runs on Linux, macOS and Git-for-
-  Windows; it needs `bash unzip curl awk diff cmp` and a JDK, and **no Python**
-  — see CONTRIBUTING "Running it off Linux" before touching any shell idiom in
-  it, because portability bugs in this script surface as a false *pass*.
-  **It does not run in CI** and is not expected to: the inherited jar it needs
-  is deliberately kept out of the repo and off GitHub entirely.
+- **Parity, if you want it: `scripts/verify-parity.sh`.** Boots the inherited
+  2019 jar beside the rebuilt one and compares class signatures, served bytes,
+  endpoint responses, data files written and startup logs. It was the project's
+  acceptance gate while the rebuild was being proved correct; **that job is
+  done, and it is now an optional diagnostic** — reach for it when a change
+  might have altered behavior inherited from the original and you want to know
+  precisely what moved. It is not required for a PR and does not run in CI: the
+  jar it needs is deliberately kept out of the repo and off GitHub.
+
+  If you do run it: `--check` runs the preflight alone (tools + inputs), which
+  is how you qualify a machine. It needs `bash unzip curl awk diff cmp` and a
+  JDK, and **no Python** — see CONTRIBUTING "Running it off Linux" before
+  touching any shell idiom in it, because portability bugs in this script
+  surface as a false *pass*. Two things worth knowing before you read a result:
+  - Deliberate divergences are taught to the script as an exemption or
+    normalization with a comment saying why, rather than left failing. Existing
+    ones: Jetty 8→12 (`MIGRATED`), Jackson/JUL swaps (`REMOVED_VENDORED`),
+    de-branding, the config-schema change, `PopupDialog` enhancements.
+  - Editing a method body doesn't change a class's javap signature; **adding or
+    removing a field or method does**, because the structural check compares
+    declared members. Add null-guards freely. If you remove a member, prefer a
+    targeted filter in `sig()` — which keeps the rest of that class compared —
+    over an exemption, which skips every signature in it. Worked example: the
+    58 unused column/value constants removed from the record classes.
 
 **Prefer pushing over re-running the suite locally.** `build.yml` already runs
 the build, the structural check, both test scripts, the runtime smoke test, the
@@ -61,33 +72,28 @@ push be the verification.
 
 ## The golden rules
 
-1. **Keep the parity gate passing.** When you intentionally diverge from the
-   original binary's behavior, don't just let parity fail — teach the script
-   that the divergence is deliberate (an exemption or a normalization) with a
-   comment saying why. Existing examples in `verify-parity.sh`: Jetty 8→12
-   (`MIGRATED`), Jackson/JUL swaps (`REMOVED_VENDORED`), de-branding, the
-   config-schema change, `PopupDialog` enhancements.
-2. **Editing a method body doesn't change a class's javap signature; adding or
-   removing a field/method does.** The parity structural check compares
-   declared members. Add null-guards freely; removing a member means teaching
-   the gate about it. Prefer a targeted filter in `sig()` (which keeps the rest
-   of that class compared) over adding the class to an exemption list, since an
-   exemption skips every signature in it. Worked example: the 58 unused
-   column/value constants removed from the record classes.
-3. **Never commit PII or secrets.** Participant data (all CSV/XLS, dated
+1. **CI is the acceptance gate. Keep it green on all four platforms**
+   (`.github/workflows/build.yml`: amd64 Linux, amd64 Windows, arm64 Linux,
+   macOS). It builds, runs both test scripts, exercises the endpoints and the
+   board lifecycle, checks the Windows launcher, checks the live SignUpGenius
+   API (Linux/push, `SUG_KEY` secret), and guards specific past bugs. **Add a
+   regression assertion when you fix a crash**, and a case in
+   `test-board-evening.sh` when you change how a board is seated, run or torn
+   down — a rule with no test is a rule that comes back.
+2. **Never commit PII or secrets.** Participant data (all CSV/XLS, dated
    `YYYY-MM-DD/` folders, `Master_AdultHistory*`, `LOGIN_INFO*`) and the
-   inherited jar (embeds an API key) are gitignored and blocked by
-   `scripts/hooks/pre-commit`. Install the hook once per clone:
-   `git config core.hooksPath scripts/hooks`. No CSV is committed; the only
-   committed config is `config.properties` (colors/timings, no PII).
-4. **Test in a sandbox, never against the live instance or real data.** Copy
+   inherited jar are gitignored and blocked by `scripts/hooks/pre-commit`.
+   Install the hook once per clone: `git config core.hooksPath scripts/hooks`.
+   No CSV is committed; the only committed config is `config.properties`
+   (colors/timings, no PII). The rebuilt jar contains no API key — it takes one
+   from `-sugkey`, sourced from `SUG_KEY` or an untracked `.env`. The inherited
+   2019 binary is the exception: it hardcoded a key in a bundled
+   `signup_genius_api.js`, which is why that file was dropped rather than
+   carried over. Keep that jar off GitHub.
+3. **Test in a sandbox, never against the live instance or real data.** Copy
    `config.properties` and use a *synthetic* header-only `Master_AdultHistory.csv`
    into a scratch dir; run on a spare port with `-d testdata`. Never load the
    real `Master_AdultHistory.csv` into anything you screenshot.
-5. **CI must stay green on all three platforms** (`.github/workflows/build.yml`:
-   amd64 Linux, amd64 Windows, arm64 Linux). It builds, runs a runtime smoke
-   test, checks the live SignUpGenius API (Linux/push, `SUG_KEY` secret), and
-   guards specific past bugs. Add a regression assertion when you fix a crash.
 
 ## Conventions / gotchas
 
