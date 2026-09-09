@@ -26,7 +26,7 @@ assignees: ''
 - Does this change a **server endpoint**? Those are the frozen contract between
   client and server, so client-only solutions are strongly preferred.
 - Does this change **behavior inherited from the original binary**? If so it
-  needs a deliberate exemption in `scripts/verify-parity.sh`. See
+  is a deliberate divergence from the original binary. See
   [CONTRIBUTING.md](../CONTRIBUTING.md).
 - Does it change **stored data or the config schema**? Say what happens to
   existing event folders and to `Master_AdultHistory.csv`.

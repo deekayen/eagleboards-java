@@ -177,5 +177,5 @@ Things that have cost real debugging time:
 
 See [CONTRIBUTING.md](CONTRIBUTING.md). In short: install the pre-commit hook,
 build with the wrapper, develop against synthetic data, and keep
-`scripts/verify-parity.sh` passing — it is this project's acceptance test, not
+CI green on all four platforms — that is this project's acceptance test, not
 code review.

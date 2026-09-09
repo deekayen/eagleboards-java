@@ -26,7 +26,7 @@ original source was received) and then modernized. See `PROVENANCE.md`.
 - Run: `scripts/run.sh` (reads `SUG_KEY` from env or `.env`; drops the `-w`
   popup automatically when there's no display, e.g. a headless Pi).
 - Board composition rules: `node scripts/test-seat-conflicts.js` (headless, no
-  framework, no network). Runs in CI on all three platforms.
+  framework, no network). Runs in CI on all four platforms.
 - Whole board evening: `bash scripts/test-board-evening.sh` — boots the jar on a
   spare port against a throwaway data dir and runs a full evening at the
   district's real shape (14 scouts, 12 rooms, 30 adults, and only **5** adults
@@ -34,33 +34,9 @@ original source was received) and then modernized. See `PROVENANCE.md`.
   what the pure-function tests cannot: adults committed to one room and released
   at Complete, postpone/reset handing the room and members back, and the
   composition rules holding for requests that never went through our UI. Needs
-  `bash curl awk` and a JDK — **no Python**, for the reason in the parity note
-  below. Runs in CI on all three platforms. Add a case here when you change how
-  a board is seated, run, or torn down.
-- **Parity, if you want it: `scripts/verify-parity.sh`.** Boots the inherited
-  2019 jar beside the rebuilt one and compares class signatures, served bytes,
-  endpoint responses, data files written and startup logs. It was the project's
-  acceptance gate while the rebuild was being proved correct; **that job is
-  done, and it is now an optional diagnostic** — reach for it when a change
-  might have altered behavior inherited from the original and you want to know
-  precisely what moved. It is not required for a PR and does not run in CI: the
-  jar it needs is deliberately kept out of the repo and off GitHub.
-
-  If you do run it: `--check` runs the preflight alone (tools + inputs), which
-  is how you qualify a machine. It needs `bash unzip curl awk diff cmp` and a
-  JDK, and **no Python** — see CONTRIBUTING "Running it off Linux" before
-  touching any shell idiom in it, because portability bugs in this script
-  surface as a false *pass*. Two things worth knowing before you read a result:
-  - Deliberate divergences are taught to the script as an exemption or
-    normalization with a comment saying why, rather than left failing. Existing
-    ones: Jetty 8→12 (`MIGRATED`), Jackson/JUL swaps (`REMOVED_VENDORED`),
-    de-branding, the config-schema change, `PopupDialog` enhancements.
-  - Editing a method body doesn't change a class's javap signature; **adding or
-    removing a field or method does**, because the structural check compares
-    declared members. Add null-guards freely. If you remove a member, prefer a
-    targeted filter in `sig()` — which keeps the rest of that class compared —
-    over an exemption, which skips every signature in it. Worked example: the
-    58 unused column/value constants removed from the record classes.
+  `bash curl awk` and a JDK — **no Python**; see CONTRIBUTING "Running the shell
+  scripts off Linux" for why. Runs in CI on all four platforms. Add a case
+  here when you change how a board is seated, run or torn down.
 
 **Prefer pushing over re-running the suite locally.** `build.yml` already runs
 the build, the structural check, both test scripts, the runtime smoke test, the
@@ -99,10 +75,10 @@ push be the verification.
 
 - **Decompiled variable names** (`var1`, `var10`…) are everywhere. Keep edits
   minimal and in the same style; don't do sweeping renames (they widen the
-  parity diff and add risk for no functional gain).
+  diff against the decompiled baseline and add risk for no functional gain).
 - **Server endpoints are the contract.** The UI rework kept every endpoint and
   wire format frozen; prefer client-only changes. If you must change the
-  server, check whether `verify-parity.sh` exercises that path.
+  server, add a case to `scripts/test-board-evening.sh` covering it.
 - **Handlers must not crash the server.** All request handling is wrapped in a
   `Throwable` safety net in `WebServer.service` that logs a stack trace and
   returns a clean 500 for that one request. Still, null-guard handler inputs
@@ -163,7 +139,7 @@ push be the verification.
   `/config-autofill`) and edited via the Settings page (`configure.html`).
   The format is chosen by file extension inside `DataRecordFile.load`/`store`
   (`.properties` → key=value, else CSV — the CSV path is kept so the original
-  binary and the parity gate still work). Room-card warning timers are
+  binary still loads). Room-card warning timers are
   board-type specific: `ProjectYellowMins` / `ProjectRedMins` /
   `FinalYellowMins` / `FinalRedMins`, minutes since seating. Note: saving via
   the Settings page rewrites the file and does not preserve `#` comments.

@@ -188,7 +188,7 @@ machine, do not email them, and do not put them anywhere shared.
 | --- | --- |
 | [RUNNING.md](RUNNING.md) | Installing, building, command-line options, settings file, known quirks |
 | [ARCHITECTURE.md](ARCHITECTURE.md) | How the program is put together |
-| [CONTRIBUTING.md](CONTRIBUTING.md) | Making changes, and the parity gate that checks them |
+| [CONTRIBUTING.md](CONTRIBUTING.md) | Making changes, and how they are verified |
 | [SECURITY.md](SECURITY.md) | Handling participant data and the API key |
 | [PROVENANCE.md](PROVENANCE.md) | Where this code came from |
 | [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) | Conduct, on the Scout Oath and Law, and youth protection |
