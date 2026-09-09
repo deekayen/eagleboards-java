@@ -78,12 +78,30 @@ Advancement before it goes through:
   overridden, which falls back to the national rule, GTA 8.0.3.0 #2: at least
   one member must come from outside the unit. A board made up *entirely* of the
   youth's own unit is therefore refused with no override available.
+- **A project proposal review** is not a board of review (GTA 9.0.2.4), so the
+  three-member floor does not apply to it — this district runs them with two,
+  under the same ceiling of six.
+- **The chair must be qualified to chair.** A board is chaired by someone whose
+  role for that board type is Chair, and the chair sits on the board. The
+  original let any selected member be named chair; so did this rebuild until the
+  chair dropdown was narrowed to qualified chairs only. When they are all busy
+  the answer is to promote someone on the Admin page, not to hand a Member the
+  gavel because nobody else was left in the list.
+- **An adult sits on one board at a time.** Anyone already in a room, or stood
+  down for the night with Disable, is refused, hidden from the adult grid's
+  default view, skipped by auto-select, and has their checkbox greyed out with
+  the reason on hover. They return to the pool when the review completes.
 - Age is attested by the **"I am 21+"** button on the sign-in page, and the
   parent/relative rule is covered by the unit match, so neither needs a field on
   the adult record.
 
-The rules are pure functions with no server round trip, covered by
-`scripts/test-seat-conflicts.js` and run in CI on all three platforms.
+The size and unit rules are pure functions with no server round trip, covered by
+`scripts/test-seat-conflicts.js`. Size, chair qualification and one-board-at-a-
+time are **also enforced by the server**, because the browser is the normal way
+in and not the only one: a board seated past the UI is one nobody finds out
+about until they read the result of a review that should not have happened.
+`scripts/test-board-evening.sh` runs a whole evening against those rules. Both
+run in CI on all three platforms.
 
 **Other workflow changes**
 
