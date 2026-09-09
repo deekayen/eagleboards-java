@@ -81,7 +81,11 @@ jobs:
           # And the server must still serve pages afterward (no wedge).
           curl -sf -o /dev/null http://127.0.0.1:18099/index.html
           curl -sf -o /dev/null http://127.0.0.1:18099/youth-cells
+          # wait, not just kill: the next step binds a port too, and on macOS
+          # the socket outlived the signal often enough to fail the build with
+          # "Address already in use". They use different ports now as well.
           kill $SRV
+          wait $SRV 2>/dev/null || true
           echo "runtime smoke passed on ${{ matrix.os }}"
       - name: Board lifecycle (convene, then review)
         shell: bash
@@ -93,15 +97,15 @@ jobs:
         run: |
           NEW_JAR=$(ls target/eagleboardscheduler-*.jar | grep -v original- | head -1)
           echo 'Type,ID,Last,First,Email,Phone,UnitType,Unit,UnitName,ProjectReview,FinalBoard,RegTime,Room,Flags,Sel,BoardHistory' > LifeAdults.csv
-          java -jar "$NEW_JAR" -a LifeAdults.csv -c config.properties -port 18099 -d liferun > life.log 2>&1 &
+          java -jar "$NEW_JAR" -a LifeAdults.csv -c config.properties -port 18097 -d liferun > life.log 2>&1 &
           SRV=$!
           for i in $(seq 1 30); do
-            curl -sf -o /dev/null http://127.0.0.1:18099/index.html && break
+            curl -sf -o /dev/null http://127.0.0.1:18097/index.html && break
             sleep 1
             if [ "$i" = 30 ]; then echo "server never became ready"; cat life.log; exit 1; fi
           done
           set -e
-          B=http://127.0.0.1:18099
+          B=http://127.0.0.1:18097
           # Scout in Troop 1234; three members from other units, so the
           # same-unit rule does not interfere with this lifecycle check.
           curl -sf -X POST --data "Last=Life&First=Test&Email=l@example.org&UnitType=Troop&Unit=1234&UnitName=T1234&BoardType=Final" $B/register-youth -o /dev/null
@@ -131,6 +135,7 @@ jobs:
           curl -sf -X POST --data "RoomID=ROOM:1&ScoutID=$SID&Result=Approved" $B/complete-board -o /dev/null
           grep -q ",Completed," liferun/scouts.csv || { echo "FAIL: complete after Start Review did not complete"; exit 1; }
           kill $SRV
+          wait $SRV 2>/dev/null || true
           echo "board lifecycle passed on ${{ matrix.os }}"
       - name: Board evening (14 scouts, 12 rooms, 30 adults, 5 chairs)
         shell: bash
