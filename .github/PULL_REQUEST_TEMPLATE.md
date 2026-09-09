@@ -2,25 +2,13 @@
 
 <!-- What changes, and what problem it solves. Link the issue if there is one. -->
 
-## Parity gate
-
-<!-- scripts/verify-parity.sh is the acceptance test for this project. It runs
-     only on a machine that has the inherited jar; CI cannot run it. -->
-
-- [ ] `scripts/verify-parity.sh` passes
-- [ ] Not run — why:
-
-If you deliberately diverged from the original binary's behavior, say which
-exemption or normalization you added to the script, and why:
-
-<!-- e.g. "Added REMOVED_FEATURE for VerifyBoardHandler; the Verify step is gone." -->
-
 ## Checks
 
 - [ ] `./mvnw clean package` succeeds (`clean` if any resource was deleted or renamed)
 - [ ] CI green on Linux amd64, Windows amd64, Linux arm64, and macOS
 - [ ] Tried it in a browser against synthetic data on a spare port
 - [ ] Fixed a crash? Added a regression assertion to the CI smoke test
+- [ ] Changed how a board is seated, run or torn down? Added a case to `scripts/test-board-evening.sh`
 
 ## Data safety
 
