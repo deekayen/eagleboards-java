@@ -4,10 +4,12 @@
 
 ## Parity gate
 
-<!-- scripts/verify-parity.sh is the acceptance test for this project. -->
+<!-- scripts/verify-parity.sh is the acceptance test for this project. It now
+     runs in CI (the `parity` job, Linux + macOS), so this is no longer a
+     checkbox to tick on your honor -- the run is the answer. -->
 
-- [ ] `scripts/verify-parity.sh` passes
-- [ ] Not run — why:
+The `parity` job must be green. If it is red, say why here rather than merging
+past it.
 
 If you deliberately diverged from the original binary's behavior, say which
 exemption or normalization you added to the script, and why:
@@ -17,7 +19,7 @@ exemption or normalization you added to the script, and why:
 ## Checks
 
 - [ ] `./mvnw clean package` succeeds (`clean` if any resource was deleted or renamed)
-- [ ] CI green on Linux amd64, Windows amd64, and Linux arm64
+- [ ] CI green on Linux amd64, Windows amd64, Linux arm64, and macOS
 - [ ] Tried it in a browser against synthetic data on a spare port
 - [ ] Fixed a crash? Added a regression assertion to the CI smoke test
 
