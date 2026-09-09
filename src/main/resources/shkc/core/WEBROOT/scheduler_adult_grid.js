@@ -30,12 +30,27 @@ function SchedulerAdultGrid(container_id, toolbar_id, title) {
             // case genuinely too narrow for its own title.
             title: "@", field: "Sel", width: 46, hozAlign: "center",
             sorter: "string", headerSort: true,
+            // An adult already sitting on a board, or stood down for the night
+            // (Room "N/A"), cannot join a second board -- ProcessSeatBoard and
+            // the server both refuse it. The box used to stay clickable while
+            // the "View" filter was showing everyone, so the operator could
+            // tick someone who was mid-board, have the tick saved, and only
+            // find out at Seat Board. Disable it at the source instead: the
+            // reason is in the tooltip, and Sel stays clean.
             formatter: function (cell) {
                var checked = cell.getValue() == "1";
-               return "<input type='checkbox'" + (checked ? " checked" : "") + "/>";
+               var room = cell.getRow().getData().Room || "";
+               var why = "";
+               if (room === "N/A") {
+                  why = "Disabled for tonight -- enable them first";
+               } else if (room.length > 0) {
+                  why = "Already seated on the board in room " + room;
+               }
+               return "<input type='checkbox'" + (checked ? " checked" : "")
+                  + (why ? " disabled title=\"" + why + "\"" : "") + "/>";
             },
             cellClick: function (e, cell) {
-               if (e.target && e.target.tagName === "INPUT") {
+               if (e.target && e.target.tagName === "INPUT" && !e.target.disabled) {
                   this_obj.onCheck(cell.getRow().getIndex(), e.target.checked);
                }
             }

@@ -27,6 +27,16 @@ original source was received) and then modernized. See `PROVENANCE.md`.
   popup automatically when there's no display, e.g. a headless Pi).
 - Board composition rules: `node scripts/test-seat-conflicts.js` (headless, no
   framework, no network). Runs in CI on all three platforms.
+- Whole board evening: `bash scripts/test-board-evening.sh` — boots the jar on a
+  spare port against a throwaway data dir and runs a full evening at the
+  district's real shape (14 scouts, 12 rooms, 30 adults, and only **5** adults
+  qualified to chair anything, so boards queue behind the chairs). It covers
+  what the pure-function tests cannot: adults committed to one room and released
+  at Complete, postpone/reset handing the room and members back, and the
+  composition rules holding for requests that never went through our UI. Needs
+  `bash curl awk` and a JDK — **no Python**, for the reason in the parity note
+  below. Runs in CI on all three platforms. Add a case here when you change how
+  a board is seated, run, or torn down.
 - **Parity gate: `scripts/verify-parity.sh` — run it after every change and keep
   it green.** It boots the original inherited jar and the rebuilt jar side by
   side and proves they behave identically for everything that wasn't
@@ -101,16 +111,36 @@ original source was received) and then modernized. See `PROVENANCE.md`.
   accepted a `Seated` scout, which was harmless while nothing was ever left in
   that state and became "record a result for a review that never happened" the
   moment it was restored; there is now a CI guard for exactly that.
-- **Board composition rules** (`process_seat.js`, warned client-side at seating):
-  three to six members, per Guide to Advancement 8.0.0.3 — fewer is refused,
-  four to six asks for confirmation, seven is refused outright. Adults from the
-  scout's own unit raise an overridable warning naming every one of them: this
-  council forbids them entirely, and the override falls back to the national
-  rule (GTA 8.0.3.0 #2), which still requires at least one member from outside
-  the unit — so a board made *entirely* of the scout's unit is refused with no
-  override. Age is attested by the "I am 21+" button on the sign-in page, and
-  the parent/relative rule is handled by unit matching, so neither needs a field
-  on `AdultRecord`. Keep the rules pure and tested — see the test script above.
+- **Board composition rules** live in `process_seat.js` for the operator's sake
+  (it explains and, where allowed, offers an override) **and again in
+  `SeatBoardHandler` as a hard backstop**. The UI is the normal way in, not the
+  only one, and a board seated past it is one nobody finds out about until they
+  read the result of a review that should not have happened. Both must agree:
+  - **Size.** A board of review is three to six (GTA 8.0.0.3) — fewer refused,
+    four to six asks to confirm, seven refused outright. A *project* proposal
+    review is not a board of review (GTA 9.0.2.4) and this district runs it with
+    two, under the same ceiling of six. `checkBoardSize` / `checkProjectSize`.
+  - **Chair is binding.** A board must be chaired by someone whose role for that
+    board type is `Chair`, and the chair must be sitting on the board. When the
+    qualified chairs are all busy the answer is to promote someone on the Admin
+    page — never to let a Member hold the gavel because the dropdown had nobody
+    else. The chair dialog therefore lists only qualified chairs.
+  - **One board at a time.** An adult with a `Room` is committed to it and
+    cannot be added to a second; `Room` = `N/A` is the Disable button's marker
+    for someone who has gone home. Both are refused server-side, hidden by the
+    grid's default filter, skipped by auto-select, and their checkbox is
+    rendered `disabled` with the reason in its tooltip.
+  - **Same unit.** Adults from the scout's own unit raise an overridable warning
+    naming every one of them: this council forbids them entirely, and the
+    override falls back to the national rule (GTA 8.0.3.0 #2), which still
+    requires at least one member from outside the unit — so a board made
+    *entirely* of the scout's unit is refused with no override. Client-side
+    only, deliberately: it is a judgement call, not an absolute.
+
+  Age is attested by the "I am 21+" button on the sign-in page, and the
+  parent/relative rule is handled by unit matching, so neither needs a field on
+  `AdultRecord`. Keep the pure rules pure and tested (`test-seat-conflicts.js`)
+  and the server's behavior tested too (`test-board-evening.sh`).
 - **Config lives in `config.properties`** (JDK `java.util.Properties`,
   `key=value`, `#` comments) as one CONFIG record, loaded into `ConfigRecord`
   (columns must be listed in `ConfigRecord.COLUMNS` to be served via

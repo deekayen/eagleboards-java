@@ -121,6 +121,16 @@ jobs:
           grep -q ",Completed," liferun/scouts.csv || { echo "FAIL: complete after Start Review did not complete"; exit 1; }
           kill $SRV
           echo "board lifecycle passed on ${{ matrix.os }}"
+      - name: Board evening (14 scouts, 12 rooms, 30 adults, 5 chairs)
+        shell: bash
+        # A whole evening at the district's real shape, deliberately short of
+        # chairs so boards queue behind the five people who may chair one.
+        # Covers what no single-board check can: adults committed to one room
+        # and released when the review completes, the rules holding for
+        # requests that never went through our UI, and postpone/reset handing
+        # the room and the members back. Synthetic names, spare port, throwaway
+        # data dir -- never the real Master_AdultHistory.csv.
+        run: bash scripts/test-board-evening.sh
       - name: Windows launcher (run.bat picks the newest jar, warns on shadowed WEBROOT)
         if: matrix.os == 'windows-latest'
         shell: cmd

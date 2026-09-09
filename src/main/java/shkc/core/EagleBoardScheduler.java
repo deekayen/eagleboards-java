@@ -1072,6 +1072,14 @@ public class EagleBoardScheduler {
                         return;
                      }
 
+                     // "N/A" is the Disable button's marker for an adult who
+                     // has gone home, not a room anyone can be sent to, so it
+                     // gets its own wording rather than "in room N/A".
+                     if ("N/A".equals(var17.getRoom())) {
+                        this.sendError("ERROR: Member " + var17.getFullName() + " has been disabled for tonight", var3);
+                        return;
+                     }
+
                      if (var17.getRoom().length() > 0) {
                         this.sendError("ERROR: Member " + var17.getFullName() + " already assigned to a board in room " + var17.getRoom(), var3);
                         return;
@@ -1087,6 +1095,64 @@ public class EagleBoardScheduler {
                      // impossible without already knowing their last name.
                      var14.append(var17.getFullName());
                      var12.add(var17);
+                  }
+
+                  // Composition rules are enforced here as well as in
+                  // process_seat.js. The browser is the normal way in, not the
+                  // only one, and a board seated past the UI is a board that
+                  // never met the rule -- which is only discovered later, from
+                  // the record of a review that should not have happened.
+                  //
+                  // Guide to Advancement 8.0.0.3: a board of review has no
+                  // fewer than three and no more than six members. A project
+                  // proposal review is not a board of review (GTA 9.0.2.4) and
+                  // this district runs it with two, under the same ceiling.
+                  // Keep in step with checkBoardSize()/checkProjectSize().
+                  boolean var24 = "Project".equals(var10.getBoardType());
+                  int var25 = var24 ? 2 : 3;
+
+                  if (var12.size() < var25) {
+                     this.sendError("ERROR: Only " + var12.size() + " board member(s) selected; "
+                        + var25 + " required for " + var10.getBoardType() + " boards", var3);
+                     return;
+                  }
+
+                  if (var12.size() > 6) {
+                     this.sendError("ERROR: " + var12.size()
+                        + " board members selected; no more than 6 permitted (Guide to Advancement 8.0.0.3)", var3);
+                     return;
+                  }
+
+                  // The Chair designation is binding. Promoting someone from
+                  // Member to Chair is a deliberate edit on the Admin page; it
+                  // must never happen as a side effect of seating a board
+                  // because the qualified chairs were all busy.
+                  if (var11 == null) {
+                     this.sendError("ERROR: Invalid Chair ID " + var7, var3);
+                     return;
+                  }
+
+                  boolean var26 = false;
+
+                  for (AdultRecord var27 : var12) {
+                     if (var27.getID().equals(var11.getID())) {
+                        var26 = true;
+                        break;
+                     }
+                  }
+
+                  if (!var26) {
+                     this.sendError("ERROR: Chair " + var11.getFullName() + " is not one of the board members", var3);
+                     return;
+                  }
+
+                  String var28 = var24 ? var11.getProjectReviewRole() : var11.getFinalBoardRole();
+
+                  if (!"Chair".equals(var28)) {
+                     this.sendError("ERROR: " + var11.getFullName() + " is not qualified to chair a "
+                        + var10.getBoardType() + " board (role: "
+                        + (var28 == null || var28.length() == 0 ? "none" : var28) + ")", var3);
+                     return;
                   }
 
                   String var23 = var14.toString();

@@ -13,6 +13,12 @@
 var BOARD_MIN_MEMBERS = 3;
 var BOARD_MAX_MEMBERS = 6;
 
+// A project proposal review is not a board of review -- it is the GTA 9.0.2.4
+// approval of the service project proposal -- so the three-member floor does
+// not apply and this district runs them with two. The ceiling is shared with
+// the board of review: six is as many people as belong in the room either way.
+var PROJECT_MIN_MEMBERS = 2;
+
 // Verdict for a proposed board size, kept separate from the dialogs so the
 // national limits can be unit-tested headless:
 //
@@ -29,6 +35,21 @@ function checkBoardSize(count) {
       return "too-many";
    }
    if (count > BOARD_MIN_MEMBERS) {
+      return "over-preferred";
+   }
+   return "ok";
+}
+
+// Same verdicts for a project proposal review: two is the working size, six
+// the ceiling. Kept beside checkBoardSize so both are unit-tested headless.
+function checkProjectSize(count) {
+   if (count < PROJECT_MIN_MEMBERS) {
+      return "too-few";
+   }
+   if (count > BOARD_MAX_MEMBERS) {
+      return "too-many";
+   }
+   if (count > PROJECT_MIN_MEMBERS) {
       return "over-preferred";
    }
    return "ok";
@@ -96,8 +117,10 @@ if (typeof module !== "undefined" && module.exports) {
       findUnitConflicts: findUnitConflicts,
       hasNonUnitMember: hasNonUnitMember,
       checkBoardSize: checkBoardSize,
+      checkProjectSize: checkProjectSize,
       BOARD_MIN_MEMBERS: BOARD_MIN_MEMBERS,
-      BOARD_MAX_MEMBERS: BOARD_MAX_MEMBERS
+      BOARD_MAX_MEMBERS: BOARD_MAX_MEMBERS,
+      PROJECT_MIN_MEMBERS: PROJECT_MIN_MEMBERS
    };
 }
 
@@ -143,6 +166,14 @@ function ProcessSeatBoard(s_id) {
    var member_name_arr = [];
    var member_ids_arr = [];
    var member_arr = [];
+   // Just the selected members qualified to chair THIS board type. The dialog
+   // below used to offer every selected member, so once the qualified chairs
+   // were all sitting on other boards the operator could hand the gavel to a
+   // plain Member and the server took it. The Chair designation is binding:
+   // promoting someone is a deliberate change on the Admin page, not a side
+   // effect of their being the only name left in a dropdown.
+   var chair_ids_arr = [];
+   var chair_names_arr = [];
 
    for (var i = 0; i < selected_leaders.length; i++) {
       var l_id = selected_leaders[i];
@@ -158,6 +189,16 @@ function ProcessSeatBoard(s_id) {
          l_fi = "" + l_first.charAt(0);
       }
 
+      if (l_room === "N/A") {
+         // Room "N/A" is the Disable button's marker for someone who has gone
+         // home. Reporting that as "assigned to a board in room N/A" sent the
+         // operator looking for a room that does not exist.
+         ebAlert("Schedule Error",
+            "Member '" + l_last + ", " + l_first + "' has been disabled for tonight."
+            + "<br/>Use Enable on the Adult Board Members panel if they are back.");
+         return;
+      }
+
       if (l_room.length > 0) {
          ebAlert("Schedule Error",
             "Member '" + l_last + ", " + l_first + "' is already assigned to a board in room " + l_room + ".");
@@ -170,9 +211,10 @@ function ProcessSeatBoard(s_id) {
       // hard failures — those are impossible, not merely inadvisable.
       member_arr.push({ id: l_id, last: l_last, first: l_first, uname: l_uname });
 
-      if ((chair_id == "")
-            && (((s_btype == "Project") && (l_project == "Chair"))
-               || ((s_btype == "Final") && (l_final == "Chair")))) {
+      var is_chair = ((s_btype == "Project") && (l_project == "Chair"))
+         || ((s_btype == "Final") && (l_final == "Chair"));
+
+      if ((chair_id == "") && is_chair) {
          chair_id = l_id;
       }
 
@@ -191,6 +233,10 @@ function ProcessSeatBoard(s_id) {
       }
       leader_names = leader_names + short_name;
       member_name_arr.push(short_name);
+      if (is_chair) {
+         chair_ids_arr.push(l_id);
+         chair_names_arr.push(short_name);
+      }
       if (member_ids.length > 0) {
          member_ids += ",";
       }
@@ -225,10 +271,12 @@ function ProcessSeatBoard(s_id) {
    };
 
    var showChairDialog = function (rm_id) {
+      // Qualified chairs only. requireQualifiedChair() has already refused the
+      // seating if this list is empty, so the dropdown is never rendered blank.
       var opts = "";
-      for (var o = 0; o < member_name_arr.length; o++) {
-         var sel = (member_ids_arr[o] === chair_id) ? " selected" : "";
-         opts += "<option value=\"" + member_ids_arr[o] + "\"" + sel + ">" + member_name_arr[o] + "</option>";
+      for (var o = 0; o < chair_names_arr.length; o++) {
+         var sel = (chair_ids_arr[o] === chair_id) ? " selected" : "";
+         opts += "<option value=\"" + chair_ids_arr[o] + "\"" + sel + ">" + chair_names_arr[o] + "</option>";
       }
       ebModalForm("Seat Board",
          "<label>Chair: <select name='Chair'>" + opts + "</select></label>",
@@ -241,7 +289,32 @@ function ProcessSeatBoard(s_id) {
          });
    };
 
+   // A board must be chaired by someone designated Chair for that board type.
+   // When the qualified chairs are all busy the answer is to promote someone
+   // on the Admin page (Adults tab), not to seat a Member in the chair -- so
+   // this is a hard stop, and the message says where to go to fix it.
+   var requireQualifiedChair = function () {
+      if (chair_ids_arr.length > 0) {
+         return true;
+      }
+      var role_col = (s_btype == "Project") ? "Project" : "Final";
+      ebAlert("Schedule Error",
+         "<p style='text-align: left'>"
+         + "<b>None of the selected board members is qualified to chair a "
+         + s_btype + " board:</b><br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
+         + leader_names
+         + "<br/><br/>Select a member whose <b>" + role_col
+         + "</b> role is <b>Chair</b>, or, if someone here should be chairing,"
+         + " promote them on the Admin page (Adults tab) by setting their <b>"
+         + role_col + "</b> role to <b>Chair</b> first.</p>");
+      return false;
+   };
+
    var proceedToCountChecks = function () {
+      if (!requireQualifiedChair()) {
+         return;
+      }
+
       var size_verdict = checkBoardSize(selected_leaders.length);
 
       if (s_btype == "Final") {
@@ -277,13 +350,25 @@ function ProcessSeatBoard(s_id) {
             return;
          }
       } else if (s_btype == "Project") {
-         if (selected_leaders.length < 2) {
+         var project_verdict = checkProjectSize(selected_leaders.length);
+
+         if (project_verdict === "too-few") {
             ebAlert("Schedule Error",
                "Only " + selected_leaders.length + " board members selected:<br/><br/>&nbsp;&nbsp;&nbsp;" + leader_names
                + "<br/><br/>Two (2) required for Project Reviews."
-               + "<br/>Please select " + (2 - selected_leaders.length) + " more leaders.");
+               + "<br/>Please select " + (PROJECT_MIN_MEMBERS - selected_leaders.length) + " more leaders.");
             return;
-         } else if (selected_leaders.length > 2) {
+         } else if (project_verdict === "too-many") {
+            // Same ceiling as a board of review, and refused the same way:
+            // six is a limit, not a preference, so there is nothing to confirm.
+            ebAlert("Schedule Error",
+               "<p style='text-align: left'>You have selected " + selected_leaders.length
+               + " board members:<br/><br/>&nbsp;&nbsp;&nbsp;" + leader_names
+               + "<br/><br/>A project review may have no more than six (6) members."
+               + "<br/>Please remove " + (selected_leaders.length - BOARD_MAX_MEMBERS)
+               + " member(s).</p>");
+            return;
+         } else if (project_verdict === "over-preferred") {
             ebConfirm("Schedule",
                "You have selected " + selected_leaders.length
                + " board members:<br/><br/>&nbsp;&nbsp;&nbsp;" + leader_names

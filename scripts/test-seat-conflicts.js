@@ -20,6 +20,7 @@ var seat = require(path.join(
    __dirname, "..", "src", "main", "resources", "shkc", "core", "WEBROOT", "process_seat.js"));
 var findUnitConflicts = seat.findUnitConflicts;
 var checkBoardSize = seat.checkBoardSize;
+var checkProjectSize = seat.checkProjectSize;
 var hasNonUnitMember = seat.hasNonUnitMember;
 
 var failures = 0;
@@ -188,6 +189,26 @@ check("five members is legal, confirm first", checkBoardSize(5), "over-preferred
 check("six members is the national maximum, still legal", checkBoardSize(6), "over-preferred");
 check("seven members is refused (above the national maximum)", checkBoardSize(7), "too-many");
 check("a wildly oversized board is refused", checkBoardSize(20), "too-many");
+
+// A project proposal review is the GTA 9.0.2.4 approval of the service project
+// proposal, not a board of review, so the three-member floor does not apply --
+// this district runs them with two. The ceiling is shared: six either way.
+console.log("== project review size (two to six members) ==");
+
+check("no members at all is refused", checkProjectSize(0), "too-few");
+check("one member is refused", checkProjectSize(1), "too-few");
+check("two members is the district's working size", checkProjectSize(2), "ok");
+check("three members is legal, confirm first", checkProjectSize(3), "over-preferred");
+check("six members is the maximum, still legal", checkProjectSize(6), "over-preferred");
+check("seven members is refused", checkProjectSize(7), "too-many");
+check("a wildly oversized project review is refused", checkProjectSize(20), "too-many");
+
+// The two rules differ only at the floor; a mix-up there would quietly seat
+// two-member boards of review, which is the failure this pins down.
+check("three is legal for a board but only 'preferred-plus' for a project",
+   [checkBoardSize(3), checkProjectSize(3)], ["ok", "over-preferred"]);
+check("two is refused for a board but fine for a project",
+   [checkBoardSize(2), checkProjectSize(2)], ["too-few", "ok"]);
 
 console.log("");
 if (failures > 0) {
