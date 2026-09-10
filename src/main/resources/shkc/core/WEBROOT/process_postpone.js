@@ -3,10 +3,6 @@
 // (/postpone-board).
 // ------------------------------------------------------------------------
 
-function InitializePostponeBoard() {
-   // dialogs are created on demand now; kept for scheduler.html parity
-}
-
 function ProcessPostponeBoard(s_id) {
    var s_status = schedulerScoutGrid.getColumnValue(s_id, "Status");
    var s_last = schedulerScoutGrid.getColumnValue(s_id, "Last");

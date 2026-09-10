@@ -39,6 +39,18 @@ jobs:
           grep -q "shkc/core/EagleBoardScheduler.class" jar-contents.txt
           jar xf "$NEW_JAR" META-INF/MANIFEST.MF
           grep -q "Main-Class: shkc.core.EagleBoardScheduler" META-INF/MANIFEST.MF
+      - name: No decompiled variable names
+        shell: bash
+        # The sources were reconstructed by decompiling an inherited binary,
+        # so every local was once var1, var10, ... They have all been renamed
+        # and none may come back -- including in new code written to "match
+        # the surrounding style", which is how they crept back in before.
+        run: |
+          if grep -rnE "\bvar[0-9]+\b" src/main/java --include="*.java" > decompiled-names.txt; then
+            echo "FAIL: decompiled variable names reintroduced:"
+            cat decompiled-names.txt
+            exit 1
+          fi
       - name: Board composition rules (same-unit conflict detection)
         shell: bash
         # The scheduler must flag board members from the scout's own unit --

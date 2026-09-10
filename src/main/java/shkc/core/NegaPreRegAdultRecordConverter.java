@@ -1,6 +1,5 @@
 package shkc.core;
 
-import java.io.File;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -9,8 +8,8 @@ import java.util.StringTokenizer;
 public class NegaPreRegAdultRecordConverter extends DataFileConverter<AdultRecord> {
    private static Map<String, String> COLUMN_MAP = new HashMap<>();
 
-   public NegaPreRegAdultRecordConverter(DataRecordFile<AdultRecord> var1) {
-      super(var1, null, COLUMN_MAP, new String[]{"Email", "First Name", "Last Name", "Scouts Contact Number", "Scoutmasters Name", "Unit Number"});
+   public NegaPreRegAdultRecordConverter(DataRecordFile<AdultRecord> dataFile) {
+      super(dataFile, COLUMN_MAP, new String[]{"Email", "First Name", "Last Name", "Scouts Contact Number", "Scoutmasters Name", "Unit Number"});
       this.addConverter("name", new NegaPreRegAdultRecordConverter.NameConverter());
       this.addConverter("phone", new NegaPreRegAdultRecordConverter.PhoneConverter());
       this.addConverter("request_status", new NegaPreRegAdultRecordConverter.StatusConverter());
@@ -24,32 +23,32 @@ public class NegaPreRegAdultRecordConverter extends DataFileConverter<AdultRecor
       this.addConverter("Unit Number", new NegaPreRegAdultRecordConverter.UnitConverter());
    }
 
-   public void procesNewRecord(AdultRecord var1) {
-      DataRecordFile var2 = this.getDataFile();
-      String var3 = var1.getEmail();
-      AdultRecord var4 = (AdultRecord)var2.get(var1.getID());
-      if (var4 == null) {
-         List var5 = var2.get("Email", var3);
-         if (var5 != null && var5.size() != 0) {
-            if (var5.size() == 1) {
-               EagleBoardScheduler.verbose("UPDATING PREREG ADULT RECORD[1]: " + var5.get(0));
-               ((AdultRecord)var5.get(0)).updateFrom(var1, new String[]{"Phone"});
+   public void procesNewRecord(AdultRecord incoming) {
+      DataRecordFile dataFile = this.getDataFile();
+      String email = incoming.getEmail();
+      AdultRecord existing = (AdultRecord)dataFile.get(incoming.getID());
+      if (existing == null) {
+         List sameEmail = dataFile.get("Email", email);
+         if (sameEmail != null && sameEmail.size() != 0) {
+            if (sameEmail.size() == 1) {
+               EagleBoardScheduler.verbose("UPDATING PREREG ADULT RECORD[1]: " + sameEmail.get(0));
+               ((AdultRecord)sameEmail.get(0)).updateFrom(incoming, new String[]{"Phone"});
             }
          } else {
-            EagleBoardScheduler.verbose("ADDING NEW PREREG ADULT RECORD: " + var1);
-            var2.add(var1, false);
+            EagleBoardScheduler.verbose("ADDING NEW PREREG ADULT RECORD: " + incoming);
+            dataFile.add(incoming, false);
          }
       } else {
-         EagleBoardScheduler.verbose("UPDATING PREREG ADULT RECORD[2]: " + var4);
-         var4.updateFrom(var1, new String[]{"Phone", "Email"});
+         EagleBoardScheduler.verbose("UPDATING PREREG ADULT RECORD[2]: " + existing);
+         existing.updateFrom(incoming, new String[]{"Phone", "Email"});
       }
    }
 
-   private String cvtname(String var1) {
-      if (var1.length() == 0) {
-         return var1;
+   private String cvtname(String name) {
+      if (name.length() == 0) {
+         return name;
       } else {
-         return Character.isLetter(var1.charAt(0)) ? Character.toUpperCase(var1.charAt(0)) + var1.substring(1) : var1;
+         return Character.isLetter(name.charAt(0)) ? Character.toUpperCase(name.charAt(0)) + name.substring(1) : name;
       }
    }
 
@@ -66,10 +65,10 @@ public class NegaPreRegAdultRecordConverter extends DataFileConverter<AdultRecor
       }
 
       @Override
-      public boolean convert(DataRecord var1, String var2, String var3) {
-         if (var3.toLowerCase().indexOf("adult") >= 0) {
-            var1.put("ProjectReview", "Member");
-            var1.put("FinalBoard", "Member");
+      public boolean convert(DataRecord record, String column, String value) {
+         if (value.toLowerCase().indexOf("adult") >= 0) {
+            record.put("ProjectReview", "Member");
+            record.put("FinalBoard", "Member");
             return true;
          } else {
             return false;
@@ -82,11 +81,11 @@ public class NegaPreRegAdultRecordConverter extends DataFileConverter<AdultRecor
       }
 
       @Override
-      public boolean convert(DataRecord var1, String var2, String var3) {
-         StringTokenizer var4 = new StringTokenizer(var3, " ", false);
-         if (var4.countTokens() >= 1) {
-            var1.put("First", NegaPreRegAdultRecordConverter.this.cvtname(var4.nextToken()));
-         } else if (var4.countTokens() == 0) {
+      public boolean convert(DataRecord record, String column, String value) {
+         StringTokenizer tokens = new StringTokenizer(value, " ", false);
+         if (tokens.countTokens() >= 1) {
+            record.put("First", NegaPreRegAdultRecordConverter.this.cvtname(tokens.nextToken()));
+         } else if (tokens.countTokens() == 0) {
             return false;
          }
 
@@ -99,11 +98,11 @@ public class NegaPreRegAdultRecordConverter extends DataFileConverter<AdultRecor
       }
 
       @Override
-      public boolean convert(DataRecord var1, String var2, String var3) {
-         StringTokenizer var4 = new StringTokenizer(var3, " ", false);
-         if (var4.countTokens() >= 1) {
-            var1.put("Last", NegaPreRegAdultRecordConverter.this.cvtname(var4.nextToken()));
-         } else if (var4.countTokens() == 0) {
+      public boolean convert(DataRecord record, String column, String value) {
+         StringTokenizer tokens = new StringTokenizer(value, " ", false);
+         if (tokens.countTokens() >= 1) {
+            record.put("Last", NegaPreRegAdultRecordConverter.this.cvtname(tokens.nextToken()));
+         } else if (tokens.countTokens() == 0) {
             return false;
          }
 
@@ -116,19 +115,19 @@ public class NegaPreRegAdultRecordConverter extends DataFileConverter<AdultRecor
       }
 
       @Override
-      public boolean convert(DataRecord var1, String var2, String var3) {
-         StringTokenizer var4 = new StringTokenizer(var3, " ", false);
-         if (var4.countTokens() == 1) {
-            var1.put("Last", NegaPreRegAdultRecordConverter.this.cvtname(var4.nextToken()));
+      public boolean convert(DataRecord record, String column, String value) {
+         StringTokenizer tokens = new StringTokenizer(value, " ", false);
+         if (tokens.countTokens() == 1) {
+            record.put("Last", NegaPreRegAdultRecordConverter.this.cvtname(tokens.nextToken()));
          } else {
-            if (var4.countTokens() == 0) {
+            if (tokens.countTokens() == 0) {
                return false;
             }
 
-            var1.put("First", NegaPreRegAdultRecordConverter.this.cvtname(var4.nextToken()));
+            record.put("First", NegaPreRegAdultRecordConverter.this.cvtname(tokens.nextToken()));
 
-            while (var4.hasMoreTokens()) {
-               var1.put("Last", NegaPreRegAdultRecordConverter.this.cvtname(var4.nextToken()));
+            while (tokens.hasMoreTokens()) {
+               record.put("Last", NegaPreRegAdultRecordConverter.this.cvtname(tokens.nextToken()));
             }
          }
 
@@ -141,31 +140,31 @@ public class NegaPreRegAdultRecordConverter extends DataFileConverter<AdultRecor
       }
 
       @Override
-      public boolean convert(DataRecord var1, String var2, String var3) {
-         if (var3.length() == 12) {
-            var1.setValue("Phone", var3);
+      public boolean convert(DataRecord record, String column, String value) {
+         if (value.length() == 12) {
+            record.setValue("Phone", value);
          } else {
-            StringBuffer var4 = new StringBuffer();
+            StringBuffer out = new StringBuffer();
 
-            for (int var5 = 0; var5 < var3.length(); var5++) {
-               if (Character.isDigit(var3.charAt(var5))) {
-                  var4.append(var3.charAt(var5));
+            for (int i = 0; i < value.length(); i++) {
+               if (Character.isDigit(value.charAt(i))) {
+                  out.append(value.charAt(i));
                }
             }
 
-            String var9 = var4.toString();
-            var4 = new StringBuffer();
+            String digits = out.toString();
+            out = new StringBuffer();
 
-            for (int var6 = 0; var6 < var9.length(); var6++) {
-               char var7 = var3.charAt(var6);
-               if (var6 == 3 || var6 == 6) {
-                  var4.append("-");
+            for (int digitIndex = 0; digitIndex < digits.length(); digitIndex++) {
+               char digit = value.charAt(digitIndex);
+               if (digitIndex == 3 || digitIndex == 6) {
+                  out.append("-");
                }
 
-               var4.append(var7);
+               out.append(digit);
             }
 
-            var1.setValue("Phone", var4.toString());
+            record.setValue("Phone", out.toString());
          }
 
          return true;
@@ -177,8 +176,8 @@ public class NegaPreRegAdultRecordConverter extends DataFileConverter<AdultRecor
       }
 
       @Override
-      public boolean convert(DataRecord var1, String var2, String var3) {
-         return var3.toLowerCase().indexOf("cancel") < 0;
+      public boolean convert(DataRecord record, String column, String value) {
+         return value.toLowerCase().indexOf("cancel") < 0;
       }
    }
 
@@ -187,23 +186,23 @@ public class NegaPreRegAdultRecordConverter extends DataFileConverter<AdultRecor
       }
 
       @Override
-      public boolean convert(DataRecord var1, String var2, String var3) {
-         StringBuffer var4 = new StringBuffer();
+      public boolean convert(DataRecord record, String column, String value) {
+         StringBuffer digits = new StringBuffer();
 
-         for (int var5 = 0; var5 < var3.length(); var5++) {
-            if (Character.isDigit(var3.charAt(var5))) {
-               var4.append(var3.charAt(var5));
+         for (int i = 0; i < value.length(); i++) {
+            if (Character.isDigit(value.charAt(i))) {
+               digits.append(value.charAt(i));
             }
          }
 
-         var1.setValue("Unit", var4.toString());
-         String var6 = var3.trim().toUpperCase();
-         if (var6.startsWith("C")) {
-            var1.setValue("UnitType", "Crew");
-         } else if (var6.startsWith("P")) {
-            var1.setValue("UnitType", "Pack");
+         record.setValue("Unit", digits.toString());
+         String unit = value.trim().toUpperCase();
+         if (unit.startsWith("C")) {
+            record.setValue("UnitType", "Crew");
+         } else if (unit.startsWith("P")) {
+            record.setValue("UnitType", "Pack");
          } else {
-            var1.setValue("UnitType", "Troop");
+            record.setValue("UnitType", "Troop");
          }
 
          return true;

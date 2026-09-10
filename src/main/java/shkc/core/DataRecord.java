@@ -7,31 +7,25 @@ import java.util.Map;
 import java.util.TimeZone;
 
 public class DataRecord extends HashMap<String, String> {
-   public static final String TYPE = "Type";
-   public static final String ID = "ID";
-   public static final String REG_TIME = "RegTime";
-   public static final String LAST_UPDATE_TIME = "LastUpdateTime";
-   public static final String T_MINS_SINCE_LAST_UPDATE = "MinsSinceLastUpdate";
-   public static final String T_REG_TIME_HM = "RegTimeHM";
    private String[] _columns;
    private static SimpleDateFormat TIME_FORMAT = new SimpleDateFormat("yyyy-MM-dd_HH:mmZ");
 
-   public DataRecord(String var1, String[] var2, Map var3) {
-      this._columns = var2;
-      this.put("Type", var1);
-      if (var3 != null) {
-         for (Object var6Obj : var3.keySet()) {
-            String var6 = (String)var6Obj;
-            Object var7 = var3.get(var6);
-            if (var7 instanceof String[]) {
+   public DataRecord(String recordType, String[] columns, Map values) {
+      this._columns = columns;
+      this.put("Type", recordType);
+      if (values != null) {
+         for (Object keyObj : values.keySet()) {
+            String key = (String)keyObj;
+            Object value = values.get(key);
+            if (value instanceof String[]) {
                try {
-                  this.put(var6, ((String[])var7)[0]);
-               } catch (Exception var10) {
+                  this.put(key, ((String[])value)[0]);
+               } catch (Exception ignored) {
                }
-            } else if (var7 instanceof String) {
+            } else if (value instanceof String) {
                try {
-                  this.put(var6, (String)var7);
-               } catch (Exception var9) {
+                  this.put(key, (String)value);
+               } catch (Exception ignored) {
                }
             }
          }
@@ -40,67 +34,67 @@ public class DataRecord extends HashMap<String, String> {
       this.put("LastUpdateTime", TIME_FORMAT.format(new Date()));
       this.put("RegTime", TIME_FORMAT.format(new Date()));
 
-      for (String var14 : this._columns) {
-         if (this.get(var14) == null) {
-            this.put(var14, "");
+      for (String column : this._columns) {
+         if (this.get(column) == null) {
+            this.put(column, "");
          }
       }
    }
 
    public void postLoadUpdate() {
-      int var1 = getMinsSinceTime(this.getValue("LastUpdateTime"));
-      if (var1 < 0 || var1 > 1440) {
+      int minsSince = getMinsSinceTime(this.getValue("LastUpdateTime"));
+      if (minsSince < 0 || minsSince > 1440) {
          this.setValue("LastUpdateTime", TIME_FORMAT.format(new Date()));
       }
 
-      var1 = getMinsSinceTime(this.getValue("RegTime"));
-      if (var1 < 0 || var1 > 1440) {
+      minsSince = getMinsSinceTime(this.getValue("RegTime"));
+      if (minsSince < 0 || minsSince > 1440) {
          this.setValue("RegTime", TIME_FORMAT.format(new Date()));
       }
    }
 
-   public void updateFields(boolean var1) {
-      if (var1) {
-         String var2 = TIME_FORMAT.format(new Date());
-         this.setValue("LastUpdateTime", var2);
+   public void updateFields(boolean markUpdated) {
+      if (markUpdated) {
+         String now = TIME_FORMAT.format(new Date());
+         this.setValue("LastUpdateTime", now);
       }
    }
 
    public String getMinsSinceLastUpdate() {
-      String var1 = this.getLastUpdateTime();
-      int var2 = getMinsSinceTime(var1);
-      return var2 < 0 ? "" : "" + var2;
+      String lastUpdate = this.getLastUpdateTime();
+      int mins = getMinsSinceTime(lastUpdate);
+      return mins < 0 ? "" : "" + mins;
    }
 
-   private static int getMinsSinceTime(String var0) {
+   private static int getMinsSinceTime(String timestamp) {
       try {
-         Date var1 = TIME_FORMAT.parse(var0);
-         Date var2 = new Date();
-         long var3 = var2.getTime() - var1.getTime();
-         return (int)(var3 / 60000L);
-      } catch (Exception var6) {
+         Date then = TIME_FORMAT.parse(timestamp);
+         Date now = new Date();
+         long elapsedMillis = now.getTime() - then.getTime();
+         return (int)(elapsedMillis / 60000L);
+      } catch (Exception unparsable) {
          return -1;
       }
    }
 
-   public String getValue(String var1) {
-      if (var1.equals("MinsSinceLastUpdate")) {
+   public String getValue(String column) {
+      if (column.equals("MinsSinceLastUpdate")) {
          return this.getMinsSinceLastUpdate();
       }
 
-      if (var1.equals("RegTimeHM")) {
+      if (column.equals("RegTimeHM")) {
          return this.getRegTimeHM();
       }
 
-      String var2 = this.get(var1);
-      return var2 == null ? "" : var2;
+      String value = this.get(column);
+      return value == null ? "" : value;
    }
 
-   public void setValue(String var1, String var2) {
-      if (var2 == null) {
-         this.put(var1, "");
+   public void setValue(String column, String value) {
+      if (value == null) {
+         this.put(column, "");
       } else {
-         this.put(var1, var2);
+         this.put(column, value);
       }
    }
 
@@ -118,7 +112,7 @@ public class DataRecord extends HashMap<String, String> {
    public String getRegTimeHM() {
       try {
          return this.getRegTime().substring(11, 16);
-      } catch (Exception var2) {
+      } catch (Exception ignored) {
          return "";
       }
    }
@@ -133,22 +127,18 @@ public class DataRecord extends HashMap<String, String> {
 
    @Override
    public String toString() {
-      StringBuffer var1 = new StringBuffer();
-      this.toString(var1);
-      return var1.toString();
+      StringBuffer out = new StringBuffer();
+      this.toString(out);
+      return out.toString();
    }
 
-   public void toString(StringBuffer var1) {
-      this.toCSV(var1, ',');
+   public void toString(StringBuffer out) {
+      this.toCSV(out, ',');
    }
 
-   public void fromCSV(String var1, char var2) {
-      this.fromCSV(var1, var2, this._columns);
-   }
-
-   public boolean isColumn(String var1) {
-      for (String var5 : this._columns) {
-         if (var1.equals(var5)) {
+   public boolean isColumn(String name) {
+      for (String column : this._columns) {
+         if (name.equals(column)) {
             return true;
          }
       }
@@ -156,25 +146,25 @@ public class DataRecord extends HashMap<String, String> {
       return false;
    }
 
-   public void fromCSV(String var1, char var2, String[] var3) {
-      int var4 = 0;
+   public void fromCSV(String line, char delimiter, String[] columns) {
+      int fieldStart = 0;
 
-      for (int var5 = 0; var5 < var3.length; var5++) {
-         int var6 = var1.indexOf(var2, var4);
-         if (var6 < var4) {
-            String var8 = var1.substring(var4);
-            if (this.isColumn(var3[var5])) {
-               this.put(var3[var5], var8);
+      for (int columnIndex = 0; columnIndex < columns.length; columnIndex++) {
+         int delimiterPos = line.indexOf(delimiter, fieldStart);
+         if (delimiterPos < fieldStart) {
+            String lastField = line.substring(fieldStart);
+            if (this.isColumn(columns[columnIndex])) {
+               this.put(columns[columnIndex], lastField);
             }
             break;
          }
 
-         String var7 = var1.substring(var4, var6);
-         if (this.isColumn(var3[var5])) {
-            this.put(var3[var5], var7);
+         String field = line.substring(fieldStart, delimiterPos);
+         if (this.isColumn(columns[columnIndex])) {
+            this.put(columns[columnIndex], field);
          }
 
-         var4 = var6 + 1;
+         fieldStart = delimiterPos + 1;
       }
 
       this.setDefaults();
@@ -182,162 +172,152 @@ public class DataRecord extends HashMap<String, String> {
       this.postLoadUpdate();
    }
 
-   public void toCSV(StringBuffer var1, char var2) {
-      this.toCSV(var1, var2, this._columns);
+   public void toCSV(StringBuffer out, char delimiter) {
+      this.toCSV(out, delimiter, this._columns);
    }
 
-   public void toCSV(StringBuffer var1, char var2, String[] var3) {
-      boolean var4 = true;
+   public void toCSV(StringBuffer out, char delimiter, String[] columns) {
+      boolean first = true;
 
-      for (String var8 : var3) {
-         if (!var4) {
-            var1.append(var2);
+      for (String column : columns) {
+         if (!first) {
+            out.append(delimiter);
          }
 
-         var4 = false;
-         String var9 = this.getValue(var8);
-         if (var9 == null) {
-            var9 = "";
+         first = false;
+         String value = this.getValue(column);
+         if (value == null) {
+            value = "";
          } else {
-            var9 = var9.replace(var2, '~').replace('\n', '+').replace('\r', '+');
+            value = value.replace(delimiter, '~').replace('\n', '+').replace('\r', '+');
          }
 
-         var1.append(var9);
+         out.append(value);
       }
    }
 
-   public void toJSON(StringBuffer var1) {
-      this.toJSON(var1, this._columns);
+   public void toJSON(StringBuffer out) {
+      this.toJSON(out, this._columns);
    }
 
-   public void toJSON(StringBuffer var1, String[] var2) {
-      boolean var3 = true;
-      var1.append("{");
+   public void toJSON(StringBuffer out, String[] columns) {
+      boolean first = true;
+      out.append("{");
 
-      for (String var7 : var2) {
-         if (!var3) {
-            var1.append(",");
+      for (String column : columns) {
+         if (!first) {
+            out.append(",");
          }
 
-         var3 = false;
-         String var8 = this.getValue(var7);
-         if (var8 == null) {
-            var8 = "";
+         first = false;
+         String value = this.getValue(column);
+         if (value == null) {
+            value = "";
          } else {
-            var8 = var8.replace('"', '~').replace('\n', '+').replace('\r', '+');
+            value = value.replace('"', '~').replace('\n', '+').replace('\r', '+');
          }
 
-         var1.append(var7).append(": \"");
-         var1.append(var8).append("\"");
+         out.append(column).append(": \"");
+         out.append(value).append("\"");
       }
 
-      var1.append("}");
+      out.append("}");
    }
 
-   public void toCells(StringBuffer var1) {
-      this.toCells(var1, this._columns, null);
-   }
+   public void toDataView(StringBuffer out, String[] columns, String[] extraColumns) {
+      out.append("<item id=\"").append(this.getID()).append("\">");
 
-   public void toDataView(StringBuffer var1, String[] var2, String[] var3) {
-      boolean var4 = true;
-      var1.append("<item id=\"").append(this.getID()).append("\">");
-
-      for (String var8 : var2) {
-         var1.append("<").append(var8).append(">");
-         String var9 = this.getValue(var8);
-         if (var9 == null) {
-            var9 = "";
+      for (String column : columns) {
+         out.append("<").append(column).append(">");
+         String value = this.getValue(column);
+         if (value == null) {
+            value = "";
          }
 
-         htmlify(var1, var9);
-         var1.append("</").append(var8).append(">");
+         htmlify(out, value);
+         out.append("</").append(column).append(">");
       }
 
-      if (var3 != null) {
-         for (String var13 : var3) {
-            var1.append("<").append(var13).append(">");
-            String var14 = this.getValue(var13);
-            if (var14 == null) {
-               var14 = "";
+      if (extraColumns != null) {
+         for (String extraColumn : extraColumns) {
+            out.append("<").append(extraColumn).append(">");
+            String extraValue = this.getValue(extraColumn);
+            if (extraValue == null) {
+               extraValue = "";
             }
 
-            htmlify(var1, var14);
-            var1.append("</").append(var13).append(">");
+            htmlify(out, extraValue);
+            out.append("</").append(extraColumn).append(">");
          }
       }
 
-      var1.append("</item>");
+      out.append("</item>");
    }
 
-   public void toString(StringBuffer var1, String[] var2, String[] var3, String var4) {
-      if (var4.equalsIgnoreCase("rows")) {
-         this.toCells(var1, var2, var3);
-      } else if (var4.equalsIgnoreCase("data")) {
-         this.toDataView(var1, var2, var3);
+   public void toString(StringBuffer out, String[] columns, String[] extraColumns, String format) {
+      if (format.equalsIgnoreCase("rows")) {
+         this.toCells(out, columns, extraColumns);
+      } else if (format.equalsIgnoreCase("data")) {
+         this.toDataView(out, columns, extraColumns);
       } else {
-         this.toCSV(var1, ',', var2);
+         this.toCSV(out, ',', columns);
       }
    }
 
-   public void toDataView(StringBuffer var1) {
-      this.toCells(var1, this._columns, null);
-   }
+   public void toCells(StringBuffer out, String[] columns, String[] extraColumns) {
+      out.append("<row id=\"").append(this.getID()).append("\">");
 
-   public void toCells(StringBuffer var1, String[] var2, String[] var3) {
-      boolean var4 = true;
-      var1.append("<row id=\"").append(this.getID()).append("\">");
-
-      for (String var8 : var2) {
-         var1.append("<cell>");
-         String var9 = this.getValue(var8);
-         if (var9 == null) {
-            var9 = "";
+      for (String column : columns) {
+         out.append("<cell>");
+         String value = this.getValue(column);
+         if (value == null) {
+            value = "";
          }
 
-         htmlify(var1, var9);
-         var1.append("</cell>");
+         htmlify(out, value);
+         out.append("</cell>");
       }
 
-      if (var3 != null) {
-         for (String var13 : var3) {
-            var1.append("<userdata name=\"").append(var13).append("\">");
-            String var14 = this.getValue(var13);
-            if (var14 == null) {
-               var14 = "";
+      if (extraColumns != null) {
+         for (String extraColumn : extraColumns) {
+            out.append("<userdata name=\"").append(extraColumn).append("\">");
+            String extraValue = this.getValue(extraColumn);
+            if (extraValue == null) {
+               extraValue = "";
             }
 
-            htmlify(var1, var14);
-            var1.append("</userdata>");
+            htmlify(out, extraValue);
+            out.append("</userdata>");
          }
       }
 
-      var1.append("</row>");
+      out.append("</row>");
    }
 
-   private static void htmlify(StringBuffer var0, String var1) {
-      for (int var2 = 0; var2 < var1.length(); var2++) {
-         char var3 = var1.charAt(var2);
-         switch (var3) {
+   private static void htmlify(StringBuffer out, String text) {
+      for (int i = 0; i < text.length(); i++) {
+         char c = text.charAt(i);
+         switch (c) {
             case '\n':
-               var0.append(" ");
+               out.append(" ");
                break;
             case '"':
-               var0.append("&quot;");
+               out.append("&quot;");
                break;
             case '&':
-               var0.append("&amp;");
+               out.append("&amp;");
                break;
             case '\'':
-               var0.append("&apos;");
+               out.append("&apos;");
                break;
             case '<':
-               var0.append("&lt;");
+               out.append("&lt;");
                break;
             case '>':
-               var0.append("&gt;");
+               out.append("&gt;");
                break;
             default:
-               var0.append(var3);
+               out.append(c);
          }
       }
    }

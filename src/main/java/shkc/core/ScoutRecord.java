@@ -34,15 +34,10 @@ public class ScoutRecord extends PersonRecord {
       this(null);
    }
 
-   public ScoutRecord(Map var1) {
-      super("SCOUT", COLUMNS, var1);
+   public ScoutRecord(Map values) {
+      super("SCOUT", COLUMNS, values);
       this.setDefaults();
       this.updateFields(true);
-   }
-
-   @Override
-   public void updateFields(boolean var1) {
-      super.updateFields(var1);
    }
 
    @Override
@@ -50,40 +45,28 @@ public class ScoutRecord extends PersonRecord {
       this.setIfNotSet("Status", "");
    }
 
-   private void setIfNotSet(String var1, String var2) {
-      String var3 = this.get(var1);
-      if (var3 == null || var3.trim().length() == 0) {
-         this.put(var1, var2);
+   private void setIfNotSet(String column, String defaultValue) {
+      String current = this.get(column);
+      if (current == null || current.trim().length() == 0) {
+         this.put(column, defaultValue);
       }
    }
 
-   public ScoutRecord clone() {
-      return new ScoutRecord(this);
-   }
-
-   public void updateFrom(ScoutRecord var1, String[] var2) {
-      for (String var6 : var2) {
-         String var7 = var1.get(var6);
-         if (var7 != null && var7.length() > 0) {
-            this.put(var6, var7);
+   public void updateFrom(ScoutRecord source, String[] columns) {
+      for (String column : columns) {
+         String value = source.get(column);
+         if (value != null && value.length() > 0) {
+            this.put(column, value);
          }
       }
-   }
-
-   public String getDOB() {
-      return this.getValue("DOB");
    }
 
    public String getRegNum() {
       return this.getValue("RegNum");
    }
 
-   public void setRegNum(String var1) {
-      this.setValue("RegNum", var1);
-   }
-
-   public String getLeader() {
-      return this.getValue("Leader");
+   public void setRegNum(String regNum) {
+      this.setValue("RegNum", regNum);
    }
 
    public String getBoardType() {
@@ -94,64 +77,32 @@ public class ScoutRecord extends PersonRecord {
       return this.getValue("Status");
    }
 
-   public void setStatus(String var1) {
-      this.setValue("Status", var1);
+   public void setStatus(String status) {
+      this.setValue("Status", status);
    }
 
-   public String getBoardChair() {
-      return this.getValue("BoardChair");
+   public void setBoardChair(String chairName) {
+      this.setValue("BoardChair", chairName);
    }
 
-   public void setBoardChair(String var1) {
-      this.setValue("BoardChair", var1);
+   public void setBoardChairID(String chairId) {
+      this.setValue("BoardChairID", chairId);
    }
 
-   public String getBoardChairID() {
-      return this.getValue("BoardChairID");
+   public void setBoardMembers(String memberNames) {
+      this.setValue("BoardMembers", memberNames);
    }
 
-   public void setBoardChairID(String var1) {
-      this.setValue("BoardChairID", var1);
+   public void setBoardMemberIDs(String memberIds) {
+      this.setValue("BoardMembersIDs", memberIds);
    }
 
-   public String getBoardMembers() {
-      return this.getValue("BoardMembers");
+   public void setResult(String result) {
+      this.setValue("Result", result);
    }
 
-   public void setBoardMembers(String var1) {
-      this.setValue("BoardMembers", var1);
-   }
-
-   public String getBoardMemberIDs() {
-      return this.getValue("BoardMembersIDs");
-   }
-
-   public void setBoardMemberIDs(String var1) {
-      this.setValue("BoardMembersIDs", var1);
-   }
-
-   public String getResult() {
-      return this.getValue("Result");
-   }
-
-   public void setResult(String var1) {
-      this.setValue("Result", var1);
-   }
-
-   public String getNotes() {
-      return this.getValue("Notes");
-   }
-
-   public void setNotes(String var1) {
-      this.setValue("Notes", var1);
-   }
-
-   public String getAdultScoutRatio() {
-      return this.getValue("AdultScoutRatio");
-   }
-
-   public void setAdultScoutRatio(String var1) {
-      this.setValue("AdultScoutRatio", var1);
+   public void setNotes(String notes) {
+      this.setValue("Notes", notes);
    }
 
    public static class Factory implements DataRecord.Factory {

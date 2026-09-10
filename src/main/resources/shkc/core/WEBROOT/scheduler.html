@@ -406,8 +406,6 @@
 
          var roomView = new RoomView("roomview");
 
-         InitializeCompleteBoard();
-
          roomView.onAfterSelect = function (id) {
             var rm_data = roomView.get(id);
             if (rm_data && rm_data.Scout.length > 0) {
@@ -440,10 +438,6 @@
          function refresh_scouts() {
             schedulerScoutGrid.refresh();
             schedulerBoardGrid.refresh();
-         }
-
-         function SCHEDULER_refreshAll() {
-            refresh_all();
          }
 
          function room_refresh() {

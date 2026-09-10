@@ -9,177 +9,172 @@ public class Commandline {
    Hashtable optionlist;
    public boolean debug = false;
    private String _separators = ":, ";
-   private static final String _ident = "$Id: Commandline.java,v 1.1 2015/01/24 14:50:21 sking Exp $";
 
-   public Commandline(String[] var1, String var2, String var3, String[] var4, String[] var5) throws InvalidCommandlineArgument {
-      this.doParse(var1, var2, var3, var4, var5);
+   public Commandline(String[] args, String shortFlags, String shortOptions, String[] longFlags, String[] longOptions) throws InvalidCommandlineArgument {
+      this.doParse(args, shortFlags, shortOptions, longFlags, longOptions);
    }
 
-   public Commandline(String[] var1, String var2, String var3) throws InvalidCommandlineArgument {
-      String[] var4 = new String[0];
-      this.doParse(var1, var2, var3, var4, var4);
+   public Commandline(String[] args, String shortFlags, String shortOptions) throws InvalidCommandlineArgument {
+      String[] empty = new String[0];
+      this.doParse(args, shortFlags, shortOptions, empty, empty);
    }
 
-   public Commandline(String[] var1, String var2, String var3, String var4, String[] var5, String[] var6, String[] var7) throws InvalidCommandlineArgument, MissingCommandlineArgument {
-      boolean var8 = false;
-      String var9 = "Missing Commandline Option(s): ";
-      String[] var10 = new String[var6.length + var7.length];
-      int var12 = 0;
+   public Commandline(String[] args, String shortFlags, String shortOptions, String requiredShortOptions, String[] longFlags, String[] longOptions, String[] requiredLongOptions) throws InvalidCommandlineArgument, MissingCommandlineArgument {
+      boolean missing = false;
+      String message = "Missing Commandline Option(s): ";
+      String[] allLongOptions = new String[longOptions.length + requiredLongOptions.length];
+      int writeIndex = 0;
 
-      for (int var11 = 0; var11 < var6.length; var12++) {
-         var10[var12] = var6[var11];
-         var11++;
+      for (int longOptionIndex = 0; longOptionIndex < longOptions.length; writeIndex++) {
+         allLongOptions[writeIndex] = longOptions[longOptionIndex];
+         longOptionIndex++;
       }
 
-      for (int var13 = 0; var13 < var7.length; var12++) {
-         var10[var12] = var7[var13];
-         var13++;
+      for (int requiredIndex = 0; requiredIndex < requiredLongOptions.length; writeIndex++) {
+         allLongOptions[writeIndex] = requiredLongOptions[requiredIndex];
+         requiredIndex++;
       }
 
-      this.doParse(var1, var2, var3 + var4, var5, var10);
+      this.doParse(args, shortFlags, shortOptions + requiredShortOptions, longFlags, allLongOptions);
 
-      for (int var14 = 0; var14 < var4.length(); var14++) {
-         if (this.getOption(new Character(var4.charAt(var14))).equals("")) {
-            var9 = var9 + " " + new Character(var4.charAt(var14)).toString();
-            var8 = true;
+      for (int shortIndex = 0; shortIndex < requiredShortOptions.length(); shortIndex++) {
+         if (this.getOption(new Character(requiredShortOptions.charAt(shortIndex))).equals("")) {
+            message = message + " " + new Character(requiredShortOptions.charAt(shortIndex)).toString();
+            missing = true;
          }
       }
 
-      for (int var15 = 0; var15 < var7.length; var15++) {
-         if (this.getOption(var7[var15]).equals("")) {
-            var9 = var9 + " " + var7[var15];
-            var8 = true;
+      for (int requiredLongIndex = 0; requiredLongIndex < requiredLongOptions.length; requiredLongIndex++) {
+         if (this.getOption(requiredLongOptions[requiredLongIndex]).equals("")) {
+            message = message + " " + requiredLongOptions[requiredLongIndex];
+            missing = true;
          }
       }
 
-      if (var8) {
-         throw new MissingCommandlineArgument(var9);
+      if (missing) {
+         throw new MissingCommandlineArgument(message);
       }
    }
 
-   public void setOptionNameSeparators(String var1) {
-      this._separators = var1;
-   }
-
-   void doParse(String[] var1, String var2, String var3, String[] var4, String[] var5) throws InvalidCommandlineArgument {
-      boolean var8 = false;
-      String var9 = new String("Invalid Commandline argument(s): ");
-      Hashtable var10 = new Hashtable();
-      boolean var13 = true;
-      Vector var14 = new Vector(1, 1);
+   void doParse(String[] args, String shortFlags, String shortOptions, String[] longFlags, String[] longOptions) throws InvalidCommandlineArgument {
+      boolean invalid = false;
+      String message = new String("Invalid Commandline argument(s): ");
+      Hashtable takesValue = new Hashtable();
+      boolean parsingOptions = true;
+      Vector extraParams = new Vector(1, 1);
       this.optionlist = new Hashtable(1, 1.0F);
 
-      for (int var6 = 0; var6 < var4.length; var6++) {
+      for (int longFlagIndex = 0; longFlagIndex < longFlags.length; longFlagIndex++) {
          if (this.debug) {
-            System.out.println("debug: Looking for arg \"" + var4[var6] + "\"");
+            System.out.println("debug: Looking for arg \"" + longFlags[longFlagIndex] + "\"");
          }
 
-         var10.put(var4[var6], Boolean.FALSE);
+         takesValue.put(longFlags[longFlagIndex], Boolean.FALSE);
       }
 
-      for (int var17 = 0; var17 < var5.length; var17++) {
+      for (int longOptionIndex = 0; longOptionIndex < longOptions.length; longOptionIndex++) {
          if (this.debug) {
-            System.out.println("debug: Looking for arg \"" + var5[var17] + "\"");
+            System.out.println("debug: Looking for arg \"" + longOptions[longOptionIndex] + "\"");
          }
 
-         var10.put(var5[var17], Boolean.TRUE);
+         takesValue.put(longOptions[longOptionIndex], Boolean.TRUE);
       }
 
-      for (int var18 = 0; var18 < var2.length(); var18++) {
+      for (int shortFlagIndex = 0; shortFlagIndex < shortFlags.length(); shortFlagIndex++) {
          if (this.debug) {
-            System.out.println("debug: Looking for arg " + new Character(var2.charAt(var18)).toString());
+            System.out.println("debug: Looking for arg " + new Character(shortFlags.charAt(shortFlagIndex)).toString());
          }
 
-         var10.put(new Character(var2.charAt(var18)).toString(), Boolean.FALSE);
+         takesValue.put(new Character(shortFlags.charAt(shortFlagIndex)).toString(), Boolean.FALSE);
       }
 
-      for (int var19 = 0; var19 < var3.length(); var19++) {
+      for (int shortOptionIndex = 0; shortOptionIndex < shortOptions.length(); shortOptionIndex++) {
          if (this.debug) {
-            System.out.println("debug: Looking for arg " + new Character(var3.charAt(var19)).toString());
+            System.out.println("debug: Looking for arg " + new Character(shortOptions.charAt(shortOptionIndex)).toString());
          }
 
-         var10.put(new Character(var3.charAt(var19)).toString(), Boolean.TRUE);
+         takesValue.put(new Character(shortOptions.charAt(shortOptionIndex)).toString(), Boolean.TRUE);
       }
 
-      for (int var20 = 0; var20 < var1.length; var20++) {
-         String var11 = var1[var20];
+      for (int argIndex = 0; argIndex < args.length; argIndex++) {
+         String arg = args[argIndex];
          if (this.debug) {
-            System.out.println("debug: Arg \"" + var11 + "\": ");
+            System.out.println("debug: Arg \"" + arg + "\": ");
          }
 
-         if (!var13) {
-            var14.addElement(var11);
+         if (!parsingOptions) {
+            extraParams.addElement(arg);
             if (this.debug) {
-               System.out.println("debug:   has param " + var11);
+               System.out.println("debug:   has param " + arg);
             }
-         } else if (var11.equalsIgnoreCase("--")) {
-            var13 = false;
-         } else if (var11.length() > 2 && var11.charAt(0) == '-' && var10.containsKey(var11.substring(1))) {
-            int var21 = 0;
-            var11 = var11.substring(1);
+         } else if (arg.equalsIgnoreCase("--")) {
+            parsingOptions = false;
+         } else if (arg.length() > 2 && arg.charAt(0) == '-' && takesValue.containsKey(arg.substring(1))) {
+            int consumed = 0;
+            arg = arg.substring(1);
             if (this.debug) {
-               System.out.println("debug:   looking for internal flag \"" + var11 + "\"");
+               System.out.println("debug:   looking for internal flag \"" + arg + "\"");
             }
 
-            if (var10.containsKey(var11)) {
-               if (var10.get(var11) == Boolean.FALSE) {
-                  this.sethasflag(var11);
+            if (takesValue.containsKey(arg)) {
+               if (takesValue.get(arg) == Boolean.FALSE) {
+                  this.sethasflag(arg);
                } else {
-                  String var23;
-                  this.sethasoption(var11, var23 = this.paramfor(var1, var20, ++var21));
-                  if (var23.equals("")) {
-                     var21--;
+                  String value;
+                  this.sethasoption(arg, value = this.paramfor(args, argIndex, ++consumed));
+                  if (value.equals("")) {
+                     consumed--;
                   }
                }
             } else {
-               var9 = var9 + " " + var11;
-               var8 = true;
+               message = message + " " + arg;
+               invalid = true;
             }
 
-            var20 += var21;
-         } else if (!this.isoptlist(var11)) {
-            var14.addElement(var11);
+            argIndex += consumed;
+         } else if (!this.isoptlist(arg)) {
+            extraParams.addElement(arg);
             if (this.debug) {
-               System.out.println("debug:   has param " + var11);
+               System.out.println("debug:   has param " + arg);
             }
          } else {
-            int var7 = 0;
+            int consumedShort = 0;
 
-            for (int var15 = 1; var15 < var11.length(); var15++) {
-               String var16 = new Character(var11.charAt(var15)).toString();
-               if (var10.containsKey(var16)) {
-                  if (var10.get(var16) == Boolean.FALSE) {
-                     this.sethasflag(var16);
+            for (int charIndex = 1; charIndex < arg.length(); charIndex++) {
+               String optionName = new Character(arg.charAt(charIndex)).toString();
+               if (takesValue.containsKey(optionName)) {
+                  if (takesValue.get(optionName) == Boolean.FALSE) {
+                     this.sethasflag(optionName);
                   } else {
-                     String var12;
-                     this.sethasoption(var16, var12 = this.paramfor(var1, var20, ++var7));
-                     if (var12.equals("")) {
-                        var7--;
+                     String shortValue;
+                     this.sethasoption(optionName, shortValue = this.paramfor(args, argIndex, ++consumedShort));
+                     if (shortValue.equals("")) {
+                        consumedShort--;
                      }
                   }
                } else {
-                  var9 = var9 + " " + var16;
-                  var8 = true;
+                  message = message + " " + optionName;
+                  invalid = true;
                }
             }
 
-            var20 += var7;
+            argIndex += consumedShort;
          }
       }
 
-      this.params = new String[var14.size()];
-      var14.copyInto(this.params);
-      if (var8) {
-         throw new InvalidCommandlineArgument(var9);
+      this.params = new String[extraParams.size()];
+      extraParams.copyInto(this.params);
+      if (invalid) {
+         throw new InvalidCommandlineArgument(message);
       }
    }
 
-   String paramfor(String[] var1, int var2, int var3) {
-      for (int var4 = var2 + 1; var4 <= var2 + var3; var4++) {
-         if (var4 >= var1.length || this.isoptlist(var1[var4])) {
+   String paramfor(String[] args, int argIndex, int offset) {
+      for (int lookahead = argIndex + 1; lookahead <= argIndex + offset; lookahead++) {
+         if (lookahead >= args.length || this.isoptlist(args[lookahead])) {
             if (this.debug) {
                System.out.print("debug:   escaping paramfor early");
-               if (var4 >= var1.length) {
+               if (lookahead >= args.length) {
                   System.out.println(" cuz arglist is too short.");
                } else {
                   System.out.println(" cuz we hit a new opt list.");
@@ -190,47 +185,43 @@ public class Commandline {
          }
       }
 
-      return var1[var2 + var3];
+      return args[argIndex + offset];
    }
 
-   synchronized void sethasflag(String var1) {
+   synchronized void sethasflag(String name) {
       if (this.debug) {
-         System.out.println("debug:   has flag " + var1);
+         System.out.println("debug:   has flag " + name);
       }
 
-      this.optionlist.put(var1, new String(""));
+      this.optionlist.put(name, new String(""));
    }
 
-   synchronized void sethasoption(String var1, String var2) {
+   synchronized void sethasoption(String name, String value) {
       if (this.debug) {
-         System.out.println("debug:   has option " + var1 + " with value " + var2);
+         System.out.println("debug:   has option " + name + " with value " + value);
       }
 
-      this.optionlist.put(var1, var2);
+      this.optionlist.put(name, value);
    }
 
-   boolean isoptlist(String var1) {
+   boolean isoptlist(String arg) {
       if (this.debug) {
-         System.out.println("debug:   calling isoptlist(" + var1 + ")");
+         System.out.println("debug:   calling isoptlist(" + arg + ")");
       }
 
-      return var1.length() > 1 && var1.charAt(0) == '-';
+      return arg.length() > 1 && arg.charAt(0) == '-';
    }
 
-   boolean islongopt(String var1) {
-      return var1.length() > 2 && var1.charAt(0) == '-' && var1.charAt(1) == '-';
+   public boolean hasOption(Character name) {
+      return this.hasOption(name.toString());
    }
 
-   public boolean hasOption(Character var1) {
-      return this.hasOption(var1.toString());
-   }
+   public boolean hasOption(String names) {
+      StringTokenizer tokens = new StringTokenizer(names, this._separators, false);
 
-   public boolean hasOption(String var1) {
-      StringTokenizer var2 = new StringTokenizer(var1, this._separators, false);
-
-      while (var2.hasMoreTokens()) {
-         String var3 = var2.nextToken();
-         if (this.optionlist.containsKey(var3)) {
+      while (tokens.hasMoreTokens()) {
+         String name = tokens.nextToken();
+         if (this.optionlist.containsKey(name)) {
             return true;
          }
       }
@@ -238,33 +229,33 @@ public class Commandline {
       return false;
    }
 
-   public String getOption(Character var1) {
-      return this.getOption(var1.toString());
+   public String getOption(Character name) {
+      return this.getOption(name.toString());
    }
 
-   public String getOption(String var1) {
-      return this.getOption(var1, null);
+   public String getOption(String names) {
+      return this.getOption(names, null);
    }
 
-   public int getIntOption(String var1, int var2) {
-      StringTokenizer var3 = new StringTokenizer(var1, this._separators, false);
+   public int getIntOption(String names, int defaultValue) {
+      StringTokenizer tokens = new StringTokenizer(names, this._separators, false);
 
-      while (var3.hasMoreTokens()) {
-         String var4 = var3.nextToken();
-         if (this.hasOption(var4)) {
-            return Integer.parseInt(this.getOption(var4));
+      while (tokens.hasMoreTokens()) {
+         String name = tokens.nextToken();
+         if (this.hasOption(name)) {
+            return Integer.parseInt(this.getOption(name));
          }
       }
 
-      return var2;
+      return defaultValue;
    }
 
-   public boolean hasFlag(String var1) {
-      StringTokenizer var2 = new StringTokenizer(var1, this._separators, false);
+   public boolean hasFlag(String names) {
+      StringTokenizer tokens = new StringTokenizer(names, this._separators, false);
 
-      while (var2.hasMoreTokens()) {
-         String var3 = var2.nextToken();
-         if (this.hasOption(var3)) {
+      while (tokens.hasMoreTokens()) {
+         String name = tokens.nextToken();
+         if (this.hasOption(name)) {
             return true;
          }
       }
@@ -272,81 +263,18 @@ public class Commandline {
       return false;
    }
 
-   public String getOption(String var1, String var2) {
-      StringTokenizer var3 = new StringTokenizer(var1, this._separators, false);
+   public String getOption(String names, String defaultValue) {
+      StringTokenizer tokens = new StringTokenizer(names, this._separators, false);
 
-      while (var3.hasMoreTokens()) {
-         String var4 = var3.nextToken();
-         String var5 = (String)this.optionlist.get(var4);
-         if (var5 != null) {
-            return var5;
+      while (tokens.hasMoreTokens()) {
+         String name = tokens.nextToken();
+         String value = (String)this.optionlist.get(name);
+         if (value != null) {
+            return value;
          }
       }
 
-      return var2;
+      return defaultValue;
    }
 
-   public static void test(String[] var0, String var1, String var2, String[] var3, String[] var4) {
-      System.out.println("Valid short options are: " + var2 + " (with args) and " + var1 + " (without args).");
-      System.out.println("Valid long options are: ");
-
-      for (int var6 = 0; var6 < var4.length; var6++) {
-         System.out.println("  " + var4[var6]);
-      }
-
-      System.out.println("Valid long flags are: ");
-
-      for (int var11 = 0; var11 < var3.length; var11++) {
-         System.out.println("  " + var3[var11]);
-      }
-
-      System.out.print("Running with options: ");
-
-      for (int var12 = 0; var12 < var0.length; var12++) {
-         System.out.print(var0[var12] + " ");
-      }
-
-      System.out.println(" ...");
-
-      try {
-         Commandline var13 = new Commandline(var0, var1, var2, var3, var4);
-         var2 = var2 + var1;
-
-         for (int var7 = 0; var7 < var2.length(); var7++) {
-            String var5 = var2.substring(var7, var7 + 1);
-            if (var13.hasOption(var5)) {
-               System.out.print("... found option " + var5 + " with value " + var13.getOption(var5) + "\n");
-            } else {
-               System.out.print("... didn't find option " + var5 + "\n");
-            }
-         }
-
-         for (int var14 = 0; var14 < var4.length + var3.length; var14++) {
-            String var10;
-            if (var14 < var4.length) {
-               var10 = var4[var14];
-            } else {
-               var10 = var3[var14 - var4.length];
-            }
-
-            if (var13.hasOption(var10)) {
-               System.out.print("... found option " + var10 + " with value " + var13.getOption(var10) + "\n");
-            } else {
-               System.out.print("... didn't find option " + var10 + "\n");
-            }
-         }
-
-         System.out.print("... Extra Parameters: ");
-
-         for (int var15 = 0; var15 < var13.params.length; var15++) {
-            System.out.print(var13.params[var15] + " ");
-         }
-
-         System.out.print("\n");
-      } catch (InvalidCommandlineArgument var8) {
-         System.out.println("Caught an Invalid command line argument:\n" + var8.toString() + "\n");
-      }
-
-      System.out.println("Done.");
-   }
 }

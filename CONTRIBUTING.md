@@ -242,22 +242,26 @@ looks like a pass**, because a tool that quietly produces nothing empties out
 
 ## House style
 
-- **Leave the decompiled variable names alone.** `var1`, `var10` and friends are
-  everywhere. Sweeping renames widen the diff against the decompiled baseline
-  and add risk for no functional gain. Keep edits minimal and local.
-- **Name anything you write descriptively.** New locals, parameters, and fields
-  get self-documenting names (`bindPrefix`, `boundAddress`, `connector`) — not
-  `var27`. Renaming a *local* is safe: only declared
-  members, and local names are not part of a javap signature.
+- **Every name describes its purpose.** The decompiler emitted `var1`, `var10`
+  and friends throughout; they have all been renamed and none remain. Locals,
+  parameters and fields you write get self-documenting names (`bindPrefix`,
+  `boundAddress`, `memberIds`) — never a `var##`, and never one copied from the
+  surrounding decompiled style, because that style is an artifact, not a
+  convention. CI enforces this: the "No decompiled variable names" step greps
+  `src/main/java` and fails the build if any come back.
 - **Editing a method body does not change a class's signature; adding or
-  removing a field or method does.** This is why you can add null-guards freely,
-  but removing a member changes the class's declared signature. Prefer a
-  targeted filter in the gate's `sig()` function, which keeps the rest of that
-  class compared, over exempting the whole class — an exemption skips every
+  removing a field or method does.** Add null-guards freely. Removing a member
+  is the edit that bites: an accessor that reads as dead today is one upstream
+  change away from being called again, and it surfaces as a compile error long
+  after the deletion looked safe. Check for callers first, and delete a member
+  in the same change as its last caller. If you want to see exactly which
+  declared members have moved against the original binary, `verify-parity.sh`
+  still reports that as a diagnostic — a targeted filter in its `sig()` keeps
+  the rest of that class compared, where exempting the class skips every
   signature in it.
 - **Server endpoints are the contract.** The UI rework froze every endpoint and
-  wire format. Prefer client-only changes; if you must touch the server, check
-  whether the gate exercises that path.
+  wire format. Prefer client-only changes; if you must touch the server, add a
+  case to `scripts/test-board-evening.sh` covering it.
 - **Handlers must not crash the server.** All request handling sits inside a
   `Throwable` net in `WebServer.service` that logs and returns a clean 500 for
   that one request. Still, null-guard your inputs: `getParameter` can return

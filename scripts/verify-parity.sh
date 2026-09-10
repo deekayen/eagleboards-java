@@ -201,11 +201,115 @@ REMOVED_VENDORED='^shkc/json/simple/|^monfox/'
 #    a registered Scout is now seated directly, and /verify-board is gone.
 #  - ConfigWindow: an unreferenced Swing settings window, superseded by the
 #    browser Settings page. Nothing constructed it.
+#  - FileLocator$Resolver: a pluggable-lookup callback. addResolver() was never
+#    called, so the resolver list was always empty and the loop that consulted
+#    it never ran. Removed with the loop in the dead-code audit.
+#  - DataFileConverter$Filter: a per-field reject hook. Both converters passed
+#    null for it, so the filter branch never ran. Removed with the branch.
 # The trailing ([$]...)? also covers each class's anonymous inner classes —
 # ConfigWindow carried five ActionListeners as ConfigWindow$1..$5.
-REMOVED_FEATURE='shkc/core/EagleBoardScheduler[$]VerifyBoardHandler([$][A-Za-z0-9_]+)?[.]class|shkc/core/ConfigWindow([$][A-Za-z0-9_]+)?[.]class'
+REMOVED_FEATURE='shkc/core/EagleBoardScheduler[$]VerifyBoardHandler([$][A-Za-z0-9_]+)?[.]class|shkc/core/ConfigWindow([$][A-Za-z0-9_]+)?[.]class|shkc/core/FileLocator[$]Resolver[.]class|shkc/core/DataFileConverter[$]Filter[.]class'
 
-sig() { # normalized member signatures for one class file
+# Members deleted in the dead-code audit: every one had zero references
+# anywhere in the repo (Java, JS, HTML, scripts), so removing it cannot change
+# behavior. They are listed PER CLASS rather than as one global pattern so a
+# deletion here can never mask a same-named member that still exists on another
+# class -- ScoutRecord.updateFields(boolean) is filtered, for instance, while
+# PersonRecord's and DataRecord's real implementations keep being compared.
+# A class with no entry gets NO_DELETIONS, a line javap can never emit.
+mkdir -p "$WORK/deleted"
+printf '___NO_DELETIONS___\n' > "$WORK/deleted/_default"
+# AdultRecord/ScoutRecord: overrides whose whole body was super.updateFields().
+cat > "$WORK/deleted/shkc_core_AdultRecord" <<'EOF'
+ public void updateFields(boolean);
+EOF
+# ScoutRecord: unreferenced column accessors, the AdultScoutRatio pair left
+# over from the retired B/S column, and a clone() nothing cloned.
+cat > "$WORK/deleted/shkc_core_ScoutRecord" <<'EOF'
+ public java.lang.Object clone();
+ public shkc.core.ScoutRecord clone();
+ public java.lang.String getAdultScoutRatio();
+ public java.lang.String getBoardChair();
+ public java.lang.String getBoardChairID();
+ public java.lang.String getBoardMemberIDs();
+ public java.lang.String getBoardMembers();
+ public java.lang.String getBoardType();
+ public java.lang.String getDOB();
+ public java.lang.String getLeader();
+ public java.lang.String getNotes();
+ public java.lang.String getResult();
+ public void setAdultScoutRatio(java.lang.String);
+ public void updateFields(boolean);
+EOF
+cat > "$WORK/deleted/shkc_core_PersonRecord" <<'EOF'
+ public java.lang.String getFlags();
+ public java.lang.String getPhone();
+ public java.lang.String getUnitName();
+EOF
+cat > "$WORK/deleted/shkc_core_RoomRecord" <<'EOF'
+ public java.lang.String getBoardType();
+EOF
+# Commandline: a dev harness (test), an unused long-option predicate, an unused
+# setter, and the CVS $Id$ string the decompiler preserved.
+cat > "$WORK/deleted/shkc_core_Commandline" <<'EOF'
+ boolean islongopt(java.lang.String);
+ private static final java.lang.String _ident;
+ public static void test(java.lang.String[], java.lang.String, java.lang.String, java.lang.String[], java.lang.String[]);
+ public void setOptionNameSeparators(java.lang.String);
+EOF
+# DataRecord: convenience overloads no caller used; the fuller forms remain.
+cat > "$WORK/deleted/shkc_core_DataRecord" <<'EOF'
+ public void fromCSV(java.lang.String, char);
+ public void toCells(java.lang.StringBuffer);
+ public void toDataView(java.lang.StringBuffer);
+EOF
+# updateAdultScoutRatios: computed the B/S column, retired in e76fafa. It was
+# already documented as unreachable and kept only for this gate.
+cat > "$WORK/deleted/shkc_core_EagleBoardScheduler" <<'EOF'
+ private void updateAdultScoutRatios(boolean);
+EOF
+# NameUtil: the whole variable-map API. Nothing ever put a variable in the map,
+# so ${...} expansion always fell through to the system properties -- which it
+# still does. _props went with the setters.
+cat > "$WORK/deleted/shkc_core_NameUtil" <<'EOF'
+ private java.util.Map _props;
+ public java.lang.String getVariable(java.lang.String);
+ public java.util.Iterator getVariableNames();
+ public shkc.core.NameUtil(java.util.Map);
+ public void addAll(java.util.Map);
+ public void setVariable(java.lang.String, java.lang.String);
+ public void setVariable(java.lang.String, java.util.Date);
+ public void unsetVariable(java.lang.String);
+EOF
+cat > "$WORK/deleted/shkc_core_SignUpGeniusPlugin" <<'EOF'
+ private shkc.core.NegaPreRegScoutRecordConverter$StatusConverter _statusConverter;
+EOF
+# DataFileConverter: the always-null Filter hook. Both the old constructor
+# (which took it) and the new one (which does not) are filtered, because this
+# is the one place a signature CHANGED rather than simply going away.
+cat > "$WORK/deleted/shkc_core_DataFileConverter" <<'EOF'
+ private shkc.core.DataFileConverter$Filter _filter;
+ public shkc.core.DataFileConverter(shkc.core.DataRecordFile<T>, shkc.core.DataFileConverter$Filter, java.util.Map<java.lang.String, java.lang.String>, java.lang.String[]);
+ public shkc.core.DataFileConverter(shkc.core.DataRecordFile<T>, java.util.Map<java.lang.String, java.lang.String>, java.lang.String[]);
+EOF
+# FileLocator: the filesystem-lookup half (getFile/getDirectory) and the
+# resolver chain, neither of which any caller reached. What the app actually
+# uses -- getInputStream and the search path -- is untouched and still compared.
+cat > "$WORK/deleted/shkc_core_FileLocator" <<'EOF'
+ private java.util.List _resolverList;
+ public java.io.File getDirectory(java.lang.String) throws java.io.IOException;
+ public java.io.File getDirectory(java.lang.String, boolean) throws java.io.IOException;
+ public java.io.File getFile(java.lang.String) throws java.io.IOException;
+ public java.io.File getFile(java.lang.String, boolean) throws java.io.IOException;
+ public java.util.List getSearchPathList();
+ public shkc.core.FileLocator();
+ public void addResolver(shkc.core.FileLocator$Resolver);
+ public void addSearchPath(java.lang.String);
+ public void removeResolver(shkc.core.FileLocator$Resolver);
+ public void setVariable(java.lang.String, java.lang.String);
+EOF
+
+sig() { # $1 = class file, $2 = its jar-relative name (for the deletion list)
     # Filtered as compiler-internal (verified behaviorally equivalent in the
     # bytecode): access$ bridges, enum $values()/switch-maps, and anonymous-
     # class capture plumbing (val$ field names and constructor shapes vary
@@ -222,12 +326,21 @@ sig() { # normalized member signatures for one class file
     # literals, and the dev-harness main() methods in library classes. COLUMNS
     # itself is String[] and still compares; EagleBoardScheduler's real entry
     # point is covered by CI's manifest check and runtime smoke test.
+    # Per-class deletion list, keyed by the class name with / and $ flattened;
+    # classes with nothing deleted fall back to the impossible-line default.
+    # -x -F: whole-line, fixed-string, so a listed signature matches only
+    # itself. Applied after the whitespace collapse so the listed lines and the
+    # javap output are in the same normalized shape.
+    deleted="$WORK/deleted/$(printf '%s' "${2%.class}" | tr '/$' '__')"
+    [ -f "$deleted" ] || deleted="$WORK/deleted/_default"
     javap -p "$1" 2>/dev/null \
       | grep -vE 'access[$][0-9]+|[$]SwitchMap[$]|Compiled from|private static .*[$]values\(\)|val[$]|final .* this[$]0;|[a-zA-Z0-9_.]+[$]1\);|^ *static \{\};' \
       | grep -vE '^ *public static final java\.lang\.String [A-Z_]+;|^ *public static void main\(java\.lang\.String\[\]\)' \
       | sed -E "s/[$][0-9]+\((, )?[a-zA-Z0-9_.$]+(, [a-zA-Z0-9_.$]+)*\);/\$N(CAPTURES);/; s/[$][0-9]+\(\);/\$N(CAPTURES);/; s/(javax|jakarta)\.servlet/SERVLET_API/g; s/(shkc\.json\.simple\.JSONArray|com\.fasterxml\.jackson\.databind\.JsonNode)/JSON_TREE/g; s/(monfox\.log|java\.util\.logging)\.Logger/LOGGER/g" \
       | grep -v '_debugLogger' \
-      | sed -E 's/[[:space:]]+/ /g' | LC_ALL=C sort
+      | sed -E 's/[[:space:]]+/ /g' \
+      | grep -vxF -f "$deleted" \
+      | LC_ALL=C sort
 }
 # `sed -E ... +`, not `sed ... \+`: `\+` is a GNU extension to basic regular
 # expressions. BSD sed (macOS) reads it as a literal plus, so the whitespace
@@ -246,7 +359,7 @@ while IFS= read -r cls; do
         missing=1
         continue
     fi
-    if ! diff <(sig "$WORK/orig/$rel") <(sig "$WORK/new/$rel") >"$WORK/sigdiff" 2>&1; then
+    if ! diff <(sig "$WORK/orig/$rel" "$rel") <(sig "$WORK/new/$rel" "$rel") >"$WORK/sigdiff" 2>&1; then
         fail "member signatures differ: $rel"
         sed 's/^/      /' "$WORK/sigdiff" | head -10
     fi
@@ -262,17 +375,34 @@ note "signature comparison complete"
 # help.html is no longer byte-compared: removing the Verify step made the
 # original's operator instructions wrong (they described verifying paperwork
 # through the UI), so the page was rewritten to match the current workflow.
-PRESERVED="scheduler.css NegaScheduler.png ScoutButton.png LeaderButton.png"
+# NegaScheduler.png, ScoutButton.png and LeaderButton.png were dropped in the
+# dead-code audit: no page, script or stylesheet referenced any of them, and
+# the first also carried the old district's branding.
+PRESERVED="scheduler.css"
 for p in $PRESERVED; do
     if ! cmp -s "$WORK/orig/shkc/core/WEBROOT/$p" "$WORK/new/shkc/core/WEBROOT/$p"; then
         fail "preserved WEBROOT asset differs from original: $p"
     fi
 done
-imgdiff=$(diff -rq "$WORK/orig/shkc/core/WEBROOT/images" "$WORK/new/shkc/core/WEBROOT/images" 2>/dev/null | grep -vE '/CVS|: CVS$' || true)
+# images/: the dhtmlx toolbars that used these icons are gone, and only
+# images/16x16/dialog-warning-4.png (the room-card overdue badge) is still
+# referenced, so the other 105 files were removed. The check is therefore
+# "everything the rebuild still ships is byte-identical to the original",
+# not "both trees hold the same files": deletions are expected, but a
+# retained icon that CHANGED, or one that appears only in the rebuild, is
+# still a failure. `find` from inside the directory so the paths line up.
+imgdiff=
+while IFS= read -r img; do
+    case "$img" in */CVS/*) continue ;; esac
+    if ! cmp -s "$WORK/orig/shkc/core/WEBROOT/images/$img" "$WORK/new/shkc/core/WEBROOT/images/$img"; then
+        imgdiff="$imgdiff$img"$'\n'
+    fi
+done < <(cd "$WORK/new/shkc/core/WEBROOT/images" && find . -type f | sed 's|^\./||')
 if [ -n "$imgdiff" ]; then
-    fail "WEBROOT images differ:"; echo "$imgdiff" | head -5
+    fail "WEBROOT images the rebuild still ships differ from the original:"
+    echo "$imgdiff" | sed 's/^/      /' | head -5
 else
-    note "preserved WEBROOT assets byte-identical to original"
+    note "retained WEBROOT assets byte-identical to original"
 fi
 # signup_genius_api.js was deleted. Nothing referenced it (the server takes the
 # key from -sugkey), and it was the only file in the tree carrying a third-party
@@ -442,7 +572,7 @@ echo "== 2a. read endpoints (parity vs original) =="
 # Server-generated responses and preserved assets must match the original.
 # /help.html is excluded for the same reason it left PRESERVED above: its
 # operator instructions were rewritten when the Verify step was removed.
-READS_RAW="/scheduler.css /NegaScheduler.png /ScoutButton.png /LeaderButton.png"
+READS_RAW="/scheduler.css /images/16x16/dialog-warning-4.png"
 READS="/adult-cells /adult-history-cells /room-cells /adult-autofill"
 count=0
 for p in $READS_RAW; do compare_raw "$p"; count=$((count+1)); done

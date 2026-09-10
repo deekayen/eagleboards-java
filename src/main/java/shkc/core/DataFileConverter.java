@@ -7,188 +7,179 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.StringTokenizer;
 
 public class DataFileConverter<T extends DataRecord> {
    private Map<String, DataFileConverter.FieldConverter> _converterMap = new HashMap<>();
    private DataRecord.Factory _factory;
    private Map<String, String> _columnMap = new HashMap<>();
    private DataRecordFile<T> _dataFile;
-   private DataFileConverter.Filter _filter;
    private String[] _expectedCols;
 
-   public DataFileConverter(DataRecordFile<T> var1, DataFileConverter.Filter var2, Map<String, String> var3, String[] var4) {
-      this._factory = var1._factory;
-      this._dataFile = var1;
-      this._columnMap = var3;
-      this._filter = var2;
-      this._expectedCols = var4;
+   public DataFileConverter(DataRecordFile<T> dataFile, Map<String, String> columnMap, String[] expectedCols) {
+      this._factory = dataFile._factory;
+      this._dataFile = dataFile;
+      this._columnMap = columnMap;
+      this._expectedCols = expectedCols;
    }
 
-   public void addConverter(String var1, DataFileConverter.FieldConverter var2) {
-      this._converterMap.put(var1, var2);
+   public void addConverter(String column, DataFileConverter.FieldConverter converter) {
+      this._converterMap.put(column, converter);
    }
 
-   public DataFileConverter.FieldConverter getConverter(String var1) {
-      return this._converterMap.get(var1);
+   public DataFileConverter.FieldConverter getConverter(String column) {
+      return this._converterMap.get(column);
    }
 
-   public String getFieldName(String var1) {
-      var1 = var1.trim();
-      String var2 = var1;
-      if (this._columnMap.get(var1) != null) {
-         var2 = this._columnMap.get(var1);
+   public String getFieldName(String heading) {
+      heading = heading.trim();
+      String mapped = heading;
+      if (this._columnMap.get(heading) != null) {
+         mapped = this._columnMap.get(heading);
       }
 
-      for (String var6 : this._factory.getColumns()) {
-         if (var6.equalsIgnoreCase(var2)) {
-            return var6;
+      for (String column : this._factory.getColumns()) {
+         if (column.equalsIgnoreCase(mapped)) {
+            return column;
          }
       }
 
       return null;
    }
 
-   public String[] parseLine(String var1, String[] var2, char var3) {
+   public String[] parseLine(String line, String[] headings, char delimiter) {
       try {
-         ArrayList var4 = new ArrayList();
-         boolean var5 = false;
-         char var6 = '"';
-         StringBuffer var7 = new StringBuffer();
+         ArrayList fields = new ArrayList();
+         boolean inQuotes = false;
+         char quoteChar = '"';
+         StringBuffer field = new StringBuffer();
 
-         for (int var8 = 0; var8 < var1.length(); var8++) {
-            char var9 = var1.charAt(var8);
-            if (var5) {
-               if (var9 == var6) {
-                  var5 = false;
+         for (int i = 0; i < line.length(); i++) {
+            char c = line.charAt(i);
+            if (inQuotes) {
+               if (c == quoteChar) {
+                  inQuotes = false;
                } else {
-                  var7.append(var9);
+                  field.append(c);
                }
-            } else if (var9 == var3) {
-               var4.add(var7.toString());
-               var7 = new StringBuffer();
-            } else if (var9 == '"') {
-               var5 = true;
-               var6 = var9;
-            } else if (var9 == '\'') {
-               var5 = true;
-               var6 = var9;
+            } else if (c == delimiter) {
+               fields.add(field.toString());
+               field = new StringBuffer();
+            } else if (c == '"') {
+               inQuotes = true;
+               quoteChar = c;
+            } else if (c == '\'') {
+               inQuotes = true;
+               quoteChar = c;
             } else {
-               var7.append(var9);
+               field.append(c);
             }
          }
 
-         var4.add(var7.toString());
-         if (var2 != null) {
-            String[] var12 = new String[var2.length];
+         fields.add(field.toString());
+         if (headings != null) {
+            String[] padded = new String[headings.length];
 
-            for (int var14 = 0; var14 < var4.size() && var14 < var12.length; var14++) {
-               var12[var14] = (String)var4.get(var14);
+            for (int fieldIndex = 0; fieldIndex < fields.size() && fieldIndex < padded.length; fieldIndex++) {
+               padded[fieldIndex] = (String)fields.get(fieldIndex);
             }
 
-            for (int var15 = var4.size(); var15 < var2.length; var15++) {
-               var12[var15] = "";
+            for (int padIndex = fields.size(); padIndex < headings.length; padIndex++) {
+               padded[padIndex] = "";
             }
 
-            return var12;
+            return padded;
          } else {
-            String[] var11 = new String[var4.size()];
+            String[] exact = new String[fields.size()];
 
-            for (int var13 = 0; var13 < var4.size(); var13++) {
-               var11[var13] = (String)var4.get(var13);
+            for (int copyIndex = 0; copyIndex < fields.size(); copyIndex++) {
+               exact[copyIndex] = (String)fields.get(copyIndex);
             }
 
-            return var11;
+            return exact;
          }
-      } catch (Exception var10) {
-         var10.printStackTrace();
+      } catch (Exception failure) {
+         failure.printStackTrace();
          return null;
       }
    }
 
-   public void convert(File var1) throws IOException {
-      BufferedReader var2 = new BufferedReader(new FileReader(var1));
-      String var3 = null;
-      int var4 = 0;
-      String[] var5 = null;
+   public void convert(File file) throws IOException {
+      BufferedReader reader = new BufferedReader(new FileReader(file));
+      String line = null;
+      int lineNumber = 0;
+      String[] headings = null;
 
-      while ((var3 = var2.readLine()) != null) {
-         if (var4 == 0) {
-            var5 = this.parseLine(var3, null, ',');
+      while ((line = reader.readLine()) != null) {
+         if (lineNumber == 0) {
+            headings = this.parseLine(line, null, ',');
             if (this._expectedCols != null) {
-               for (String var9 : this._expectedCols) {
-                  boolean var10 = false;
+               for (String expected : this._expectedCols) {
+                  boolean found = false;
 
-                  for (String var14 : var5) {
-                     if (var9.equals(var14)) {
-                        var10 = true;
+                  for (String heading : headings) {
+                     if (expected.equals(heading)) {
+                        found = true;
                         break;
                      }
                   }
 
-                  if (!var10) {
-                     throw new IOException("error: '" + var1.getAbsolutePath() + "'. Invalid file format: expected column: " + var9);
+                  if (!found) {
+                     throw new IOException("error: '" + file.getAbsolutePath() + "'. Invalid file format: expected column: " + expected);
                   }
                }
             }
          }
 
-         if (var4 > 0) {
-            DataRecord var16 = this._factory.newInstance();
-            new StringTokenizer(var3, ",", false);
-            boolean var17 = true;
-            String[] var18 = this.parseLine(var3, var5, ',');
-            String var19 = "";
-            if (var18 == null) {
-               var17 = false;
-               var19 = "no columns found in line";
-            } else if (var18.length < var5.length) {
-               var17 = false;
-               var19 = "invalid # of columns. " + var18.length + " < " + var5.length;
+         if (lineNumber > 0) {
+            DataRecord record = this._factory.newInstance();
+            boolean accepted = true;
+            String[] fields = this.parseLine(line, headings, ',');
+            String rejectReason = "";
+            if (fields == null) {
+               accepted = false;
+               rejectReason = "no columns found in line";
+            } else if (fields.length < headings.length) {
+               accepted = false;
+               rejectReason = "invalid # of columns. " + fields.length + " < " + headings.length;
             } else {
-               for (int var20 = 0; var20 < var5.length; var20++) {
-                  String var21 = var18[var20];
-                  DataFileConverter.FieldConverter var22 = this.getConverter(var5[var20]);
-                  if (var22 != null) {
-                     var17 = var22.convert(var16, var5[var20], var21);
-                     var19 = "invalid col '" + var5[var20] + "' with value = '" + var21 + "'";
+               for (int columnIndex = 0; columnIndex < headings.length; columnIndex++) {
+                  String value = fields[columnIndex];
+                  DataFileConverter.FieldConverter converter = this.getConverter(headings[columnIndex]);
+                  if (converter != null) {
+                     accepted = converter.convert(record, headings[columnIndex], value);
+                     rejectReason = "invalid col '" + headings[columnIndex] + "' with value = '" + value + "'";
                   } else {
-                     String var23 = this.getFieldName(var5[var20]);
-                     if (var23 != null) {
-                        var16.setValue(var23, var21);
+                     String fieldName = this.getFieldName(headings[columnIndex]);
+                     if (fieldName != null) {
+                        record.setValue(fieldName, value);
                      }
                   }
 
-                  if (this._filter != null) {
-                     var17 = this._filter.filter(var5[var20], var21);
-                     var19 = "filter rejected on col '" + var5[var20] + "' with value = '" + var21 + "'";
-                  }
-
-                  if (!var17) {
+                  if (!accepted) {
                      break;
                   }
                }
             }
 
-            if (var17) {
-               var16.postLoadUpdate();
-               this.procesNewRecord((T)var16);
+            if (accepted) {
+               record.postLoadUpdate();
+               this.procesNewRecord((T)record);
             } else {
-               EagleBoardScheduler.verbose(" rejected [" + var1.getName() + ":" + var4 + "]:" + var19 + " (" + var3 + ")");
+               EagleBoardScheduler.verbose(" rejected [" + file.getName() + ":" + lineNumber + "]:" + rejectReason + " (" + line + ")");
             }
          }
 
-         var4++;
+         lineNumber++;
       }
 
-      var2.close();
+      reader.close();
    }
 
-   public void procesNewRecord(T var1) {
-      String var2 = var1.getID();
-      DataRecord var3 = this._dataFile.get(var2);
-      if (var3 == null) {
-         this._dataFile.add((T)var1, false);
+   public void procesNewRecord(T record) {
+      String id = record.getID();
+      DataRecord existing = this._dataFile.get(id);
+      if (existing == null) {
+         this._dataFile.add((T)record, false);
       }
    }
 
@@ -197,10 +188,7 @@ public class DataFileConverter<T extends DataRecord> {
    }
 
    public interface FieldConverter {
-      boolean convert(DataRecord var1, String var2, String var3);
+      boolean convert(DataRecord record, String column, String value);
    }
 
-   public interface Filter {
-      boolean filter(String var1, String var2);
-   }
 }

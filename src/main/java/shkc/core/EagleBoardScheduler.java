@@ -9,7 +9,6 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.Enumeration;
-import java.util.HashMap;
 import java.util.List;
 import java.util.StringTokenizer;
 import jakarta.servlet.ServletException;
@@ -44,89 +43,89 @@ public class EagleBoardScheduler {
    private DataRecordFile<AdultRecord> _adultRecords = null;
    private DataRecordFile<AdultRecord> _adultHistoryRecords = null;
 
-   public static void main(String[] var0) throws Exception {
-      String var1 = "vw?";
-      String[] var2 = new String[]{"verbose", "help", "debug", "windows"};
-      String var3 = "dapc";
-      String[] var4 = new String[]{"dir", "prereg", "adults", "config", "port", "sugkey", "sugid", "bind"};
-      Commandline var5 = null;
+   public static void main(String[] args) throws Exception {
+      String shortFlags = "vw?";
+      String[] longFlags = new String[]{"verbose", "help", "debug", "windows"};
+      String shortOptions = "dapc";
+      String[] longOptions = new String[]{"dir", "prereg", "adults", "config", "port", "sugkey", "sugid", "bind"};
+      Commandline cmdline = null;
 
       try {
-         var5 = new Commandline(var0, var1, var3, var2, var4);
-      } catch (Throwable var22) {
-         System.out.println("\n\n   ERROR:  invalid command line argument(s): " + var22.getMessage() + "\n\n");
+         cmdline = new Commandline(args, shortFlags, shortOptions, longFlags, longOptions);
+      } catch (Throwable parseFailure) {
+         System.out.println("\n\n   ERROR:  invalid command line argument(s): " + parseFailure.getMessage() + "\n\n");
          System.exit(1);
       }
 
-      if (var5.hasFlag("debug")) {
-         FileHandler var26 = new FileHandler("eagle-board-scheduler.log");
-         var26.setFormatter(new SimpleFormatter());
-         var26.setLevel(Level.ALL);
+      if (cmdline.hasFlag("debug")) {
+         FileHandler logFile = new FileHandler("eagle-board-scheduler.log");
+         logFile.setFormatter(new SimpleFormatter());
+         logFile.setLevel(Level.ALL);
          _debugLogger = Logger.getLogger("shkc");
          _debugLogger.setLevel(Level.ALL);
-         _debugLogger.addHandler(var26);
+         _debugLogger.addHandler(logFile);
          System.out.println("DEBUGGING ENABLED");
       }
 
-      if (var5.hasFlag("?:help")) {
+      if (cmdline.hasFlag("?:help")) {
          usage();
          System.exit(1);
       }
 
-      if (var5.hasFlag("v:verbose")) {
+      if (cmdline.hasFlag("v:verbose")) {
          _verbose = true;
       } else {
          _verbose = false;
       }
 
-      SimpleDateFormat var6 = new SimpleDateFormat("yyyy-MM-dd");
-      String var7 = var6.format(new Date());
-      String var8 = var5.getOption("d:dir", var7);
-      String var9 = var5.getOption("p:prereg");
-      String var10 = var5.getOption("c:config");
-      String var11 = var5.getOption("a:adults");
-      int var12 = var5.getIntOption("port", 8080);
-      String var13 = var5.getOption("sugkey", null);
-      String var14 = var5.getOption("sugid", null);
+      SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+      String today = dateFormat.format(new Date());
+      String dataDir = cmdline.getOption("d:dir", today);
+      String preregFile = cmdline.getOption("p:prereg");
+      String configFile = cmdline.getOption("c:config");
+      String adultsFile = cmdline.getOption("a:adults");
+      int port = cmdline.getIntOption("port", 8080);
+      String sugKey = cmdline.getOption("sugkey", null);
+      String sugId = cmdline.getOption("sugid", null);
       // -bind <ip-prefix>: restrict the listener and the advertised URLs to the
       // single interface we actually serve from (e.g. "192.168." for the venue
       // wifi), so virtual adapters don't each pop their own dialog. When absent,
       // behavior is unchanged: listen on every interface and list them all.
-      String bindPrefix = var5.getOption("bind", null);
+      String bindPrefix = cmdline.getOption("bind", null);
       String boundAddress = null;
-      if (var0.length != 0 && var5.hasFlag("w:windows")) {
+      if (args.length != 0 && cmdline.hasFlag("w:windows")) {
       }
 
       System.out.println("\n\nAvailable Network Interfaces");
-      Enumeration var15 = NetworkInterface.getNetworkInterfaces();
+      Enumeration interfaces = NetworkInterface.getNetworkInterfaces();
 
-      while (var15.hasMoreElements()) {
-         StringBuffer var16 = new StringBuffer();
-         NetworkInterface var17 = (NetworkInterface)var15.nextElement();
-         int var18 = 0;
-         Enumeration var19 = var17.getInetAddresses();
+      while (interfaces.hasMoreElements()) {
+         StringBuffer urls = new StringBuffer();
+         NetworkInterface networkInterface = (NetworkInterface)interfaces.nextElement();
+         int addressCount = 0;
+         Enumeration addresses = networkInterface.getInetAddresses();
 
-         while (var19.hasMoreElements()) {
-            InetAddress var20 = (InetAddress)var19.nextElement();
-            if (var20 instanceof Inet4Address
-               && !var20.getHostAddress().startsWith("127")
-               && (bindPrefix == null || var20.getHostAddress().startsWith(bindPrefix))) {
-               var16.append("\n                 http://" + var20.getHostAddress() + ":" + var12);
+         while (addresses.hasMoreElements()) {
+            InetAddress address = (InetAddress)addresses.nextElement();
+            if (address instanceof Inet4Address
+               && !address.getHostAddress().startsWith("127")
+               && (bindPrefix == null || address.getHostAddress().startsWith(bindPrefix))) {
+               urls.append("\n                 http://" + address.getHostAddress() + ":" + port);
                if (boundAddress == null) {
-                  boundAddress = var20.getHostAddress();
+                  boundAddress = address.getHostAddress();
                }
 
-               var18++;
+               addressCount++;
             }
          }
 
-         if (var18 > 0) {
-            if (var0.length == 0 || var5.hasFlag("w:windows")) {
-               PopupDialog var24 = new PopupDialog("        Connect to the following URLs\n" + var16.toString() + "\n");
-               var24.setVisible(true);
+         if (addressCount > 0) {
+            if (args.length == 0 || cmdline.hasFlag("w:windows")) {
+               PopupDialog popup = new PopupDialog("        Connect to the following URLs\n" + urls.toString() + "\n");
+               popup.setVisible(true);
             }
 
-            System.out.println(var16.toString());
+            System.out.println(urls.toString());
          }
       }
 
@@ -141,14 +140,14 @@ public class EagleBoardScheduler {
          }
       }
 
-      System.out.println("\n\n URL: http://<ip-address>:" + var12 + "\n\n");
+      System.out.println("\n\n URL: http://<ip-address>:" + port + "\n\n");
 
       try {
-         EagleBoardScheduler var23 = new EagleBoardScheduler(var12, var8, var9, var11, var10, var13, var14);
-         var23.run();
-      } catch (Exception var21) {
-         var21.printStackTrace();
-         System.err.println("\n\n  ERROR: " + var21.getMessage() + "\n\n");
+         EagleBoardScheduler scheduler = new EagleBoardScheduler(port, dataDir, preregFile, adultsFile, configFile, sugKey, sugId);
+         scheduler.run();
+      } catch (Exception startupFailure) {
+         startupFailure.printStackTrace();
+         System.err.println("\n\n  ERROR: " + startupFailure.getMessage() + "\n\n");
       }
    }
 
@@ -159,41 +158,41 @@ public class EagleBoardScheduler {
          );
    }
 
-   public EagleBoardScheduler(int var1, String var2, String var3, String var4, String var5, String var6, String var7) throws Exception {
-      this._dataRoot = new File(var2);
+   public EagleBoardScheduler(int port, String dataDir, String preregFile, String adultHistoryPath, String configFileName, String sugKey, String sugId) throws Exception {
+      this._dataRoot = new File(dataDir);
       if (!this._dataRoot.exists() && !this._dataRoot.mkdir()) {
          throw new IOException("cannot create data directory: " + this._dataRoot.getAbsolutePath());
       }
 
-      if (var4 != null) {
-         this._adultHistoryFile = new File(var4);
+      if (adultHistoryPath != null) {
+         this._adultHistoryFile = new File(adultHistoryPath);
          if (!this._adultHistoryFile.exists()) {
-            throw new Exception("error: adult history file '" + var4 + "' does not exist.");
+            throw new Exception("error: adult history file '" + adultHistoryPath + "' does not exist.");
          }
       } else {
          this._adultHistoryFile = new File(this._dataRoot, "adult_history.csv");
       }
 
-      if (var5 != null) {
-         this._configFile = new File(var5);
+      if (configFileName != null) {
+         this._configFile = new File(configFileName);
          if (!this._configFile.exists()) {
-            throw new Exception("error: config  file '" + var5 + "' does not exist.");
+            throw new Exception("error: config  file '" + configFileName + "' does not exist.");
          }
       } else {
          this._configFile = new File(this._dataRoot, "config.properties");
       }
 
-      if (var5 == null) {
-         var5 = "config.properties";
+      if (configFileName == null) {
+         configFileName = "config.properties";
       }
 
       this._server = new WebServer("WEBROOT");
-      this._server.setPort(var1);
+      this._server.setPort(port);
       this._scoutFile = new File(this._dataRoot, "scouts.csv");
       this._adultFile = new File(this._dataRoot, "adults.csv");
       this._roomFile = new File(this._dataRoot, "rooms.csv");
       this._scoutsScheduledFile = new File(this._dataRoot, "scouts_scheduled.csv");
-      this._configFile = new File(this._dataRoot, var5);
+      this._configFile = new File(this._dataRoot, configFileName);
       if (!this._configFile.exists()) {
          this._configFile = new File("config.properties");
       }
@@ -205,34 +204,33 @@ public class EagleBoardScheduler {
       this._adultHistoryRecords = new DataRecordFile<>(this._adultHistoryFile, new AdultRecord.Factory());
       this._scoutsScheduledRecords = new DataRecordFile<>(this._scoutsScheduledFile, new ScoutRecord.Factory());
       if (this._configRecords.get("DEFAULT") == null) {
-         ConfigRecord var8 = this._configRecords.addNew("DEFAULT", true);
-         var8.setValue("Name", "DEFAULT");
-         var8.setValue("ID", "DEFAULT");
+         ConfigRecord defaultConfig = this._configRecords.addNew("DEFAULT", true);
+         defaultConfig.setValue("Name", "DEFAULT");
+         defaultConfig.setValue("ID", "DEFAULT");
          this._configRecords.store();
       }
 
-      ConfigRecord var13 = this._configRecords.get("DEFAULT");
-      if (var3 != null) {
-         File var9 = new File(var3);
-         if (!var9.exists()) {
-            throw new Exception("error: no preregistration file '" + var3 + "' found.");
+      if (preregFile != null) {
+         File preregFileHandle = new File(preregFile);
+         if (!preregFileHandle.exists()) {
+            throw new Exception("error: no preregistration file '" + preregFile + "' found.");
          }
 
-         System.out.println("\n\n   loading SCOUT pre-registrations: " + var3 + "\n\n");
-         NegaPreRegScoutRecordConverter var10 = new NegaPreRegScoutRecordConverter(this._scoutsScheduledRecords);
+         System.out.println("\n\n   loading SCOUT pre-registrations: " + preregFile + "\n\n");
+         NegaPreRegScoutRecordConverter scoutConverter = new NegaPreRegScoutRecordConverter(this._scoutsScheduledRecords);
          this._scoutsScheduledRecords.clearAll();
-         var10.convert(var9);
+         scoutConverter.convert(preregFileHandle);
          this._scoutsScheduledRecords.store();
-         System.out.println("\n\n   loading ADULT pre-registrations: " + var3 + "\n\n");
-         NegaPreRegAdultRecordConverter var11 = new NegaPreRegAdultRecordConverter(this._adultHistoryRecords);
-         var11.convert(var9);
+         System.out.println("\n\n   loading ADULT pre-registrations: " + preregFile + "\n\n");
+         NegaPreRegAdultRecordConverter adultConverter = new NegaPreRegAdultRecordConverter(this._adultHistoryRecords);
+         adultConverter.convert(preregFileHandle);
          this._adultHistoryRecords.store();
-      } else if (var6 != null && var6.length() > 10) {
+      } else if (sugKey != null && sugKey.length() > 10) {
          try {
-            SignUpGeniusPlugin var14 = new SignUpGeniusPlugin(var6, var7, this._adultHistoryRecords, this._scoutsScheduledRecords);
-            var14.populatePreRegistrations();
-         } catch (Exception var12) {
-            System.out.println("\n\n   SignupGenius Error: " + var12.getMessage() + "\n\n");
+            SignUpGeniusPlugin signUpGenius = new SignUpGeniusPlugin(sugKey, sugId, this._adultHistoryRecords, this._scoutsScheduledRecords);
+            signUpGenius.populatePreRegistrations();
+         } catch (Exception signUpFailure) {
+            System.out.println("\n\n   SignupGenius Error: " + signUpFailure.getMessage() + "\n\n");
          }
       } else {
          System.out.println("\n   no prereg-file or SignupGenius DB loaded \n\n");
@@ -266,78 +264,29 @@ public class EagleBoardScheduler {
       this._server.start();
    }
 
-   private String[] getFields(String var1, String[] var2) {
-      if (var1 != null && var1.length() != 0) {
-         StringTokenizer var3 = new StringTokenizer(var1, ",+ []", false);
-         String[] var4 = new String[var3.countTokens()];
+   private String[] getFields(String csvList, String[] defaults) {
+      if (csvList != null && csvList.length() != 0) {
+         StringTokenizer tokens = new StringTokenizer(csvList, ",+ []", false);
+         String[] fields = new String[tokens.countTokens()];
 
-         for (int var5 = 0; var5 < var4.length; var5++) {
-            var4[var5] = var3.nextToken();
+         for (int i = 0; i < fields.length; i++) {
+            fields[i] = tokens.nextToken();
          }
 
-         return var4;
+         return fields;
       } else {
-         return var2;
+         return defaults;
       }
    }
 
-   // No longer called: the AdultScoutRatio ("B/S") column was dropped. Kept
-   // defined (unused) so this class's declared members — and the parity gate —
-   // are unchanged. Safe to delete if the parity baseline is ever retired.
-   private void updateAdultScoutRatios(boolean var1) {
-      HashMap var2 = new HashMap();
-
-      for (ScoutRecord var4 : this._scoutRecords.getRecords()) {
-         double[] var5 = (double[])var2.get(var4.getUnitName());
-         if (var5 == null) {
-            var5 = new double[3];
-            var2.put(var4.getUnitName(), var5);
-         }
-
-         if ("Project".equalsIgnoreCase(var4.getBoardType())) {
-            var5[0] += 2.0;
-         } else {
-            var5[0] += 3.0;
-         }
-      }
-
-      for (AdultRecord var11 : this._adultRecords.getRecords()) {
-         if ("Chair".equalsIgnoreCase(var11.getProjectReviewRole())
-            || "Member".equalsIgnoreCase(var11.getProjectReviewRole())
-            || "Chair".equalsIgnoreCase(var11.getFinalBoardRole())
-            || "Member".equalsIgnoreCase(var11.getFinalBoardRole())) {
-            double[] var13 = (double[])var2.get(var11.getUnitName());
-            if (var13 != null) {
-               var13[1]++;
-            }
-         }
-      }
-
-      for (ScoutRecord var12 : this._scoutRecords.getRecords()) {
-         double[] var14 = (double[])var2.get(var12.getUnitName());
-         if (var14 != null) {
-            double var6 = var14[1] / var14[0];
-            var12.setAdultScoutRatio(String.format("%1.1f", var6));
-         }
-      }
-
-      if (var1) {
-         try {
-            this._scoutRecords.store();
-         } catch (Exception var8) {
-            error("store error: " + var8.getMessage());
-         }
-      }
-   }
-
-   public static void verbose(Object var0) {
+   public static void verbose(Object message) {
       if (_verbose) {
-         System.out.println(var0);
+         System.out.println(message);
       }
    }
 
-   public static void error(String var0) {
-      System.out.println("\n\nERROR: " + var0 + "\n");
+   public static void error(String message) {
+      System.out.println("\n\nERROR: " + message + "\n");
       Thread.dumpStack();
    }
 
@@ -373,114 +322,114 @@ public class EagleBoardScheduler {
       private DataRecordFile<T> _records;
       private String _lookupField = null;
 
-      public AutoFillHandler(DataRecordFile<T> var2, String var3) {
-         this._records = var2;
-         this._lookupField = var3;
+      public AutoFillHandler(DataRecordFile<T> records, String lookupField) {
+         this._records = records;
+         this._lookupField = lookupField;
       }
 
       @Override
-      public synchronized void handle(String var1, HttpServletRequest var2, HttpServletResponse var3) throws IOException, ServletException {
-         EagleBoardScheduler.verbose(var2);
-         EagleBoardScheduler.verbose(var2.getParameterMap());
-         String var4 = var2.getParameter("op");
-         String var5 = var2.getParameter("fmt");
-         String var6 = var2.getParameter(this._lookupField);
-         String var7 = "text/json";
-         StringBuffer var8 = new StringBuffer();
-         if ("list".equals(var4) || var6 == null) {
-            var7 = "text/json";
-            var8.append("{ options: [\n");
-            boolean var17 = true;
+      public synchronized void handle(String target, HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException {
+         EagleBoardScheduler.verbose(request);
+         EagleBoardScheduler.verbose(request.getParameterMap());
+         String op = request.getParameter("op");
+         String format = request.getParameter("fmt");
+         String lookupValue = request.getParameter(this._lookupField);
+         String contentType = "text/json";
+         StringBuffer out = new StringBuffer();
+         if ("list".equals(op) || lookupValue == null) {
+            contentType = "text/json";
+            out.append("{ options: [\n");
+            boolean first = true;
 
-            for (DataRecord var19 : this._records.getRecords()) {
-               if (var19.get(this._lookupField).length() > 4) {
-                  if (!var17) {
-                     var8.append(",\n");
+            for (DataRecord record : this._records.getRecords()) {
+               if (record.get(this._lookupField).length() > 4) {
+                  if (!first) {
+                     out.append(",\n");
                   }
 
-                  var17 = false;
-                  var8.append("   { value: \"").append(var19.get(this._lookupField));
-                  var8.append("\", text:\"").append(var19.get(this._lookupField)).append("\"}");
+                  first = false;
+                  out.append("   { value: \"").append(record.get(this._lookupField));
+                  out.append("\", text:\"").append(record.get(this._lookupField)).append("\"}");
                }
             }
 
-            var8.append("\n]\n}\n");
-         } else if (var6 != null) {
-            if ("json".equals(var5)) {
-               var7 = "text/json";
-               List var9 = this._records.get(this._lookupField, var6);
-               if (var9.size() > 0) {
-                  ((DataRecord)var9.get(0)).toJSON(var8);
+            out.append("\n]\n}\n");
+         } else if (lookupValue != null) {
+            if ("json".equals(format)) {
+               contentType = "text/json";
+               List jsonMatches = this._records.get(this._lookupField, lookupValue);
+               if (jsonMatches.size() > 0) {
+                  ((DataRecord)jsonMatches.get(0)).toJSON(out);
                }
             } else {
-               var7 = "text/xml";
-               var8.append("<data>");
-               List var16 = this._records.get(this._lookupField, var6);
-               if (var16.size() > 0) {
-                  DataRecord var10 = (DataRecord)var16.get(0);
-                  boolean var11 = true;
+               contentType = "text/xml";
+               out.append("<data>");
+               List xmlMatches = this._records.get(this._lookupField, lookupValue);
+               if (xmlMatches.size() > 0) {
+                  DataRecord xmlRecord = (DataRecord)xmlMatches.get(0);
+                  boolean firstColumn = true;
 
-                  for (String var15 : this._records.getColumns()) {
-                     if (!var11) {
-                        var8.append("\n");
+                  for (String column : this._records.getColumns()) {
+                     if (!firstColumn) {
+                        out.append("\n");
                      }
 
-                     var11 = false;
-                     var8.append("<").append(var15).append(">");
-                     var8.append(var10.getValue(var15));
-                     var8.append("</").append(var15).append(">");
+                     firstColumn = false;
+                     out.append("<").append(column).append(">");
+                     out.append(xmlRecord.getValue(column));
+                     out.append("</").append(column).append(">");
                   }
                }
 
-               var8.append("</data>");
+               out.append("</data>");
             }
          }
 
-         var3.setContentLength(var8.length());
-         var3.setContentType(var7);
-         var3.getOutputStream().write(var8.toString().getBytes());
-         var3.setStatus(200);
+         response.setContentLength(out.length());
+         response.setContentType(contentType);
+         response.getOutputStream().write(out.toString().getBytes());
+         response.setStatus(200);
       }
    }
 
    public class CompleteBoardHandler extends EagleBoardScheduler.CoreBoardHandler {
       @Override
-      public synchronized void handle(String var1, HttpServletRequest var2, HttpServletResponse var3) throws IOException, ServletException {
+      public synchronized void handle(String target, HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException {
          synchronized (EagleBoardScheduler.this.LOCK) {
-            EagleBoardScheduler.verbose(var2);
-            EagleBoardScheduler.verbose(var2.getParameterMap());
-            String var5 = var2.getParameter("ScoutID");
-            String var6 = var2.getParameter("Result");
-            String var7 = var2.getParameter("Notes");
-            String var8 = var2.getParameter("Cost");
-            String var9 = var2.getParameter("BSAHours");
-            String var10 = var2.getParameter("OtherHours");
-            EagleBoardScheduler.verbose("ScoutID: " + var5);
-            EagleBoardScheduler.verbose("Result: " + var6);
-            EagleBoardScheduler.verbose("Notes: " + var7);
-            EagleBoardScheduler.verbose("ProjectCost: " + var8);
-            EagleBoardScheduler.verbose("BSA Hours: " + var9);
-            EagleBoardScheduler.verbose("Other Hours: " + var10);
-            if (var6 != null && var6.length() >= 5) {
-               if (var7 == null) {
-                  var7 = "";
+            EagleBoardScheduler.verbose(request);
+            EagleBoardScheduler.verbose(request.getParameterMap());
+            String scoutId = request.getParameter("ScoutID");
+            String result = request.getParameter("Result");
+            String notes = request.getParameter("Notes");
+            String cost = request.getParameter("Cost");
+            String bsaHours = request.getParameter("BSAHours");
+            String otherHours = request.getParameter("OtherHours");
+            EagleBoardScheduler.verbose("ScoutID: " + scoutId);
+            EagleBoardScheduler.verbose("Result: " + result);
+            EagleBoardScheduler.verbose("Notes: " + notes);
+            EagleBoardScheduler.verbose("ProjectCost: " + cost);
+            EagleBoardScheduler.verbose("BSA Hours: " + bsaHours);
+            EagleBoardScheduler.verbose("Other Hours: " + otherHours);
+            if (result != null && result.length() >= 5) {
+               if (notes == null) {
+                  notes = "";
                }
 
-               if (var8 != null) {
-                  var7 = var7 + "(Cost: " + var8 + ")";
+               if (cost != null) {
+                  notes = notes + "(Cost: " + cost + ")";
                }
 
-               if (var9 != null) {
-                  var7 = var7 + "(BSA: " + var9 + " hrs)";
+               if (bsaHours != null) {
+                  notes = notes + "(BSA: " + bsaHours + " hrs)";
                }
 
-               if (var10 != null) {
-                  var7 = var7 + "(Other: " + var10 + " hrs)";
+               if (otherHours != null) {
+                  notes = notes + "(Other: " + otherHours + " hrs)";
                }
 
-               ScoutRecord var11 = EagleBoardScheduler.this._scoutRecords.get(var5);
-               if (var11 == null) {
-                  this.sendError("Invalid Scout ID" + var5, var3);
+               ScoutRecord scout = EagleBoardScheduler.this._scoutRecords.get(scoutId);
+               if (scout == null) {
+                  this.sendError("Invalid Scout ID" + scoutId, response);
                // "Seated" is deliberately no longer accepted. It used to be,
                // harmlessly, because seating went straight to InProgress and
                // no record was ever left sitting in Seated. Now that seating
@@ -488,179 +437,179 @@ public class EagleBoardScheduler {
                // outside the room, and completing there would record a result
                // for a review that never happened. The error message already
                // said "expected 'InProgress'" -- the check now matches it.
-               } else if (!var11.getStatus().equals("InProgress")) {
-                  this.sendError("Invalid Scout Status '" + var11.getStatus() + "' expected '" + "InProgress" + "'", var3);
+               } else if (!scout.getStatus().equals("InProgress")) {
+                  this.sendError("Invalid Scout Status '" + scout.getStatus() + "' expected '" + "InProgress" + "'", response);
                } else {
-                  RoomRecord var12 = null;
+                  RoomRecord room = null;
 
-                  for (RoomRecord var14 : EagleBoardScheduler.this._roomRecords.getRecords()) {
-                     if (var14.getRoom().equals(var11.getRoom())) {
-                        var12 = var14;
+                  for (RoomRecord candidateRoom : EagleBoardScheduler.this._roomRecords.getRecords()) {
+                     if (candidateRoom.getRoom().equals(scout.getRoom())) {
+                        room = candidateRoom;
                         break;
                      }
                   }
 
-                  if (var12 == null) {
-                     this.sendError("No room " + var11.getRoom() + " not found.", var3);
+                  if (room == null) {
+                     this.sendError("No room " + scout.getRoom() + " not found.", response);
                   } else {
-                     for (AdultRecord var18 : EagleBoardScheduler.this._adultRecords.getRecords()) {
-                        if (var18.getRoom().equals(var12.getRoom())) {
-                           var18.setRoom("");
+                     for (AdultRecord adult : EagleBoardScheduler.this._adultRecords.getRecords()) {
+                        if (adult.getRoom().equals(room.getRoom())) {
+                           adult.setRoom("");
                         }
                      }
 
-                     var11.setStatus("Completed");
-                     var11.setRoom("N/A");
-                     var11.setNotes(var7);
-                     var11.setResult(var6);
-                     var12.setScout("");
-                     var12.setLeaders("");
-                     var11.updateFields(true);
+                     scout.setStatus("Completed");
+                     scout.setRoom("N/A");
+                     scout.setNotes(notes);
+                     scout.setResult(result);
+                     room.setScout("");
+                     room.setLeaders("");
+                     scout.updateFields(true);
                      EagleBoardScheduler.this._scoutRecords.store();
                      EagleBoardScheduler.this._roomRecords.store();
                      EagleBoardScheduler.this._adultRecords.store();
-                     this.sendSuccess(var3);
+                     this.sendSuccess(response);
                   }
                }
             } else {
-               this.sendError("Invalid Result '" + var6 + "', expected Approved, Adjourned or NotApproved", var3);
+               this.sendError("Invalid Result '" + result + "', expected Approved, Adjourned or NotApproved", response);
             }
          }
       }
    }
 
    public abstract class CoreBoardHandler implements WebServer.WebHandler {
-      protected void sendError(String var1, HttpServletResponse var2) throws IOException {
-         StringBuffer var3 = new StringBuffer();
-         var3.append(var1);
-         String var4 = var3.toString();
-         var2.setContentLength(var4.length());
-         var2.setContentType("text/plain");
-         var2.getOutputStream().write(var4.getBytes());
-         var2.setStatus(304);
+      protected void sendError(String message, HttpServletResponse response) throws IOException {
+         StringBuffer out = new StringBuffer();
+         out.append(message);
+         String body = out.toString();
+         response.setContentLength(body.length());
+         response.setContentType("text/plain");
+         response.getOutputStream().write(body.getBytes());
+         response.setStatus(304);
       }
 
-      public void sendSuccess(HttpServletResponse var1) throws IOException {
-         String var2 = "OK.";
-         var1.setContentLength(var2.length());
-         var1.setContentType("text/plain");
-         var1.getOutputStream().write(var2.getBytes());
-         var1.setStatus(200);
+      public void sendSuccess(HttpServletResponse response) throws IOException {
+         String body = "OK.";
+         response.setContentLength(body.length());
+         response.setContentType("text/plain");
+         response.getOutputStream().write(body.getBytes());
+         response.setStatus(200);
       }
    }
 
    public class DataRecordCellsHandler<T extends DataRecord> implements WebServer.WebHandler {
       private DataRecordFile<T> _records;
 
-      public DataRecordCellsHandler(DataRecordFile<T> var2) {
-         this._records = var2;
+      public DataRecordCellsHandler(DataRecordFile<T> records) {
+         this._records = records;
       }
 
       @Override
-      public void handle(String var1, HttpServletRequest var2, HttpServletResponse var3) throws IOException, ServletException {
+      public void handle(String target, HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException {
          synchronized (EagleBoardScheduler.this.LOCK) {
-            EagleBoardScheduler.verbose(var2);
-            EagleBoardScheduler.verbose(var2.getParameterMap());
-            String var5 = var2.getParameter("cols");
-            String var6 = var2.getParameter("data");
-            String var7 = var2.getParameter("fmt");
-            String var8 = var2.getParameter("filename");
-            if (var7 == null) {
-               var7 = "rows";
+            EagleBoardScheduler.verbose(request);
+            EagleBoardScheduler.verbose(request.getParameterMap());
+            String colsParam = request.getParameter("cols");
+            String dataParam = request.getParameter("data");
+            String format = request.getParameter("fmt");
+            String fileName = request.getParameter("filename");
+            if (format == null) {
+               format = "rows";
             }
 
-            String var9 = var2.getParameter("filter");
-            String var10 = null;
-            String var11 = null;
-            if (var9 != null) {
-               StringTokenizer var12 = new StringTokenizer(var9, "~#", false);
-               if (var12.countTokens() == 2) {
-                  var10 = var12.nextToken().trim();
-                  var11 = var12.nextToken().trim();
+            String filterParam = request.getParameter("filter");
+            String filterColumn = null;
+            String filterValues = null;
+            if (filterParam != null) {
+               StringTokenizer filterTokens = new StringTokenizer(filterParam, "~#", false);
+               if (filterTokens.countTokens() == 2) {
+                  filterColumn = filterTokens.nextToken().trim();
+                  filterValues = filterTokens.nextToken().trim();
                }
             }
 
-            EagleBoardScheduler.verbose("COLS: " + var5);
-            EagleBoardScheduler.verbose("DATA: " + var6);
-            EagleBoardScheduler.verbose("FILTER: " + var10 + " ~ " + var11);
-            String var23 = "text/xml";
-            String[] var13 = EagleBoardScheduler.this.getFields(var5, this._records.getColumns());
-            String[] var14 = EagleBoardScheduler.this.getFields(var6, null);
-            StringBuffer var15 = new StringBuffer();
-            if (var7.equals("data")) {
-               var23 = "text/xml";
-               var15.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?><data>");
+            EagleBoardScheduler.verbose("COLS: " + colsParam);
+            EagleBoardScheduler.verbose("DATA: " + dataParam);
+            EagleBoardScheduler.verbose("FILTER: " + filterColumn + " ~ " + filterValues);
+            String contentType = "text/xml";
+            String[] columns = EagleBoardScheduler.this.getFields(colsParam, this._records.getColumns());
+            String[] extraColumns = EagleBoardScheduler.this.getFields(dataParam, null);
+            StringBuffer out = new StringBuffer();
+            if (format.equals("data")) {
+               contentType = "text/xml";
+               out.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?><data>");
 
-               for (DataRecord var17 : this._records.getRecords()) {
-                  if (var11 != null && var10 != null) {
-                     String var18 = var17.get(var10);
-                     if (var18 != null && var18.length() > 0 && var11.indexOf(var18) >= 0) {
-                        var17.toString(var15, var13, var14, var7);
-                        var15.append("\n");
+               for (DataRecord record : this._records.getRecords()) {
+                  if (filterValues != null && filterColumn != null) {
+                     String cellValue = record.get(filterColumn);
+                     if (cellValue != null && cellValue.length() > 0 && filterValues.indexOf(cellValue) >= 0) {
+                        record.toString(out, columns, extraColumns, format);
+                        out.append("\n");
                      }
                   } else {
-                     var17.toString(var15, var13, var14, var7);
-                     var15.append("\n");
+                     record.toString(out, columns, extraColumns, format);
+                     out.append("\n");
                   }
                }
 
-               var15.append("</data>");
-            } else if (var7.equals("csv")) {
-               var23 = "text/csv";
-               boolean var25 = true;
+               out.append("</data>");
+            } else if (format.equals("csv")) {
+               contentType = "text/csv";
+               boolean firstColumn = true;
 
-               for (String var20 : var13) {
-                  if (!var25) {
-                     var15.append(",");
+               for (String column : columns) {
+                  if (!firstColumn) {
+                     out.append(",");
                   }
 
-                  var25 = false;
-                  var15.append(var20);
+                  firstColumn = false;
+                  out.append(column);
                }
 
-               var15.append("\n");
+               out.append("\n");
 
-               for (DataRecord var32 : this._records.getRecords()) {
-                  if (var11 != null && var10 != null) {
-                     String var34 = var32.get(var10);
-                     if (var34 != null && var34.length() > 0 && var11.indexOf(var34) >= 0) {
-                        var32.toString(var15, var13, null, var7);
-                        var15.append("\n");
+               for (DataRecord csvRecord : this._records.getRecords()) {
+                  if (filterValues != null && filterColumn != null) {
+                     String csvCellValue = csvRecord.get(filterColumn);
+                     if (csvCellValue != null && csvCellValue.length() > 0 && filterValues.indexOf(csvCellValue) >= 0) {
+                        csvRecord.toString(out, columns, null, format);
+                        out.append("\n");
                      }
                   } else {
-                     var32.toString(var15, var13, null, var7);
-                     var15.append("\n");
+                     csvRecord.toString(out, columns, null, format);
+                     out.append("\n");
                   }
                }
             } else {
-               var23 = "text/xml";
-               var15.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?><rows>");
+               contentType = "text/xml";
+               out.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?><rows>");
 
-               for (DataRecord var30 : this._records.getRecords()) {
-                  if (var11 != null && var10 != null) {
-                     String var33 = var30.get(var10);
-                     if (var33 != null && var33.length() > 0 && var11.indexOf(var33) >= 0) {
-                        var30.toCells(var15, var13, var14);
-                        var15.append("\n");
+               for (DataRecord rowRecord : this._records.getRecords()) {
+                  if (filterValues != null && filterColumn != null) {
+                     String rowCellValue = rowRecord.get(filterColumn);
+                     if (rowCellValue != null && rowCellValue.length() > 0 && filterValues.indexOf(rowCellValue) >= 0) {
+                        rowRecord.toCells(out, columns, extraColumns);
+                        out.append("\n");
                      }
                   } else {
-                     var30.toCells(var15, var13, var14);
-                     var15.append("\n");
+                     rowRecord.toCells(out, columns, extraColumns);
+                     out.append("\n");
                   }
                }
 
-               var15.append("</rows>");
+               out.append("</rows>");
             }
 
-            if (var8 != null && var8.length() > 0) {
-               var3.setHeader("Content-Disposition", "attachment;filename=" + var8);
+            if (fileName != null && fileName.length() > 0) {
+               response.setHeader("Content-Disposition", "attachment;filename=" + fileName);
             }
 
-            String var27 = var15.toString();
-            var3.setContentLength(var27.length());
-            var3.setContentType(var23);
-            var3.getOutputStream().write(var27.getBytes());
-            var3.setStatus(200);
+            String body = out.toString();
+            response.setContentLength(body.length());
+            response.setContentType(contentType);
+            response.getOutputStream().write(body.getBytes());
+            response.setStatus(200);
          }
       }
 
@@ -672,87 +621,87 @@ public class EagleBoardScheduler {
    public class DataRecordUpdateHandler<T extends DataRecord> implements WebServer.WebHandler {
       private DataRecordFile<T> _records;
 
-      public DataRecordUpdateHandler(DataRecordFile<T> var2) {
-         this._records = var2;
+      public DataRecordUpdateHandler(DataRecordFile<T> records) {
+         this._records = records;
       }
 
       @Override
-      public void handle(String var1, HttpServletRequest var2, HttpServletResponse var3) throws IOException, ServletException {
+      public void handle(String target, HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException {
          synchronized (EagleBoardScheduler.this.LOCK) {
-            EagleBoardScheduler.verbose(var2);
-            EagleBoardScheduler.verbose(var2.getParameterMap());
-            String var5 = var2.getParameter("!nativeeditor_status");
-            String var6 = var2.getParameter("gr_id");
-            if (var6 == null) {
-               this.sendResponse("invalid", var6, var3);
+            EagleBoardScheduler.verbose(request);
+            EagleBoardScheduler.verbose(request.getParameterMap());
+            String status = request.getParameter("!nativeeditor_status");
+            String rowId = request.getParameter("gr_id");
+            if (rowId == null) {
+               this.sendResponse("invalid", rowId, response);
             } else {
-               DataRecord var7 = this._records.get(var6);
-               if (var7 == null) {
-                  if (!"inserted".equals(var5)) {
-                     EagleBoardScheduler.verbose("no such record: " + var6);
-                     this.sendResponse("invalid", var6, var3);
+               DataRecord record = this._records.get(rowId);
+               if (record == null) {
+                  if (!"inserted".equals(status)) {
+                     EagleBoardScheduler.verbose("no such record: " + rowId);
+                     this.sendResponse("invalid", rowId, response);
                      return;
                   }
 
-                  var7 = this._records.addNew(var6, false);
-               } else if ("inserted".equals(var5)) {
-                  EagleBoardScheduler.verbose("record already exists: " + var6);
-                  this.sendResponse("invalid", var6, var3);
+                  record = this._records.addNew(rowId, false);
+               } else if ("inserted".equals(status)) {
+                  EagleBoardScheduler.verbose("record already exists: " + rowId);
+                  this.sendResponse("invalid", rowId, response);
                   return;
                }
 
-               if ("deleted".equals(var5)) {
-                  this._records.remove(var6);
+               if ("deleted".equals(status)) {
+                  this._records.remove(rowId);
                } else {
-                  for (String var11 : this._records.getColumns()) {
-                     String var12 = var2.getParameter(var11);
-                     EagleBoardScheduler.verbose("CHECKING: " + var11 + " => " + var12);
-                     if (var12 != null) {
-                        EagleBoardScheduler.verbose("UPDATING: " + var11 + " => " + var12);
-                        var7.put(var11, var12);
+                  for (String column : this._records.getColumns()) {
+                     String value = request.getParameter(column);
+                     EagleBoardScheduler.verbose("CHECKING: " + column + " => " + value);
+                     if (value != null) {
+                        EagleBoardScheduler.verbose("UPDATING: " + column + " => " + value);
+                        record.put(column, value);
                      }
                   }
                }
 
-               var7.updateFields(false);
+               record.updateFields(false);
                this._records.store();
-               this.sendResponse(var5, var6, var3);
+               this.sendResponse(status, rowId, response);
             }
          }
       }
 
-      private void sendResponse(String var1, String var2, HttpServletResponse var3) throws IOException {
-         StringBuffer var4 = new StringBuffer();
-         var4.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?><data>");
-         var4.append("<action type=\"").append(var1).append("\" sid=\"").append(var2);
-         var4.append("\" tid=\"").append(var2).append("\" />");
-         var4.append("</data>");
-         String var5 = var4.toString();
-         var3.setContentLength(var5.length());
-         var3.setContentType("text/xml");
-         var3.getOutputStream().write(var5.getBytes());
-         var3.setStatus(200);
+      private void sendResponse(String status, String rowId, HttpServletResponse response) throws IOException {
+         StringBuffer out = new StringBuffer();
+         out.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?><data>");
+         out.append("<action type=\"").append(status).append("\" sid=\"").append(rowId);
+         out.append("\" tid=\"").append(rowId).append("\" />");
+         out.append("</data>");
+         String body = out.toString();
+         response.setContentLength(body.length());
+         response.setContentType("text/xml");
+         response.getOutputStream().write(body.getBytes());
+         response.setStatus(200);
       }
    }
 
    public class InProgressBoardHandler extends EagleBoardScheduler.CoreBoardHandler {
       @Override
-      public synchronized void handle(String var1, HttpServletRequest var2, HttpServletResponse var3) throws IOException, ServletException {
+      public synchronized void handle(String target, HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException {
          synchronized (EagleBoardScheduler.this.LOCK) {
-            EagleBoardScheduler.verbose(var2);
-            EagleBoardScheduler.verbose(var2.getParameterMap());
-            String var5 = var2.getParameter("ScoutID");
-            EagleBoardScheduler.verbose("ScoutID: " + var5);
-            ScoutRecord var6 = EagleBoardScheduler.this._scoutRecords.get(var5);
-            if (var6 == null) {
-               this.sendError("ERROR: Invalid Scout ID" + var5, var3);
-            } else if (!var6.getStatus().equals("Seated")) {
-               this.sendError("ERROR: Invalid Status '" + var6.getStatus() + "', expected '" + "Seated" + "'", var3);
+            EagleBoardScheduler.verbose(request);
+            EagleBoardScheduler.verbose(request.getParameterMap());
+            String scoutId = request.getParameter("ScoutID");
+            EagleBoardScheduler.verbose("ScoutID: " + scoutId);
+            ScoutRecord scout = EagleBoardScheduler.this._scoutRecords.get(scoutId);
+            if (scout == null) {
+               this.sendError("ERROR: Invalid Scout ID" + scoutId, response);
+            } else if (!scout.getStatus().equals("Seated")) {
+               this.sendError("ERROR: Invalid Status '" + scout.getStatus() + "', expected '" + "Seated" + "'", response);
             } else {
-               var6.setStatus("InProgress");
-               var6.updateFields(true);
+               scout.setStatus("InProgress");
+               scout.updateFields(true);
                EagleBoardScheduler.this._scoutRecords.store();
-               this.sendSuccess(var3);
+               this.sendSuccess(response);
             }
          }
       }
@@ -760,23 +709,22 @@ public class EagleBoardScheduler {
 
    public class PostponeBoardHandler extends EagleBoardScheduler.CoreBoardHandler {
       @Override
-      public synchronized void handle(String var1, HttpServletRequest var2, HttpServletResponse var3) throws IOException, ServletException {
+      public synchronized void handle(String target, HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException {
          synchronized (EagleBoardScheduler.this.LOCK) {
-            EagleBoardScheduler.verbose(var2);
-            EagleBoardScheduler.verbose(var2.getParameterMap());
-            String var5 = var2.getParameter("ScoutID");
-            String var6 = var2.getParameter("ScoutID");
-            EagleBoardScheduler.verbose("ScoutID: " + var5);
-            ScoutRecord var7 = EagleBoardScheduler.this._scoutRecords.get(var5);
-            if (var7 == null) {
-               this.sendError("ERROR: Invalid Scout ID" + var5, var3);
-            } else if (!var7.getStatus().equals("Registered") && !var7.getStatus().equals("Verified")) {
-               this.sendError("ERROR: Invalid Status '" + var7.getStatus() + "', expected '" + "Registered" + " | " + "Verified" + "'", var3);
+            EagleBoardScheduler.verbose(request);
+            EagleBoardScheduler.verbose(request.getParameterMap());
+            String scoutId = request.getParameter("ScoutID");
+            EagleBoardScheduler.verbose("ScoutID: " + scoutId);
+            ScoutRecord scout = EagleBoardScheduler.this._scoutRecords.get(scoutId);
+            if (scout == null) {
+               this.sendError("ERROR: Invalid Scout ID" + scoutId, response);
+            } else if (!scout.getStatus().equals("Registered") && !scout.getStatus().equals("Verified")) {
+               this.sendError("ERROR: Invalid Status '" + scout.getStatus() + "', expected '" + "Registered" + " | " + "Verified" + "'", response);
             } else {
-               var7.setStatus("Postponed");
-               var7.updateFields(true);
+               scout.setStatus("Postponed");
+               scout.updateFields(true);
                EagleBoardScheduler.this._scoutRecords.store();
-               this.sendSuccess(var3);
+               this.sendSuccess(response);
             }
          }
       }
@@ -784,138 +732,138 @@ public class EagleBoardScheduler {
 
    public class RegisterAdultHandler implements WebServer.WebHandler {
       @Override
-      public void handle(String var1, HttpServletRequest var2, HttpServletResponse var3) throws IOException, ServletException {
+      public void handle(String target, HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException {
          synchronized (EagleBoardScheduler.this.LOCK) {
-            EagleBoardScheduler.verbose(var2);
-            AdultRecord var5 = new AdultRecord(var2.getParameterMap());
-            var5.setRoom("");
-            AdultRecord var6 = EagleBoardScheduler.this._adultRecords.get(var5.getID());
-            if (var6 != null) {
-               var6.updateFrom(var5, EagleBoardScheduler.ADULT_REG_FIELDS);
-               var5 = var6;
+            EagleBoardScheduler.verbose(request);
+            AdultRecord adult = new AdultRecord(request.getParameterMap());
+            adult.setRoom("");
+            AdultRecord existing = EagleBoardScheduler.this._adultRecords.get(adult.getID());
+            if (existing != null) {
+               existing.updateFrom(adult, EagleBoardScheduler.ADULT_REG_FIELDS);
+               adult = existing;
             } else {
-               EagleBoardScheduler.verbose("NEW ADULT RECORD: " + var5);
-               EagleBoardScheduler.this._adultRecords.add(var5, false);
+               EagleBoardScheduler.verbose("NEW ADULT RECORD: " + adult);
+               EagleBoardScheduler.this._adultRecords.add(adult, false);
             }
 
-            AdultRecord var7 = EagleBoardScheduler.this._adultHistoryRecords.get(var5.getID());
-            if (var7 == null) {
-               var7 = var5.clone();
-               EagleBoardScheduler.verbose("Adding new Adult History Record: " + var7);
-               EagleBoardScheduler.this._adultHistoryRecords.add(var7, false);
-               var5.setFlags("W");
+            AdultRecord historyRecord = EagleBoardScheduler.this._adultHistoryRecords.get(adult.getID());
+            if (historyRecord == null) {
+               historyRecord = adult.clone();
+               EagleBoardScheduler.verbose("Adding new Adult History Record: " + historyRecord);
+               EagleBoardScheduler.this._adultHistoryRecords.add(historyRecord, false);
+               adult.setFlags("W");
             } else {
-               if ("Member".equals(var7.getFinalBoardRole()) && "Chair".equals(var5.getFinalBoardRole())) {
-                  var7.setValue("FinalBoard", "Chair");
+               if ("Member".equals(historyRecord.getFinalBoardRole()) && "Chair".equals(adult.getFinalBoardRole())) {
+                  historyRecord.setValue("FinalBoard", "Chair");
                }
 
-               if ("Member".equals(var7.getProjectReviewRole()) && "Chair".equals(var5.getProjectReviewRole())) {
-                  var7.setValue("ProjectReview", "Chair");
+               if ("Member".equals(historyRecord.getProjectReviewRole()) && "Chair".equals(adult.getProjectReviewRole())) {
+                  historyRecord.setValue("ProjectReview", "Chair");
                }
 
-               var7.updateFrom(var5, EagleBoardScheduler.ADULT_REG_FIELDS);
-               var5.setFlags("P");
+               historyRecord.updateFrom(adult, EagleBoardScheduler.ADULT_REG_FIELDS);
+               adult.setFlags("P");
             }
 
-            String var8 = var7.getBoardHistory();
-            var8 = var8 + "(" + EagleBoardScheduler.this.DATE_FORMAT.format(new Date()) + ")";
-            var7.setBoardHistory(var8);
+            String history = historyRecord.getBoardHistory();
+            history = history + "(" + EagleBoardScheduler.this.DATE_FORMAT.format(new Date()) + ")";
+            historyRecord.setBoardHistory(history);
             EagleBoardScheduler.this._adultRecords.store();
             EagleBoardScheduler.this._adultHistoryRecords.store();
-            var3.setStatus(200);
+            response.setStatus(200);
          }
       }
    }
 
    public class RegisterScoutHandler implements WebServer.WebHandler {
       @Override
-      public void handle(String var1, HttpServletRequest var2, HttpServletResponse var3) throws IOException, ServletException {
+      public void handle(String target, HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException {
          synchronized (EagleBoardScheduler.this.LOCK) {
-            EagleBoardScheduler.verbose(var2);
-            int var5 = 0;
-            int var6 = 0;
+            EagleBoardScheduler.verbose(request);
+            int preregCount = 0;
+            int walkinCount = 0;
 
-            for (ScoutRecord var8 : EagleBoardScheduler.this._scoutRecords.getRecords()) {
-               if (var8.getRegNum().startsWith("P")) {
-                  var5++;
-               } else if (var8.getRegNum().startsWith("W")) {
-                  var6++;
+            for (ScoutRecord countedScout : EagleBoardScheduler.this._scoutRecords.getRecords()) {
+               if (countedScout.getRegNum().startsWith("P")) {
+                  preregCount++;
+               } else if (countedScout.getRegNum().startsWith("W")) {
+                  walkinCount++;
                }
             }
 
-            ScoutRecord var11 = new ScoutRecord(var2.getParameterMap());
-            ScoutRecord var12 = EagleBoardScheduler.this._scoutRecords.get(var11.getID());
-            if (var12 != null) {
-               EagleBoardScheduler.verbose("UPDATING EXISTING SCOUT RECORD: " + var12);
-               var12.updateFrom(var11, EagleBoardScheduler.SCOUT_REG_FIELDS);
-               var11 = var12;
-               if (var11.getStatus().length() == 0) {
-                  var11.setStatus("Registered");
+            ScoutRecord scout = new ScoutRecord(request.getParameterMap());
+            ScoutRecord existingScout = EagleBoardScheduler.this._scoutRecords.get(scout.getID());
+            if (existingScout != null) {
+               EagleBoardScheduler.verbose("UPDATING EXISTING SCOUT RECORD: " + existingScout);
+               existingScout.updateFrom(scout, EagleBoardScheduler.SCOUT_REG_FIELDS);
+               scout = existingScout;
+               if (scout.getStatus().length() == 0) {
+                  scout.setStatus("Registered");
                }
             } else {
-               EagleBoardScheduler.verbose("NEW SCOUT RECORD: " + var11);
-               EagleBoardScheduler.this._scoutRecords.add(var11, false);
-               var11.setStatus("Registered");
+               EagleBoardScheduler.verbose("NEW SCOUT RECORD: " + scout);
+               EagleBoardScheduler.this._scoutRecords.add(scout, false);
+               scout.setStatus("Registered");
             }
 
-            if (EagleBoardScheduler.this._scoutsScheduledRecords.get(var11.getID()) == null
-               && EagleBoardScheduler.this._scoutsScheduledRecords.get("Email", var11.getEmail()).size() == 0) {
-               var11.setRegNum("W" + (var6 + 1));
+            if (EagleBoardScheduler.this._scoutsScheduledRecords.get(scout.getID()) == null
+               && EagleBoardScheduler.this._scoutsScheduledRecords.get("Email", scout.getEmail()).size() == 0) {
+               scout.setRegNum("W" + (walkinCount + 1));
             } else {
-               var11.setRegNum("P" + (var5 + 1));
+               scout.setRegNum("P" + (preregCount + 1));
             }
 
             EagleBoardScheduler.this._scoutRecords.store();
-            var3.setStatus(200);
+            response.setStatus(200);
          }
       }
    }
 
    public class ResetBoardHandler extends EagleBoardScheduler.CoreBoardHandler {
       @Override
-      public synchronized void handle(String var1, HttpServletRequest var2, HttpServletResponse var3) throws IOException, ServletException {
+      public synchronized void handle(String target, HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException {
          synchronized (EagleBoardScheduler.this.LOCK) {
-            EagleBoardScheduler.verbose(var2);
-            EagleBoardScheduler.verbose(var2.getParameterMap());
-            String var5 = var2.getParameter("ScoutID");
-            EagleBoardScheduler.verbose("ScoutID: " + var5);
-            ScoutRecord var6 = EagleBoardScheduler.this._scoutRecords.get(var5);
-            if (var6 == null) {
-               this.sendError("Invalid Scout ID" + var5, var3);
-            } else if (!var6.getStatus().equals("InProgress") && !var6.getStatus().equals("Seated") && !var6.getStatus().equals("Verified")) {
-               this.sendError("Invalid Scout Status '" + var6.getStatus() + "' expected " + "'Verified', 'InProgress' or 'Seated' " + "'", var3);
+            EagleBoardScheduler.verbose(request);
+            EagleBoardScheduler.verbose(request.getParameterMap());
+            String scoutId = request.getParameter("ScoutID");
+            EagleBoardScheduler.verbose("ScoutID: " + scoutId);
+            ScoutRecord scout = EagleBoardScheduler.this._scoutRecords.get(scoutId);
+            if (scout == null) {
+               this.sendError("Invalid Scout ID" + scoutId, response);
+            } else if (!scout.getStatus().equals("InProgress") && !scout.getStatus().equals("Seated") && !scout.getStatus().equals("Verified")) {
+               this.sendError("Invalid Scout Status '" + scout.getStatus() + "' expected " + "'Verified', 'InProgress' or 'Seated' " + "'", response);
             } else {
-               RoomRecord var7 = null;
+               RoomRecord room = null;
 
-               for (RoomRecord var9 : EagleBoardScheduler.this._roomRecords.getRecords()) {
-                  if (var9.getRoom().equals(var6.getRoom())) {
-                     var7 = var9;
+               for (RoomRecord candidateRoom : EagleBoardScheduler.this._roomRecords.getRecords()) {
+                  if (candidateRoom.getRoom().equals(scout.getRoom())) {
+                     room = candidateRoom;
                      break;
                   }
                }
 
-               if (var7 != null) {
-                  for (AdultRecord var13 : EagleBoardScheduler.this._adultRecords.getRecords()) {
-                     if (var13.getRoom().equals(var7.getRoom())) {
-                        var13.setRoom("");
+               if (room != null) {
+                  for (AdultRecord adult : EagleBoardScheduler.this._adultRecords.getRecords()) {
+                     if (adult.getRoom().equals(room.getRoom())) {
+                        adult.setRoom("");
                      }
                   }
 
-                  var7.setScout("");
-                  var7.setLeaders("");
+                  room.setScout("");
+                  room.setLeaders("");
                }
 
-               var6.setStatus("Registered");
-               var6.setRoom("");
-               var6.setBoardChair("");
-               var6.setBoardChairID("");
-               var6.setBoardMemberIDs("");
-               var6.setBoardMembers("");
-               var6.updateFields(true);
+               scout.setStatus("Registered");
+               scout.setRoom("");
+               scout.setBoardChair("");
+               scout.setBoardChairID("");
+               scout.setBoardMemberIDs("");
+               scout.setBoardMembers("");
+               scout.updateFields(true);
                EagleBoardScheduler.this._scoutRecords.store();
                EagleBoardScheduler.this._roomRecords.store();
                EagleBoardScheduler.this._adultRecords.store();
-               this.sendSuccess(var3);
+               this.sendSuccess(response);
             }
          }
       }
@@ -929,66 +877,66 @@ public class EagleBoardScheduler {
 
    public class RoomChangeHandler extends EagleBoardScheduler.CoreBoardHandler {
       @Override
-      public synchronized void handle(String var1, HttpServletRequest var2, HttpServletResponse var3) throws IOException, ServletException {
-         EagleBoardScheduler.verbose("RoomChangeHandler: " + var2);
+      public synchronized void handle(String target, HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException {
+         EagleBoardScheduler.verbose("RoomChangeHandler: " + request);
          synchronized (EagleBoardScheduler.this.LOCK) {
-            EagleBoardScheduler.verbose(var2);
-            EagleBoardScheduler.verbose(var2.getParameterMap());
-            String var5 = var2.getParameter("RmID1");
-            String var6 = var2.getParameter("RmID2");
-            if (var5 == null || var5.equals("")) {
-               this.sendError("ERROR: Invalid Room ID" + var5, var3);
-            } else if (var6 != null && !var6.equals("")) {
-               EagleBoardScheduler.verbose("ChangeRoom: RmID1=" + var5 + ", RmID2=" + var6);
-               RoomRecord var7 = EagleBoardScheduler.this._roomRecords.get(var5);
-               RoomRecord var8 = EagleBoardScheduler.this._roomRecords.get(var6);
-               if (var7 == null) {
-                  this.sendError("ERROR: No Such Room" + var5, var3);
-               } else if (var8 == null) {
-                  this.sendError("ERROR: No Such Room" + var6, var3);
+            EagleBoardScheduler.verbose(request);
+            EagleBoardScheduler.verbose(request.getParameterMap());
+            String roomId1 = request.getParameter("RmID1");
+            String roomId2 = request.getParameter("RmID2");
+            if (roomId1 == null || roomId1.equals("")) {
+               this.sendError("ERROR: Invalid Room ID" + roomId1, response);
+            } else if (roomId2 != null && !roomId2.equals("")) {
+               EagleBoardScheduler.verbose("ChangeRoom: RmID1=" + roomId1 + ", RmID2=" + roomId2);
+               RoomRecord room1 = EagleBoardScheduler.this._roomRecords.get(roomId1);
+               RoomRecord room2 = EagleBoardScheduler.this._roomRecords.get(roomId2);
+               if (room1 == null) {
+                  this.sendError("ERROR: No Such Room" + roomId1, response);
+               } else if (room2 == null) {
+                  this.sendError("ERROR: No Such Room" + roomId2, response);
                } else {
-                  String var9 = var7.getLeaders();
-                  String var10 = var8.getLeaders();
-                  String var11 = var7.getScout();
-                  String var12 = var8.getScout();
-                  List<ScoutRecord> var13 = EagleBoardScheduler.this._scoutRecords.get("Room", var7.getRoom());
-                  List<ScoutRecord> var14 = EagleBoardScheduler.this._scoutRecords.get("Room", var8.getRoom());
-                  if (var13.size() > 1) {
-                     this.sendError("ERROR: Room assigned to multiple scouts: " + var7.getRoom(), var3);
-                  } else if (var14.size() > 1) {
-                     this.sendError("ERROR: Room assigned to multiple scouts: " + var8.getRoom(), var3);
+                  String leaders1 = room1.getLeaders();
+                  String leaders2 = room2.getLeaders();
+                  String scout1 = room1.getScout();
+                  String scout2 = room2.getScout();
+                  List<ScoutRecord> scoutsInRoom1 = EagleBoardScheduler.this._scoutRecords.get("Room", room1.getRoom());
+                  List<ScoutRecord> scoutsInRoom2 = EagleBoardScheduler.this._scoutRecords.get("Room", room2.getRoom());
+                  if (scoutsInRoom1.size() > 1) {
+                     this.sendError("ERROR: Room assigned to multiple scouts: " + room1.getRoom(), response);
+                  } else if (scoutsInRoom2.size() > 1) {
+                     this.sendError("ERROR: Room assigned to multiple scouts: " + room2.getRoom(), response);
                   } else {
-                     List<AdultRecord> var15 = EagleBoardScheduler.this._adultRecords.get("Room", var7.getRoom());
-                     List<AdultRecord> var16 = EagleBoardScheduler.this._adultRecords.get("Room", var8.getRoom());
-                     var7.setLeaders(var10);
-                     var8.setLeaders(var9);
-                     var7.setScout(var12);
-                     var8.setScout(var11);
+                     List<AdultRecord> adultsInRoom1 = EagleBoardScheduler.this._adultRecords.get("Room", room1.getRoom());
+                     List<AdultRecord> adultsInRoom2 = EagleBoardScheduler.this._adultRecords.get("Room", room2.getRoom());
+                     room1.setLeaders(leaders2);
+                     room2.setLeaders(leaders1);
+                     room1.setScout(scout2);
+                     room2.setScout(scout1);
 
-                     for (ScoutRecord var18 : var13) {
-                        var18.setRoom(var8.getRoom());
+                     for (ScoutRecord scoutMovingTo2 : scoutsInRoom1) {
+                        scoutMovingTo2.setRoom(room2.getRoom());
                      }
 
-                     for (ScoutRecord var24 : var14) {
-                        var24.setRoom(var7.getRoom());
+                     for (ScoutRecord scoutMovingTo1 : scoutsInRoom2) {
+                        scoutMovingTo1.setRoom(room1.getRoom());
                      }
 
-                     for (AdultRecord var25 : var15) {
-                        var25.setRoom(var8.getRoom());
+                     for (AdultRecord adultMovingTo2 : adultsInRoom1) {
+                        adultMovingTo2.setRoom(room2.getRoom());
                      }
 
-                     for (AdultRecord var26 : var16) {
-                        var26.setRoom(var7.getRoom());
+                     for (AdultRecord adultMovingTo1 : adultsInRoom2) {
+                        adultMovingTo1.setRoom(room1.getRoom());
                      }
 
                      EagleBoardScheduler.this._roomRecords.store();
                      EagleBoardScheduler.this._scoutRecords.store();
                      EagleBoardScheduler.this._adultRecords.store();
-                     this.sendSuccess(var3);
+                     this.sendSuccess(response);
                   }
                }
             } else {
-               this.sendError("ERROR: Invalid Room ID" + var6, var3);
+               this.sendError("ERROR: Invalid Room ID" + roomId2, response);
             }
          }
       }
@@ -1026,75 +974,75 @@ public class EagleBoardScheduler {
 
    public class SeatBoardHandler extends EagleBoardScheduler.CoreBoardHandler {
       @Override
-      public synchronized void handle(String var1, HttpServletRequest var2, HttpServletResponse var3) throws IOException, ServletException {
+      public synchronized void handle(String target, HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException {
          synchronized (EagleBoardScheduler.this.LOCK) {
-            EagleBoardScheduler.verbose(var2);
-            EagleBoardScheduler.verbose(var2.getParameterMap());
-            String var5 = var2.getParameter("RoomID");
-            String var6 = var2.getParameter("ScoutID");
-            String var7 = var2.getParameter("ChairID");
-            String var8 = var2.getParameter("MemberIDs");
-            EagleBoardScheduler.verbose("RoomID: " + var5);
-            EagleBoardScheduler.verbose("ScoutID: " + var6);
-            EagleBoardScheduler.verbose("ChairID: " + var7);
-            EagleBoardScheduler.verbose("MemberIDs: " + var8);
-            RoomRecord var9 = EagleBoardScheduler.this._roomRecords.get(var5);
-            if (var9 == null) {
-               this.sendError("ERROR: Invalid Room ID" + var5, var3);
-            } else if (var9.getScout().length() > 0) {
-               this.sendError("ERROR: Room " + var9.getRoom() + "is already assigned to " + var9.getScout(), var3);
+            EagleBoardScheduler.verbose(request);
+            EagleBoardScheduler.verbose(request.getParameterMap());
+            String roomId = request.getParameter("RoomID");
+            String scoutId = request.getParameter("ScoutID");
+            String chairId = request.getParameter("ChairID");
+            String memberIds = request.getParameter("MemberIDs");
+            EagleBoardScheduler.verbose("RoomID: " + roomId);
+            EagleBoardScheduler.verbose("ScoutID: " + scoutId);
+            EagleBoardScheduler.verbose("ChairID: " + chairId);
+            EagleBoardScheduler.verbose("MemberIDs: " + memberIds);
+            RoomRecord room = EagleBoardScheduler.this._roomRecords.get(roomId);
+            if (room == null) {
+               this.sendError("ERROR: Invalid Room ID" + roomId, response);
+            } else if (room.getScout().length() > 0) {
+               this.sendError("ERROR: Room " + room.getRoom() + "is already assigned to " + room.getScout(), response);
             } else {
-               ScoutRecord var10 = EagleBoardScheduler.this._scoutRecords.get(var6);
-               if (var10 == null) {
-                  this.sendError("ERROR: Invalid Scout ID" + var6, var3);
+               ScoutRecord scout = EagleBoardScheduler.this._scoutRecords.get(scoutId);
+               if (scout == null) {
+                  this.sendError("ERROR: Invalid Scout ID" + scoutId, response);
                   // Verify was removed, so a Registered scout is seated directly.
                   // "Verified" is still accepted for legacy records carried over
                   // from a run made before that change.
-               } else if (!var10.getStatus().equals("Registered") && !var10.getStatus().equals("Verified")) {
-                  this.sendError("ERROR: Invalid Status '" + var10.getStatus() + "', expected '" + "Registered" + "'", var3);
-               } else if (!"".equals(var10.getRoom()) && !var10.getRoom().equals(var9.getRoom())) {
-                  this.sendError("ERROR: Scout Already Assigned Room: " + var10.getRoom(), var3);
-               } else if (var8 == null || var8.trim().length() == 0) {
+               } else if (!scout.getStatus().equals("Registered") && !scout.getStatus().equals("Verified")) {
+                  this.sendError("ERROR: Invalid Status '" + scout.getStatus() + "', expected '" + "Registered" + "'", response);
+               } else if (!"".equals(scout.getRoom()) && !scout.getRoom().equals(room.getRoom())) {
+                  this.sendError("ERROR: Scout Already Assigned Room: " + scout.getRoom(), response);
+               } else if (memberIds == null || memberIds.trim().length() == 0) {
                   // No board members: reject cleanly instead of crashing on
                   // StringTokenizer(null) or silently seating an empty board.
-                  this.sendError("ERROR: No board members selected", var3);
+                  this.sendError("ERROR: No board members selected", response);
                } else {
-                  AdultRecord var11 = EagleBoardScheduler.this._adultRecords.get(var7);
-                  ArrayList<AdultRecord> var12 = new ArrayList<>();
-                  StringBuffer var14 = new StringBuffer();
-                  StringTokenizer var15 = new StringTokenizer(var8, ",", false);
+                  AdultRecord chair = EagleBoardScheduler.this._adultRecords.get(chairId);
+                  ArrayList<AdultRecord> members = new ArrayList<>();
+                  StringBuffer memberNames = new StringBuffer();
+                  StringTokenizer memberIdTokens = new StringTokenizer(memberIds, ",", false);
 
-                  while (var15.hasMoreTokens()) {
-                     String var16 = var15.nextToken().trim();
-                     AdultRecord var17 = EagleBoardScheduler.this._adultRecords.get(var16);
-                     if (var17 == null) {
-                        this.sendError("ERROR: Invalid Member ID " + var16, var3);
+                  while (memberIdTokens.hasMoreTokens()) {
+                     String memberId = memberIdTokens.nextToken().trim();
+                     AdultRecord member = EagleBoardScheduler.this._adultRecords.get(memberId);
+                     if (member == null) {
+                        this.sendError("ERROR: Invalid Member ID " + memberId, response);
                         return;
                      }
 
                      // "N/A" is the Disable button's marker for an adult who
                      // has gone home, not a room anyone can be sent to, so it
                      // gets its own wording rather than "in room N/A".
-                     if ("N/A".equals(var17.getRoom())) {
-                        this.sendError("ERROR: Member " + var17.getFullName() + " has been disabled for tonight", var3);
+                     if ("N/A".equals(member.getRoom())) {
+                        this.sendError("ERROR: Member " + member.getFullName() + " has been disabled for tonight", response);
                         return;
                      }
 
-                     if (var17.getRoom().length() > 0) {
-                        this.sendError("ERROR: Member " + var17.getFullName() + " already assigned to a board in room " + var17.getRoom(), var3);
+                     if (member.getRoom().length() > 0) {
+                        this.sendError("ERROR: Member " + member.getFullName() + " already assigned to a board in room " + member.getRoom(), response);
                         return;
                      }
 
-                     if (var14.length() > 0) {
-                        var14.append(",");
+                     if (memberNames.length() > 0) {
+                        memberNames.append(",");
                      }
 
                      // Full name, not getShortName()'s "F. Last": the room
                      // card is how someone looks up which room an adult is
                      // in, and initial-only made that lookup by first name
                      // impossible without already knowing their last name.
-                     var14.append(var17.getFullName());
-                     var12.add(var17);
+                     memberNames.append(member.getFullName());
+                     members.add(member);
                   }
 
                   // Composition rules are enforced here as well as in
@@ -1108,18 +1056,18 @@ public class EagleBoardScheduler {
                   // proposal review is not a board of review (GTA 9.0.2.4) and
                   // this district runs it with two, under the same ceiling.
                   // Keep in step with checkBoardSize()/checkProjectSize().
-                  boolean var24 = "Project".equals(var10.getBoardType());
-                  int var25 = var24 ? 2 : 3;
+                  boolean isProjectBoard = "Project".equals(scout.getBoardType());
+                  int minMembers = isProjectBoard ? 2 : 3;
 
-                  if (var12.size() < var25) {
-                     this.sendError("ERROR: Only " + var12.size() + " board member(s) selected; "
-                        + var25 + " required for " + var10.getBoardType() + " boards", var3);
+                  if (members.size() < minMembers) {
+                     this.sendError("ERROR: Only " + members.size() + " board member(s) selected; "
+                        + minMembers + " required for " + scout.getBoardType() + " boards", response);
                      return;
                   }
 
-                  if (var12.size() > 6) {
-                     this.sendError("ERROR: " + var12.size()
-                        + " board members selected; no more than 6 permitted (Guide to Advancement 8.0.0.3)", var3);
+                  if (members.size() > 6) {
+                     this.sendError("ERROR: " + members.size()
+                        + " board members selected; no more than 6 permitted (Guide to Advancement 8.0.0.3)", response);
                      return;
                   }
 
@@ -1127,38 +1075,38 @@ public class EagleBoardScheduler {
                   // Member to Chair is a deliberate edit on the Admin page; it
                   // must never happen as a side effect of seating a board
                   // because the qualified chairs were all busy.
-                  if (var11 == null) {
-                     this.sendError("ERROR: Invalid Chair ID " + var7, var3);
+                  if (chair == null) {
+                     this.sendError("ERROR: Invalid Chair ID " + chairId, response);
                      return;
                   }
 
-                  boolean var26 = false;
+                  boolean chairIsMember = false;
 
-                  for (AdultRecord var27 : var12) {
-                     if (var27.getID().equals(var11.getID())) {
-                        var26 = true;
+                  for (AdultRecord candidate : members) {
+                     if (candidate.getID().equals(chair.getID())) {
+                        chairIsMember = true;
                         break;
                      }
                   }
 
-                  if (!var26) {
-                     this.sendError("ERROR: Chair " + var11.getFullName() + " is not one of the board members", var3);
+                  if (!chairIsMember) {
+                     this.sendError("ERROR: Chair " + chair.getFullName() + " is not one of the board members", response);
                      return;
                   }
 
-                  String var28 = var24 ? var11.getProjectReviewRole() : var11.getFinalBoardRole();
+                  String chairRole = isProjectBoard ? chair.getProjectReviewRole() : chair.getFinalBoardRole();
 
-                  if (!"Chair".equals(var28)) {
-                     this.sendError("ERROR: " + var11.getFullName() + " is not qualified to chair a "
-                        + var10.getBoardType() + " board (role: "
-                        + (var28 == null || var28.length() == 0 ? "none" : var28) + ")", var3);
+                  if (!"Chair".equals(chairRole)) {
+                     this.sendError("ERROR: " + chair.getFullName() + " is not qualified to chair a "
+                        + scout.getBoardType() + " board (role: "
+                        + (chairRole == null || chairRole.length() == 0 ? "none" : chairRole) + ")", response);
                      return;
                   }
 
-                  String var23 = var14.toString();
-                  var9.setScout(var10.getFullName());
-                  var9.setLeaders(var23);
-                  var10.setRoom(var9.getRoom());
+                  String memberNameList = memberNames.toString();
+                  room.setScout(scout.getFullName());
+                  room.setLeaders(memberNameList);
+                  scout.setRoom(room.getRoom());
                   // Seating convenes the board only: the members get the room
                   // to go over the application, references and project workbook
                   // BEFORE the scout is called in. "Start Review" (the
@@ -1167,23 +1115,23 @@ public class EagleBoardScheduler {
                   // the view that the second step was redundant; separating
                   // them again is what lets the two phases be timed apart --
                   // the preview is capped, the interview has its own window.
-                  var10.setStatus("Seated");
-                  var10.setBoardMembers(var23);
-                  var10.setBoardMemberIDs(var8);
-                  if (var11 != null) {
-                     var10.setBoardChair(var11.getFullName());
-                     var10.setBoardChairID(var11.getID());
+                  scout.setStatus("Seated");
+                  scout.setBoardMembers(memberNameList);
+                  scout.setBoardMemberIDs(memberIds);
+                  if (chair != null) {
+                     scout.setBoardChair(chair.getFullName());
+                     scout.setBoardChairID(chair.getID());
                   }
 
-                  for (AdultRecord var19 : var12) {
-                     var19.setRoom(var9.getRoom());
+                  for (AdultRecord seatedMember : members) {
+                     seatedMember.setRoom(room.getRoom());
                   }
 
-                  var10.updateFields(true);
+                  scout.updateFields(true);
                   EagleBoardScheduler.this._scoutRecords.store();
                   EagleBoardScheduler.this._roomRecords.store();
                   EagleBoardScheduler.this._adultRecords.store();
-                  this.sendSuccess(var3);
+                  this.sendSuccess(response);
                }
             }
          }
@@ -1192,23 +1140,22 @@ public class EagleBoardScheduler {
 
    public class UpdateConfigHandler implements WebServer.WebHandler {
       @Override
-      public void handle(String var1, HttpServletRequest var2, HttpServletResponse var3) throws IOException, ServletException {
+      public void handle(String target, HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException {
          synchronized (EagleBoardScheduler.this.LOCK) {
-            EagleBoardScheduler.verbose(var2);
-            boolean var5 = false;
-            boolean var6 = false;
-            ConfigRecord var7 = new ConfigRecord(var2.getParameterMap());
-            ConfigRecord var8 = EagleBoardScheduler.this._configRecords.get(var7.getID());
-            if (var8 != null) {
-               EagleBoardScheduler.verbose("UPDATING EXISTING CONFIG RECORD: " + var8);
-               var8.updateFrom(var7, ConfigRecord.COLUMNS);
+            EagleBoardScheduler.verbose(request);
+
+            ConfigRecord config = new ConfigRecord(request.getParameterMap());
+            ConfigRecord existingConfig = EagleBoardScheduler.this._configRecords.get(config.getID());
+            if (existingConfig != null) {
+               EagleBoardScheduler.verbose("UPDATING EXISTING CONFIG RECORD: " + existingConfig);
+               existingConfig.updateFrom(config, ConfigRecord.COLUMNS);
             } else {
-               EagleBoardScheduler.verbose("NEW CONFIG RECORD: " + var7);
-               EagleBoardScheduler.this._configRecords.add(var7, false);
+               EagleBoardScheduler.verbose("NEW CONFIG RECORD: " + config);
+               EagleBoardScheduler.this._configRecords.add(config, false);
             }
 
             EagleBoardScheduler.this._configRecords.store();
-            var3.setStatus(200);
+            response.setStatus(200);
          }
       }
    }

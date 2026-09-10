@@ -26,13 +26,13 @@ public class AdultRecord extends PersonRecord {
       this((AdultRecord)null);
    }
 
-   public AdultRecord(Map var1) {
-      super("ADULT", COLUMNS, var1);
+   public AdultRecord(Map values) {
+      super("ADULT", COLUMNS, values);
       this.updateFields(true);
    }
 
-   public AdultRecord(AdultRecord var1) {
-      super("ADULT", COLUMNS, var1);
+   public AdultRecord(AdultRecord source) {
+      super("ADULT", COLUMNS, source);
       this.updateFields(true);
    }
 
@@ -40,16 +40,11 @@ public class AdultRecord extends PersonRecord {
       return new AdultRecord(this);
    }
 
-   @Override
-   public void updateFields(boolean var1) {
-      super.updateFields(var1);
-   }
-
-   public void updateFrom(AdultRecord var1, String[] var2) {
-      for (String var6 : var2) {
-         String var7 = var1.get(var6);
-         if (var7 != null && var7.length() > 0) {
-            this.put(var6, var7);
+   public void updateFrom(AdultRecord source, String[] columns) {
+      for (String column : columns) {
+         String value = source.get(column);
+         if (value != null && value.length() > 0) {
+            this.put(column, value);
          }
       }
    }
@@ -66,8 +61,8 @@ public class AdultRecord extends PersonRecord {
       return this.getValue("BoardHistory");
    }
 
-   public void setBoardHistory(String var1) {
-      this.setValue("BoardHistory", var1);
+   public void setBoardHistory(String history) {
+      this.setValue("BoardHistory", history);
    }
 
    public static class Factory implements DataRecord.Factory {
