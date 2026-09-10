@@ -9,14 +9,14 @@ public class RoomRecord extends DataRecord {
       this(null);
    }
 
-   public RoomRecord(Map var1) {
-      super("ROOM", COLUMNS, var1);
+   public RoomRecord(Map values) {
+      super("ROOM", COLUMNS, values);
    }
 
-   public RoomRecord(String var1, String[] var2, Map var3) {
-      super(var1, var2, var3);
-      String var4 = this.getType() + ":" + this.getRoom();
-      this.put("ID", var4);
+   public RoomRecord(String recordType, String[] columns, Map values) {
+      super(recordType, columns, values);
+      String id = this.getType() + ":" + this.getRoom();
+      this.put("ID", id);
    }
 
    public String getRoom() {
@@ -27,20 +27,16 @@ public class RoomRecord extends DataRecord {
       return this.getValue("Scout");
    }
 
-   public void setScout(String var1) {
-      this.put("Scout", var1);
+   public void setScout(String scoutName) {
+      this.put("Scout", scoutName);
    }
 
    public String getLeaders() {
       return this.getValue("Leaders");
    }
 
-   public void setLeaders(String var1) {
-      this.put("Leaders", var1);
-   }
-
-   public String getBoardType() {
-      return this.getValue("BoardType");
+   public void setLeaders(String leaderNames) {
+      this.put("Leaders", leaderNames);
    }
 
    public static class Factory implements DataRecord.Factory {

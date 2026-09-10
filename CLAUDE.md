@@ -73,9 +73,11 @@ push be the verification.
 
 ## Conventions / gotchas
 
-- **Decompiled variable names** (`var1`, `var10`…) are everywhere. Keep edits
-  minimal and in the same style; don't do sweeping renames (they widen the
-  diff against the decompiled baseline and add risk for no functional gain).
+- **Variable names say what the variable is for.** The decompiler emitted
+  `var1`, `var10`… throughout; those were all renamed, and no `var##` remains
+  anywhere in `src/main/java`. Do not reintroduce them, not even to match
+  surrounding style — matching a decompiler is not a style. CI greps for them
+  and fails the build (the "No decompiled variable names" step in `build.yml`).
 - **Server endpoints are the contract.** The UI rework kept every endpoint and
   wire format frozen; prefer client-only changes. If you must change the
   server, add a case to `scripts/test-board-evening.sh` covering it.

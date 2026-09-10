@@ -3,10 +3,6 @@
 // (/reset-board). Frees the room and board members.
 // ------------------------------------------------------------------------
 
-function InitializeResetBoard() {
-   // dialogs are created on demand now; kept for scheduler.html parity
-}
-
 function ProcessResetBoard(s_id) {
    var s_status = schedulerScoutGrid.getColumnValue(s_id, "Status");
    var s_last = schedulerScoutGrid.getColumnValue(s_id, "Last");

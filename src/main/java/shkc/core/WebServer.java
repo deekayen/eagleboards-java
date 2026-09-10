@@ -37,29 +37,21 @@ public class WebServer {
       this("html");
    }
 
-   public WebServer(String var1) {
-      this._htmlDirectory = var1;
-      this._locator = new FileLocator("/shkc/core/;" + var1 + ";/;.");
+   public WebServer(String htmlDirectory) {
+      this._htmlDirectory = htmlDirectory;
+      this._locator = new FileLocator("/shkc/core/;" + htmlDirectory + ";/;.");
    }
 
-   public void setPort(int var1) {
-      this._port = var1;
+   public void setPort(int port) {
+      this._port = port;
    }
 
    public int getPort() {
       return this._port;
    }
 
-   public void addHandler(String var1, WebServer.WebHandler var2) {
-      this._handlerMap.put(var1, var2);
-   }
-
-   public void addHandler(String var1, String var2, WebServer.WebHandler var3) {
-      if (var2 == null) {
-         this._handlerMap.put(var1, var3);
-      } else {
-         this._handlerMap.put(var1 + "." + var2, var3);
-      }
+   public void addHandler(String path, WebServer.WebHandler handler) {
+      this._handlerMap.put(path, handler);
    }
 
    public void start() throws Exception {
@@ -100,74 +92,74 @@ public class WebServer {
       server.join();
    }
 
-   public boolean sendResponseFile(String var1, String var2, HttpServletResponse var3) {
-      EagleBoardScheduler.verbose("looking for: dir=" + var1 + ", fname=" + var2);
-      if (var2 == null || var2.length() == 0 || var2.equals("/")) {
-         var2 = "index.html";
+   public boolean sendResponseFile(String dir, String fileName, HttpServletResponse response) {
+      EagleBoardScheduler.verbose("looking for: dir=" + dir + ", fname=" + fileName);
+      if (fileName == null || fileName.length() == 0 || fileName.equals("/")) {
+         fileName = "index.html";
       }
 
-      File var4 = new File(var1, var2);
-      if (var4.exists()) {
+      File file = new File(dir, fileName);
+      if (file.exists()) {
          try {
-            FileInputStream var11 = new FileInputStream(var4);
-            return this.sendResponseFile(var2, var11, var3);
-         } catch (Exception var8) {
-            var3.setStatus(500);
+            FileInputStream fileStream = new FileInputStream(file);
+            return this.sendResponseFile(fileName, fileStream, response);
+         } catch (Exception openFailure) {
+            response.setStatus(500);
             return true;
          }
       } else {
          try {
-            EagleBoardScheduler.verbose("[1] not in filesystem, checking classpath dir=" + var1 + "/" + var2);
-            String var10 = var1 + "/" + var2;
-            if (var1.endsWith("/") || var2.startsWith("/")) {
-               var10 = var1 + var2;
+            EagleBoardScheduler.verbose("[1] not in filesystem, checking classpath dir=" + dir + "/" + fileName);
+            String classpathPath = dir + "/" + fileName;
+            if (dir.endsWith("/") || fileName.startsWith("/")) {
+               classpathPath = dir + fileName;
             }
 
-            InputStream var6 = this._locator.getInputStream(var10);
-            return this.sendResponseFile(var2, var6, var3);
-         } catch (IOException var9) {
+            InputStream dirStream = this._locator.getInputStream(classpathPath);
+            return this.sendResponseFile(fileName, dirStream, response);
+         } catch (IOException dirMiss) {
             try {
-               EagleBoardScheduler.verbose("[2] not in filesystem, checking classpath dir=" + var2);
-               InputStream var5 = this._locator.getInputStream(var2);
-               return this.sendResponseFile(var2, var5, var3);
-            } catch (IOException var7) {
+               EagleBoardScheduler.verbose("[2] not in filesystem, checking classpath dir=" + fileName);
+               InputStream rootStream = this._locator.getInputStream(fileName);
+               return this.sendResponseFile(fileName, rootStream, response);
+            } catch (IOException rootMiss) {
                return false;
             }
          }
       }
    }
 
-   public boolean sendResponseFile(String var1, InputStream var2, HttpServletResponse var3) {
-      EagleBoardScheduler.verbose("sendResponseFile:" + var1);
+   public boolean sendResponseFile(String fileName, InputStream in, HttpServletResponse response) {
+      EagleBoardScheduler.verbose("sendResponseFile:" + fileName);
 
       try {
          // Read the resource fully, then write it. Uses a growable stream
          // instead of reallocating+copying the whole buffer on every chunk
          // (the original was O(n^2) in memory churn, a needless GC/OOM risk).
-         ByteArrayOutputStream var12 = new ByteArrayOutputStream(131072);
-         byte[] var6 = new byte[131072];
-         int var7;
+         ByteArrayOutputStream buffer = new ByteArrayOutputStream(CHUNK_SIZE);
+         byte[] chunk = new byte[CHUNK_SIZE];
+         int bytesRead;
 
-         while ((var7 = var2.read(var6)) >= 0) {
-            var12.write(var6, 0, var7);
+         while ((bytesRead = in.read(chunk)) >= 0) {
+            buffer.write(chunk, 0, bytesRead);
          }
 
-         byte[] var5 = var12.toByteArray();
-         var3.setContentLength(var5.length);
-         EagleBoardScheduler.verbose("size:" + var5.length);
-         String var13 = "txt";
-         int var9 = var1.lastIndexOf(46);
-         if (var9 > 0 && var9 < var1.length() - 1) {
-            var13 = var1.substring(var9 + 1).toLowerCase();
+         byte[] body = buffer.toByteArray();
+         response.setContentLength(body.length);
+         EagleBoardScheduler.verbose("size:" + body.length);
+         String extension = "txt";
+         int dotPos = fileName.lastIndexOf(46);
+         if (dotPos > 0 && dotPos < fileName.length() - 1) {
+            extension = fileName.substring(dotPos + 1).toLowerCase();
          }
 
-         String var10 = getContentType(var13);
-         var3.setContentType(var10);
-         EagleBoardScheduler.verbose("content-type:" + var10);
-         var3.getOutputStream().write(var5);
-         var3.setStatus(200);
-      } catch (Exception var11) {
-         var3.setStatus(500);
+         String contentType = getContentType(extension);
+         response.setContentType(contentType);
+         EagleBoardScheduler.verbose("content-type:" + contentType);
+         response.getOutputStream().write(body);
+         response.setStatus(200);
+      } catch (Exception failure) {
+         response.setStatus(500);
       }
 
       return true;
@@ -177,13 +169,9 @@ public class WebServer {
       return this._commandTag;
    }
 
-   public void setCommandTag(String var1) {
-      this._commandTag = var1;
-   }
-
-   public static String getContentType(String var0) {
-      String var1 = _contentTypeMap.get(var0);
-      return var1 == null ? "text/plain" : var1;
+   public static String getContentType(String extension) {
+      String contentType = _contentTypeMap.get(extension);
+      return contentType == null ? "text/plain" : contentType;
    }
 
 
@@ -208,23 +196,23 @@ public class WebServer {
       File _baseDir = new File(".");
 
       @Override
-      protected void service(HttpServletRequest var3, HttpServletResponse var4) throws IOException, ServletException {
-         String var1 = var3.getRequestURI();
-         EagleBoardScheduler.verbose("LocalDefaultHandler: target=" + var1);
-         EagleBoardScheduler.verbose("context-path=" + var3.getContextPath());
-         WebServer.WebHandler var5 = null;
-         String var6 = null;
+      protected void service(HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException {
+         String target = request.getRequestURI();
+         EagleBoardScheduler.verbose("LocalDefaultHandler: target=" + target);
+         EagleBoardScheduler.verbose("context-path=" + request.getContextPath());
+         WebServer.WebHandler handler = null;
+         String command = null;
 
          try {
-            var6 = ((String[])var3.getParameterMap().get(WebServer.this.getCommandTag()))[0];
-            var5 = WebServer.this._handlerMap.get(var1 + "." + var6);
-         } catch (Exception var9) {
+            command = ((String[])request.getParameterMap().get(WebServer.this.getCommandTag()))[0];
+            handler = WebServer.this._handlerMap.get(target + "." + command);
+         } catch (Exception noCommand) {
          }
 
-         if (var5 == null) {
+         if (handler == null) {
             try {
-               var5 = WebServer.this._handlerMap.get(var1);
-            } catch (Exception var8) {
+               handler = WebServer.this._handlerMap.get(target);
+            } catch (Exception noHandler) {
             }
          }
 
@@ -236,33 +224,33 @@ public class WebServer {
          // for THIS request only, so one bad request can never wedge the
          // server for subsequent page loads.
          try {
-            if (var5 != null || var6 == null || !WebServer.this.sendResponseFile(WebServer.this._htmlDirectory, var6 + ".html", var4)) {
-               if (var5 != null) {
-                  EagleBoardScheduler.verbose("FOUND: " + var1 + "." + var6);
-                  var5.handle(var1, var3, var4);
-               } else if (!WebServer.this.sendResponseFile(WebServer.this._htmlDirectory, var1, var4)) {
-                  if (WebServer.this.sendResponseFile(WebServer.this._htmlDirectory, var1 + ".html", var4)) {
+            if (handler != null || command == null || !WebServer.this.sendResponseFile(WebServer.this._htmlDirectory, command + ".html", response)) {
+               if (handler != null) {
+                  EagleBoardScheduler.verbose("FOUND: " + target + "." + command);
+                  handler.handle(target, request, response);
+               } else if (!WebServer.this.sendResponseFile(WebServer.this._htmlDirectory, target, response)) {
+                  if (WebServer.this.sendResponseFile(WebServer.this._htmlDirectory, target + ".html", response)) {
                      return;
                   }
 
-                  EagleBoardScheduler.verbose("NOT FOUND: " + var1);
-                  var4.sendError(404);
+                  EagleBoardScheduler.verbose("NOT FOUND: " + target);
+                  response.sendError(404);
                }
             }
-         } catch (Throwable var10) {
-            System.out.println("ERROR handling request " + var1 + ": " + var10);
-            var10.printStackTrace(System.out);
-            if (!var4.isCommitted()) {
-               var4.reset();
-               var4.setStatus(500);
-               var4.setContentType("text/plain");
-               var4.getOutputStream().write(("ERROR: " + var10).getBytes());
+         } catch (Throwable failure) {
+            System.out.println("ERROR handling request " + target + ": " + failure);
+            failure.printStackTrace(System.out);
+            if (!response.isCommitted()) {
+               response.reset();
+               response.setStatus(500);
+               response.setContentType("text/plain");
+               response.getOutputStream().write(("ERROR: " + failure).getBytes());
             }
          }
       }
    }
 
    public interface WebHandler {
-      void handle(String var1, HttpServletRequest var2, HttpServletResponse var3) throws IOException, ServletException;
+      void handle(String target, HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException;
    }
 }

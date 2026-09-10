@@ -4,7 +4,7 @@ class MissingCommandlineArgument extends Throwable {
    public MissingCommandlineArgument() {
    }
 
-   public MissingCommandlineArgument(String var1) {
-      super(var1);
+   public MissingCommandlineArgument(String message) {
+      super(message);
    }
 }

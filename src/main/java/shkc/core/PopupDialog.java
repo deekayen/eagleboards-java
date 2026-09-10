@@ -17,35 +17,25 @@ import javax.swing.JLabel;
 import javax.swing.SwingConstants;
 
 public class PopupDialog extends JFrame {
-   String _dataDir;
-   String _preregFile;
-   String _historyFile;
-   String _configFile;
-   JLabel _dataDirLabel;
-   JLabel _preregFileLabel;
-   JLabel _historyFileLabel;
-   JLabel _configFileLabel;
-   private boolean _isSubmitted = false;
-
-   public PopupDialog(String var1) {
+   public PopupDialog(String text) {
       super("InfoDialog");
       this.setDefaultCloseOperation(3);
-      Container var3 = this.getContentPane();
-      var3.setLayout(new GridLayout(0, 1, 0, 4));
+      Container content = this.getContentPane();
+      content.setLayout(new GridLayout(0, 1, 0, 4));
 
-      StringTokenizer var4 = new StringTokenizer(var1, "\n", false);
-      while (var4.hasMoreTokens()) {
-         String line = var4.nextToken().trim();
+      StringTokenizer lines = new StringTokenizer(text, "\n", false);
+      while (lines.hasMoreTokens()) {
+         String line = lines.nextToken().trim();
          if (line.length() == 0) {
             continue;
          }
          if (line.startsWith("http://") || line.startsWith("https://")) {
             // The base URL goes on the check-in station; center it for reading.
-            var3.add(centeredLabel(line));
+            content.add(centeredLabel(line));
             // Convenience link for this (admin) machine: open the scheduler.
-            var3.add(linkLabel(line + "/scheduler"));
+            content.add(linkLabel(line + "/scheduler"));
          } else {
-            var3.add(centeredLabel(line));
+            content.add(centeredLabel(line));
          }
       }
 
@@ -85,8 +75,8 @@ public class PopupDialog extends JFrame {
          } else {
             System.out.println("no browser support available for " + url);
          }
-      } catch (Exception var2) {
-         System.out.println("could not open browser for " + url + ": " + var2.getMessage());
+      } catch (Exception failure) {
+         System.out.println("could not open browser for " + url + ": " + failure.getMessage());
       }
    }
 

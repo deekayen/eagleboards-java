@@ -289,12 +289,46 @@ tested on 64-bit Linux, Windows, and ARM Linux.
   null-handling bug present in the original binary. It now rejects the request
   with a clear message.
 
+### Readable code
+
+**Every variable now has a name that says what it holds.** The sources were
+recovered by decompiling the inherited jar, so almost every local was called
+`var1`, `var7`, `var23`. All 2,890 of them were renamed. The build now fails if
+any come back.
+
 ### Dead code removed
 
 `ConfigWindow` and `NetTest` (unused classes), `old_saved_script.js`,
 `index_simple.html` (a second sign-in page with no lists), and the scripts
 behind the removed Verify step. Roughly 928 files of the old UI
 toolkit — about 3 MB — went with it.
+
+A later audit walked the whole tree looking for anything nothing referenced,
+and removed it:
+
+- **105 of the 106 bundled icons** (~560 KB). They were toolbar art for the
+  dhtmlx interface that is gone; only the overdue-badge warning icon on the
+  room cards is still used. `NegaScheduler.png`, `ScoutButton.png` and
+  `LeaderButton.png` went too — no page ever loaded them, and the first
+  carried the old district's branding.
+- **The `AdultScoutRatio` leftovers.** The "B/S" column was retired earlier,
+  but the code that computed it survived, along with its accessors.
+- **Two callback hooks that could never fire**: a pluggable resource resolver
+  (nothing ever registered one) and a per-field import filter (both importers
+  passed `null`), together with the loops that consulted them.
+- **`NameUtil`'s variable map.** `${...}` expansion in a path could substitute
+  caller-supplied variables, except nothing ever set one, so it always fell
+  through to the system properties — which is exactly what it still does.
+- **The unused half of `FileLocator`** — the file and directory lookups. What
+  the app actually calls, resource loading along a search path, is untouched.
+- Unreferenced record accessors, a command-line test harness, empty
+  initialisation stubs in the browser code, and a handful of write-only local
+  variables.
+
+Nothing here changed behavior: every item had zero references anywhere in the
+repository. The parity gate was taught about each deletion individually rather
+than being pointed away from whole classes, so everything that remains is
+still compared against the original.
 
 ---
 

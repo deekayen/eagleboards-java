@@ -4,10 +4,6 @@
 // posting. (Project cost / BSA hours / other hours are no longer collected.)
 // ------------------------------------------------------------------------
 
-function InitializeCompleteBoard() {
-   // dialogs are created on demand now; kept for scheduler.html parity
-}
-
 function ProcessCompleteBoard(s_id) {
    var s_last = schedulerScoutGrid.getColumnValue(s_id, "Last");
    var s_first = schedulerScoutGrid.getColumnValue(s_id, "First");

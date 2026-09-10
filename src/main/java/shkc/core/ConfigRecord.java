@@ -31,8 +31,8 @@ public class ConfigRecord extends DataRecord {
       this(null);
    }
 
-   public ConfigRecord(Map var1) {
-      super("CONFIG", COLUMNS, var1);
+   public ConfigRecord(Map values) {
+      super("CONFIG", COLUMNS, values);
       // There is only ever one config record. Default its identity to DEFAULT
       // so a config update or a hand-edited file that omits ID/Name still
       // targets the single record in place instead of adding a duplicate.
@@ -64,23 +64,23 @@ public class ConfigRecord extends DataRecord {
       this.setIfNotSet("PostponedHiColor", "#9f7f7f");
    }
 
-   private void setIfNotSet(String var1, String var2) {
-      if (this.getValue(var1).length() == 0) {
-         this.setValue(var1, var2);
+   private void setIfNotSet(String column, String defaultValue) {
+      if (this.getValue(column).length() == 0) {
+         this.setValue(column, defaultValue);
       }
    }
 
-   public ConfigRecord(String var1, String[] var2, Map var3) {
-      super(var1, var2, var3);
-      String var4 = this.getType() + ":" + this.getName();
-      this.put("ID", var4);
+   public ConfigRecord(String recordType, String[] columns, Map values) {
+      super(recordType, columns, values);
+      String id = this.getType() + ":" + this.getName();
+      this.put("ID", id);
    }
 
-   public void updateFrom(ConfigRecord var1, String[] var2) {
-      for (String var6 : var2) {
-         String var7 = var1.get(var6);
-         if (var7 != null && var7.length() > 0) {
-            this.put(var6, var7);
+   public void updateFrom(ConfigRecord source, String[] columns) {
+      for (String column : columns) {
+         String value = source.get(column);
+         if (value != null && value.length() > 0) {
+            this.put(column, value);
          }
       }
    }
