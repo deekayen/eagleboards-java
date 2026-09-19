@@ -1,5 +1,5 @@
 @echo off
-REM Launch the Review Board Scheduler (rebuilt jar) on Windows.
+REM Launch the Eagle Board Scheduler (rebuilt jar) on Windows.
 REM Replaces the legacy RunScheduler.bat, minus the hardcoded API key:
 REM the SignUpGenius key is read from the SUG_KEY environment variable,
 REM or from an untracked .env file in the repo root (copy .env.example).

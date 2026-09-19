@@ -1,4 +1,4 @@
-# Review Board Scheduler
+# Eagle Board Scheduler
 
 This program runs the check-in desk and the room assignments on a board of
 review night. Scouts and adults sign themselves in on a laptop or tablet at the
@@ -24,7 +24,7 @@ You need three things.
 
 ## Starting it up
 
-Open the Review Board Scheduler shortcut on the desktop.
+Open the Eagle Board Scheduler shortcut on the desktop.
 
 Java may ask whether to allow access on local or public networks. Click
 **Allow**. If you say no, the check-in station will not be able to reach it.

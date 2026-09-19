@@ -1,6 +1,6 @@
 # Contributing
 
-Thanks for helping with the Review Board Scheduler. This page covers everything
+Thanks for helping with the Eagle Board Scheduler. This page covers everything
 needed to get productive: setup, build, test, house style, and how changes are
 reviewed. Read [ARCHITECTURE.md](ARCHITECTURE.md) first if you want the map of
 how the app fits together, and [PROVENANCE.md](PROVENANCE.md) for where the code
@@ -86,10 +86,10 @@ scripts/diagnose.sh          # checks every cause below and names the culprit
 
 Run that first. There are several independent causes, all of them silent — the
 app looks entirely normal, just out of date — and guessing between them by hand
-wastes an afternoon. The reliable age test needs no version number: the app was
-renamed from "Eagle Board Scheduler" to "Review Board Scheduler", so the old
-name in the page title means an old build, as does a **Verify** button (that
-step was removed).
+wastes an afternoon. The reliable age test needs no version number: the browser
+UI was rebuilt from dhtmlx onto Tabulator, so `dhtmlx` anywhere in the served
+scheduler page means an old build, as does a **Verify** button (that step was
+removed).
 
 The causes, in the order the script checks them:
 

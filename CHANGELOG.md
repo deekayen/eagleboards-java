@@ -26,8 +26,8 @@ Releases are versioned by date (e.g. `2026.07.31`). For commit-level detail,
   was **GPL-licensed and unmaintained**.
 - Every screen now **refreshes itself**; the old one only updated when someone
   pressed a button.
-- "Scout" is now **"Youth"** and "Eagle Board" is now **"Review Board"**
-  throughout the interface.
+- "Scout" is now **"Youth"** throughout the interface. The event is still
+  **"Eagle Boards"**, as it always was.
 - Every bundled library was **replaced or upgraded** — the original shipped a
   2013 web server and a 2012 JSON parser.
 - A **live API key** that was baked into the original jar is gone.
@@ -208,11 +208,15 @@ silent on the check-in screen, which faces the youth signing in.
   The old names now return 404 rather than quietly continuing to work, so a
   stale bookmark fails loudly instead of half-working.
 
-- **"Eagle Board" → "Review Board"** in the interface: "Review Board Sign-In",
-  "Review Board Admin Page", "Scheduler: Review Board". The **board types** read
-  **"Final Board"** and **"Proposal Review"**, though the values stored on disk
-  stay `Final` and `Project` — they key room assignments and the board-type
-  timers, so the labels are a display mapping only.
+- **The event is still called "Eagle Boards".** For a while the pages said
+  "Review Board" instead, on the reasoning that boards of review exist for every
+  rank; that was reverted, because nobody involved calls the evening anything
+  but Eagle Boards and the generic wording only read as odd. The sign-in page
+  says "Welcome to Eagle Boards", the admin page is the "Eagle Board Admin
+  Page", and the scheduler is the "Eagle Board Scheduler". The **board types**
+  read **"Final Board"** and **"Proposal Review"**, though the values stored on
+  disk stay `Final` and `Project` — they key room assignments and the
+  board-type timers, so the labels are a display mapping only.
 - **District branding was removed.** Pages are district-neutral so any district
   can run the app. Export filenames are generic too (`Report.csv`, `Youth.csv`,
   `Adults.csv`, `Rooms.csv`, `AdultHistory.csv`) rather than district-prefixed.

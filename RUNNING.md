@@ -1,4 +1,4 @@
-# Running the Review Board Scheduler
+# Running the Eagle Board Scheduler
 
 Setup, build, command-line options, the settings file, and the quirks that have
 cost real debugging time. This is the technical companion to
