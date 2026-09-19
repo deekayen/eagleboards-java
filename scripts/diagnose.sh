@@ -15,13 +15,39 @@ PORT=${1:-8080}
 VERDICTS=0
 verdict() { echo; echo "  >>> $1"; VERDICTS=$((VERDICTS + 1)); }
 
-# The age markers. The browser UI was rebuilt from dhtmlx onto Tabulator, and
-# scheduler.html names its toolkit in its <script>/<link> tags, so which of the
-# two appears in the page is a reliable age test that needs no version number
-# and no Java. (The product name used to serve this purpose, but it was
-# changed to "Review Board" and back again, so it no longer tells builds apart.)
-OLD_MARK="dhtmlx"
-NEW_MARK="tabulator"
+# The age test. The reference is the scheduler page in THIS checkout; a jar or
+# a running server is "current" only if the page it holds is byte-identical to
+# it. That is exact and needs no version number, no Java and no marker string.
+# (Markers were tried twice -- the product name, then the UI toolkit -- and
+# each one went stale itself: the name was changed and changed back, and every
+# build since the Tabulator rework carries the same toolkit, so a month-old jar
+# read as current.) When a page differs, the wording in it still says roughly
+# which era it came from, and that is reported as a hint, never as the verdict.
+REF=src/main/resources/shkc/core/WEBROOT/scheduler.html
+TMP=$(mktemp -d "${TMPDIR:-/tmp}/eb-diag.XXXXXX") || exit 1
+trap 'rm -rf "$TMP"' EXIT
+
+# describe_page FILE -> one line saying how FILE relates to the checkout.
+# Returns 0 when identical (current), 1 when it differs (stale, or the checkout
+# has uncommitted edits -- section 1 says which).
+describe_page() {
+    if cmp -s "$1" "$REF"; then
+        echo "identical to this checkout's scheduler.html (CURRENT)"
+        return 0
+    fi
+    local era="a different build"
+    if grep -q "dhtmlx" "$1"; then
+        era="the 2019 dhtmlx interface"
+    elif grep -q "Review Board Scheduler" "$1"; then
+        era="a mid-2026 build (it still says 'Review Board')"
+    elif grep -q "Verify" "$1"; then
+        era="a build that still had the Verify step"
+    fi
+    local lines
+    lines=$(diff "$1" "$REF" 2>/dev/null | grep -c '^[<>]')
+    echo "$era -- $lines line(s) differ from this checkout (OLD)"
+    return 1
+}
 
 echo "================================================================"
 echo " Eagle Board Scheduler — staleness diagnosis"
@@ -31,18 +57,35 @@ echo "git commit        : $(git log --oneline -1 2>/dev/null || echo '(not a git
 echo "port under test   : $PORT"
 
 # --- 1. source ---------------------------------------------------------------
+# Everything below is measured against this checkout, so first say what state
+# the checkout is in. Two things make the comparison mean something other than
+# "stale": edits you have not committed (the jar was built from an earlier
+# state, correctly), and commits on origin you have not pulled (your source is
+# the old thing, and everything will agree with it).
 echo
-echo "1. SOURCE TREE"
-src=src/main/resources/shkc/core/WEBROOT/scheduler.html
-if [ -f "$src" ]; then
-    if grep -q "$NEW_MARK" "$src"; then
-        echo "   ok: source says '$NEW_MARK' (current)"
-    else
-        echo "   source says '$OLD_MARK' (OLD)"
-        verdict "Your checkout itself is old. Run: git pull"
-    fi
+echo "1. SOURCE TREE (the reference everything below is compared against)"
+if [ ! -f "$REF" ]; then
+    echo "   ?: $REF not found — are you in the repo root?"
+    echo "   Nothing below can be compared without it."
+    exit 1
+fi
+dirty=$(git status --porcelain -- src/main/resources/shkc/core/WEBROOT 2>/dev/null)
+if [ -n "$dirty" ]; then
+    echo "   WEBROOT has uncommitted edits:"
+    echo "$dirty" | sed 's/^/      /'
+    echo "   (a jar built before these edits will read as OLD below; that is"
+    echo "    expected until you rebuild)"
 else
-    echo "   ?: $src not found — are you in the repo root?"
+    echo "   ok: WEBROOT matches the last commit"
+fi
+behind=$(git rev-list --count HEAD..@{u} 2>/dev/null)
+if [ -z "$behind" ]; then
+    echo "   ?: no upstream branch to compare against"
+elif [ "$behind" -gt 0 ]; then
+    echo "   origin is $behind commit(s) ahead of this checkout"
+    verdict "Your checkout itself is old. Run: git pull"
+else
+    echo "   ok: up to date with origin as of the last fetch (run 'git fetch' to be sure)"
 fi
 
 # --- 2. WEBROOT shadowing ----------------------------------------------------
@@ -53,8 +96,8 @@ echo
 echo "2. WEBROOT/ FOLDER SHADOWING THE JAR"
 if [ -d WEBROOT ]; then
     echo "   found: $(pwd)/WEBROOT"
-    if [ -f WEBROOT/scheduler.html ] && grep -q "$OLD_MARK" WEBROOT/scheduler.html 2>/dev/null; then
-        echo "   and its scheduler.html says '$OLD_MARK'"
+    if [ -f WEBROOT/scheduler.html ]; then
+        echo "   its scheduler.html is $(describe_page WEBROOT/scheduler.html)"
     fi
     verdict "A WEBROOT/ folder here is being served INSTEAD of the jar's pages.
       The jar is never consulted, so rebuilding can never fix it.
@@ -76,13 +119,17 @@ else
     echo "$jars" | while read -r j; do echo "   $(ls -l "$j" | awk '{print $6, $7, $8}')  $j"; done
     JAR=$(echo "$jars" | head -1)
     echo "   run.sh would start: $JAR"
-    page=$(unzip -p "$JAR" 'shkc/core/WEBROOT/scheduler.html' 2>/dev/null)
-    if echo "$page" | grep -q "$NEW_MARK"; then
-        echo "   ok: that jar's scheduler.html says '$NEW_MARK' (current)"
-    elif echo "$page" | grep -q "$OLD_MARK"; then
-        echo "   that jar's scheduler.html says '$OLD_MARK' (OLD)"
-        verdict "The jar itself is stale. Run: ./mvnw clean package
+    if unzip -p "$JAR" 'shkc/core/WEBROOT/scheduler.html' > "$TMP/jar.html" 2>/dev/null && [ -s "$TMP/jar.html" ]; then
+        desc=$(describe_page "$TMP/jar.html"); rc=$?
+        echo "   that jar's scheduler.html is $desc"
+        if [ "$rc" -ne 0 ]; then
+            if [ -n "$dirty" ]; then
+                echo "   (expected: section 1 shows uncommitted edits it predates)"
+            else
+                verdict "The jar itself is stale. Run: ./mvnw clean package
       (plain 'package' leaves deleted/renamed files in target/classes)"
+            fi
+        fi
     else
         echo "   ?: could not read scheduler.html from that jar"
     fi
@@ -125,13 +172,14 @@ fi
 # The only answer that matters. Everything above is a cause; this is the effect.
 echo
 echo "6. WHAT THE LIVE SERVER ON :$PORT ACTUALLY SERVES"
-served=$(curl -s --max-time 5 "http://127.0.0.1:$PORT/scheduler.html" 2>/dev/null)
-if [ -z "$served" ]; then
+rc=0
+if ! curl -s --max-time 5 "http://127.0.0.1:$PORT/scheduler.html" -o "$TMP/served.html" 2>/dev/null || [ ! -s "$TMP/served.html" ]; then
     echo "   nothing responded — no server running on :$PORT"
-elif echo "$served" | grep -q "$NEW_MARK"; then
-    echo "   ok: serving '$NEW_MARK' — this is a CURRENT build"
-elif echo "$served" | grep -q "$OLD_MARK"; then
-    echo "   serving '$OLD_MARK' — this is an OLD build"
+else
+    desc=$(describe_page "$TMP/served.html"); rc=$?
+    echo "   served page is $desc"
+fi
+if [ "$rc" -ne 0 ]; then
     if [ -n "$listener" ]; then
         pid=$(echo "$listener" | awk 'NR==1{print $2}')
         echo "   the process holding the port is shown in section 5 above"
@@ -141,9 +189,10 @@ elif echo "$served" | grep -q "$OLD_MARK"; then
       is taken, so every restart you launch dies while this one keeps
       serving. Kill it and start again:
           kill $pid    # then: scripts/run.sh"
+    else
+        verdict "An OLD server is answering on :$PORT, but nothing here shows
+      what process it is. It may be in a container or under another user."
     fi
-else
-    echo "   responded, but with neither marker — check by hand"
 fi
 
 # --- 6b. every instance on this machine --------------------------------------
@@ -159,14 +208,18 @@ if command -v lsof >/dev/null 2>&1; then
     # NAME column is second-to-last ("*:8080"), (LISTEN) is last.
     for p in $(lsof -nP -iTCP -sTCP:LISTEN 2>/dev/null \
                | awk '/^java/ {print $(NF-1)}' | sed 's/.*://' | sort -u); do
-        body=$(curl -s --max-time 3 "http://127.0.0.1:$p/scheduler.html" 2>/dev/null)
-        case "$body" in
-            *"$NEW_MARK"*) echo "   http://127.0.0.1:$p  →  '$NEW_MARK' (current)"; found_any=1 ;;
-            *"$OLD_MARK"*) echo "   http://127.0.0.1:$p  →  '$OLD_MARK' (OLD)"; found_any=1
-                           verdict "An OLD instance is answering on port $p, which is NOT the
+        curl -s --max-time 3 "http://127.0.0.1:$p/scheduler.html" -o "$TMP/port-$p.html" 2>/dev/null
+        [ -s "$TMP/port-$p.html" ] || continue
+        # Only schedulers: any Java process with a listening socket lands here.
+        grep -q "scheduler_grid.js\|dhtmlx" "$TMP/port-$p.html" || continue
+        found_any=1
+        desc=$(describe_page "$TMP/port-$p.html"); rc=$?
+        echo "   http://127.0.0.1:$p  →  $desc"
+        if [ "$rc" -ne 0 ] && [ "$p" != "$PORT" ]; then
+            verdict "An OLD instance is answering on port $p, which is NOT the
       port checked above. If this is the one your browser is pointed
-      at, that is your answer -- stop it and use :$PORT instead." ;;
-        esac
+      at, that is your answer -- stop it and use :$PORT instead."
+        fi
     done
 fi
 [ "$found_any" -eq 0 ] && echo "   none found locally"
