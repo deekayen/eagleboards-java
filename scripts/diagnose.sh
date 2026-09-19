@@ -15,14 +15,16 @@ PORT=${1:-8080}
 VERDICTS=0
 verdict() { echo; echo "  >>> $1"; VERDICTS=$((VERDICTS + 1)); }
 
-# The rebrand markers. The app was renamed from "Eagle Board Scheduler" to
-# "Review Board Scheduler", so the old name in a page is a reliable age test
-# that needs no version number and no Java.
-OLD_MARK="Eagle Board Scheduler"
-NEW_MARK="Review Board Scheduler"
+# The age markers. The browser UI was rebuilt from dhtmlx onto Tabulator, and
+# scheduler.html names its toolkit in its <script>/<link> tags, so which of the
+# two appears in the page is a reliable age test that needs no version number
+# and no Java. (The product name used to serve this purpose, but it was
+# changed to "Review Board" and back again, so it no longer tells builds apart.)
+OLD_MARK="dhtmlx"
+NEW_MARK="tabulator"
 
 echo "================================================================"
-echo " Review Board Scheduler — staleness diagnosis"
+echo " Eagle Board Scheduler — staleness diagnosis"
 echo "================================================================"
 echo "working directory : $(pwd)"
 echo "git commit        : $(git log --oneline -1 2>/dev/null || echo '(not a git repo)')"
