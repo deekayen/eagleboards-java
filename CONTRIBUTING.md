@@ -86,10 +86,11 @@ scripts/diagnose.sh          # checks every cause below and names the culprit
 
 Run that first. There are several independent causes, all of them silent — the
 app looks entirely normal, just out of date — and guessing between them by hand
-wastes an afternoon. The reliable age test needs no version number: the browser
-UI was rebuilt from dhtmlx onto Tabulator, so `dhtmlx` anywhere in the served
-scheduler page means an old build, as does a **Verify** button (that step was
-removed).
+wastes an afternoon. The age test needs no version number: the script fetches
+the scheduler page from the jar, and from whatever is answering on the port, and
+byte-compares each against `scheduler.html` in your checkout. Identical means
+current; anything else is stale (or your checkout has uncommitted edits, which
+it says). Marker strings were tried for this and each one went stale itself.
 
 The causes, in the order the script checks them:
 
