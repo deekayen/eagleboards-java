@@ -20,6 +20,43 @@ original source was received) and then modernized. See `PROVENANCE.md`.
 - Optional Swing popup (`PopupDialog`, only with `-w`) shows the check-in URL.
 - Optional **SignUpGenius** import (`SignUpGeniusPlugin`, Jackson JSON).
 
+## How a board night actually runs
+
+Read this before reasoning about statuses. The code's names do not explain
+the evening on their own, and it is easy to build a wrong model from them.
+
+1. **RSVP.** Scouts reserve a slot on SignUpGenius. At startup the app
+   imports those reservations (`SignUpGeniusPlugin`, into
+   `scouts_scheduled.csv`) so that sign-in can pre-fill the scout's details.
+2. **Sign-in.** A scout who RSVP'd gets a `P#` registration number; one who
+   did not is a **walk-in** and gets `W#`. Walk-ins rank below every RSVP in
+   the queue (`sort_regnum` in `scheduler_scout_grid.js`). Status `Registered`.
+3. **Pick a scout, assign adults, Seat Board** → `Seated`. The board goes in
+   ahead of the scout to preview the application, references and project
+   workbook.
+4. **Start Review** → `InProgress`. The scout is brought in.
+5. **Complete** → `Completed`, with the **board's decision** as the Result:
+   - `Approved`
+   - `Adjourned`: the board **postpones** its decision (not approved
+     tonight, may come back). "Postponed" and "adjourned" mean the same
+     decision.
+   - `NotApproved`: denied.
+
+The decision is made **in the room**. A scout is never "postponed" and then
+turns up later for a board that night. Status `Postponed` (the Postpone
+button, only allowed from `Registered`) marks a scout who is not reviewed
+tonight at all, e.g. paperwork not in order (see help.html). It is not a
+queue to come back from.
+
+**Correcting a result.** Wrong result clicked, or a result recorded against
+the wrong scout (mistaken identity): fix it on the Admin page's **Boards**
+tab. Edit the Result directly. For the wrong scout, set their Status back to
+`Registered` and clear Result, Chair and Members, then give the reviewed
+scout the result. Seat Board accepts a `Registered` scout whose Room is
+still `N/A` from the mistaken Complete. Section 18 of
+`test-board-evening.sh` covers both corrections and checks that the Admin
+page only offers statuses the app acts on.
+
 ## Build, run, verify
 
 - Build: `./mvnw package` → `target/eagleboardscheduler-*.jar` (JDK 25, targets 21).

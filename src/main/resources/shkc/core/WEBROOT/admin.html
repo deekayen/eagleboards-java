@@ -200,7 +200,13 @@
          // shows the label, so the data keeps saying "Project" / "Final" -- the
          // values that key room assignments and the Project*/Final* timers.
          var BOARD_TYPES = { Project: "Proposal Review", Final: "Final Board" };
-         var STATUSES = ["Waiting", "InProgress", "Completed", "Postponed"];
+         // Statuses an administrator may set by hand. "Registered" is how a
+         // result recorded against the wrong scout is undone: it puts them back
+         // in the queue for their real board. This list once offered "Waiting",
+         // which no part of the app recognises, so choosing it stranded the
+         // scout where nothing could seat them. test-board-evening.sh checks
+         // every value here is one the server acts on.
+         var STATUSES = ["Registered", "InProgress", "Completed", "Postponed"];
          var RESULTS = ["Approved", "Adjourned", "NotApproved", "Postponed"];
          var ROLES = ["Chair", "Member", "Unavailable"];
 
