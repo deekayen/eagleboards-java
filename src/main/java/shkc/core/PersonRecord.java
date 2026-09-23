@@ -31,7 +31,11 @@ public class PersonRecord extends DataRecord {
 
    public void populateID() {
       if (this.getID() == null || this.getID().length() == 0 || !this.getID().startsWith(this.getType()) || this.getID().equals(this.getType() + ":::")) {
-         String id = this.getType() + ":" + this.getLast() + ":" + this.getFirst() + ":" + this.getUnit();
+         // No commas in an ID. MemberIDs travels as a comma-separated list, so
+         // "Smith, Jr." split into two unknown ids and that adult could never
+         // be seated; and the CSV writer turns ',' into '~' anyway, so the id
+         // changed under everyone at the next restart. '~' is what it became.
+         String id = (this.getType() + ":" + this.getLast() + ":" + this.getFirst() + ":" + this.getUnit()).replace(',', '~');
          this.put("ID", id);
       }
    }
