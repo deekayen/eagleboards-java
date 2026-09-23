@@ -794,6 +794,91 @@ chk "the switched rooms are free again" \
     "$(room_scout ROOM:201A)$(room_scout ROOM:106)$(room_scout ROOM:102)" ""
 chk "nobody committed after section 17" "$(busy_adults)" "0"
 
+# ---------------------------------------- 18. correcting a recorded result
+echo
+echo "== 18. a result corrected on the Admin page =="
+
+# Two mistakes the record has to survive: the wrong result clicked, and the
+# right result recorded against the wrong scout. The Admin page's Boards tab
+# is the path for both. admin_edit posts exactly what its grid posts when a
+# cell is edited -- one field per request -- and checks the grid would call
+# it saved.
+admin_edit() { # <scout-id> <field> <value>
+    _r=$(curl -s -X POST --data-urlencode "!nativeeditor_status=updated" \
+        --data-urlencode "gr_id=$1" --data-urlencode "$2=$3" "$B/youth-update")
+    case "$_r" in
+        *'type="updated"'*) ;;
+        *) bad "admin edit of $2 on $1 was not saved: $_r" ;;
+    esac
+}
+result_of() { awk -F, -v i="$1" 'NR>1 && $2==i {print $19}' "$SCOUTS"; }
+
+# Every status the Admin page offers must be one the app acts on. It once
+# offered "Waiting", which nothing recognised, so choosing it -- the obvious
+# way to send a scout back to the queue -- left them where nothing could seat
+# them.
+admin_statuses=$(awk -F'[][]' '/var STATUSES/ {print $2}' \
+    "$ROOT/src/main/resources/shkc/core/WEBROOT/admin.html" | tr -d '" ' | tr , ' ')
+unknown=""
+for s in $admin_statuses; do
+    case "$s" in
+        Registered|Seated|InProgress|Completed|Postponed) ;;
+        *) unknown="$unknown $s" ;;
+    esac
+done
+chk "the Admin page offers only statuses the app knows" "${unknown# }" ""
+case " $admin_statuses " in
+    *" Registered "*) ok "and offers Registered, to undo a result on the wrong scout" ;;
+    *) bad "the Admin page cannot set a scout back to Registered" ;;
+esac
+
+FIX1=$(xscout Dunleavy Peregrine 3301 Final)
+RIGHT=$(xscout Esterhazy Quentin 3302 Final)
+WRONG=$(xscout Esterbrook Quentin 3303 Final)
+
+# The wrong result clicked.
+seat 101 "$FIX1" "$FC1" "$M1" "$M2" >/dev/null
+start "$FIX1" >/dev/null
+complete "$FIX1" Approved >/dev/null
+admin_edit "$FIX1" Result NotApproved
+chk "a mis-clicked result can be corrected"   "$(result_of "$FIX1")" "NotApproved"
+chk "without reopening the board"             "$(status_of "$FIX1")" "Completed"
+chk "or losing who sat on it"                 "$(chair_of "$FIX1")" "$FC1"
+chk "or committing its adults again"          "$(busy_adults)" "0"
+
+# The right result on the wrong scout: two scouts with the same first name,
+# and the operator picked the one still waiting outside.
+seat 102 "$WRONG" "$FC2" "$M3" "$M4" >/dev/null
+start "$WRONG" >/dev/null
+complete "$WRONG" Approved >/dev/null
+board_chair=$(awk -F, -v i="$WRONG" 'NR>1 && $2==i {print $20}' "$SCOUTS")
+board_members=$(awk -F, -v i="$WRONG" 'NR>1 && $2==i {print $22}' "$SCOUTS")
+
+admin_edit "$RIGHT" Status Completed
+admin_edit "$RIGHT" Result Approved
+admin_edit "$RIGHT" BoardChair "$board_chair"
+admin_edit "$RIGHT" BoardMembers "$board_members"
+admin_edit "$WRONG" Status Registered
+admin_edit "$WRONG" Result ""
+admin_edit "$WRONG" BoardChair ""
+admin_edit "$WRONG" BoardMembers ""
+
+chk "the scout who was reviewed now holds the result" \
+    "$(status_of "$RIGHT") $(result_of "$RIGHT")" "Completed Approved"
+chk "with the board that reviewed them" \
+    "$(awk -F, -v i="$RIGHT" 'NR>1 && $2==i {print $20}' "$SCOUTS")" "$board_chair"
+chk "the other is back in the queue with no result" \
+    "$(status_of "$WRONG")|$(result_of "$WRONG")" "Registered|"
+refused "the reviewed scout cannot be seated again" "$(seat 103 "$RIGHT" "$FC3" "$M5" "$M6")"
+accepted "the other can be seated for their real board" \
+    "$(seat 103 "$WRONG" "$FC3" "$M5" "$M6")"
+start "$WRONG" >/dev/null
+accepted "and it completes"                  "$(complete "$WRONG" NotApproved)"
+chk "recording their own result"             "$(result_of "$WRONG")" "NotApproved"
+chk "and their own chair"                    "$(chair_of "$WRONG")" "$FC3"
+chk "while the first scout's result stands"  "$(result_of "$RIGHT")" "Approved"
+chk "nobody committed after section 18"      "$(busy_adults)" "0"
+
 echo
 echo "== the evening ends clean =="
 chk "no board left convening"  "$(n_status Seated)" "0"

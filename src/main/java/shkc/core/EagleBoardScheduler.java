@@ -1045,7 +1045,11 @@ public class EagleBoardScheduler {
                   // from a run made before that change.
                } else if (!scout.getStatus().equals("Registered") && !scout.getStatus().equals("Verified")) {
                   this.sendError("ERROR: Invalid Status '" + scout.getStatus() + "', expected '" + "Registered" + "'", response);
-               } else if (!"".equals(scout.getRoom()) && !scout.getRoom().equals(room.getRoom())) {
+               // "N/A" is what Complete leaves in a scout's Room. A Registered
+               // scout holding it is one whose result was recorded against them
+               // by mistake and set back to Registered on the Admin page; they
+               // have no room, and must be seatable for their real board.
+               } else if (!"".equals(scout.getRoom()) && !"N/A".equals(scout.getRoom()) && !scout.getRoom().equals(room.getRoom())) {
                   this.sendError("ERROR: Scout Already Assigned Room: " + scout.getRoom(), response);
                } else if (memberIds == null || memberIds.trim().length() == 0) {
                   // No board members: reject cleanly instead of crashing on
