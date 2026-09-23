@@ -75,6 +75,10 @@ page only offers statuses the app acts on.
   `bash curl awk` and a JDK — **no Python**; see CONTRIBUTING "Running the shell
   scripts off Linux" for why. Runs in CI on all four platforms. Add a case
   here when you change how a board is seated, run or torn down.
+  **Copy every new scenario to the other two versions:** the Windows port
+  (`deekayen/eagleboards-windows`) runs this same script, and the Mac
+  version (`deekayen/eagleboards-macos`) mirrors it in
+  `BoardEveningTests.swift`.
 
 **Prefer pushing over re-running the suite locally.** `build.yml` already runs
 the build, the structural check, both test scripts, the runtime smoke test, the
