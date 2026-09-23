@@ -207,7 +207,11 @@
          // scout where nothing could seat them. test-board-evening.sh checks
          // every value here is one the server acts on.
          var STATUSES = ["Registered", "InProgress", "Completed", "Postponed"];
-         var RESULTS = ["Approved", "Adjourned", "NotApproved", "Postponed"];
+         // A board's decision, exactly the three the Complete dialog offers. Not
+         // "Postponed": that is the Status of a scout sent away before any board
+         // met them, and such a scout has no Result. test-board-evening.sh checks
+         // this list against what /complete-board accepts.
+         var RESULTS = ["Approved", "Adjourned", "NotApproved"];
          var ROLES = ["Chair", "Member", "Unavailable"];
 
          function textCol(title, field, width, extra) {

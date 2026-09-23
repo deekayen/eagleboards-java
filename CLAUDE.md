@@ -37,16 +37,17 @@ the evening on their own, and it is easy to build a wrong model from them.
 4. **Start Review** → `InProgress`. The scout is brought in.
 5. **Complete** → `Completed`, with the **board's decision** as the Result:
    - `Approved`
-   - `Adjourned`: the board **postpones** its decision (not approved
-     tonight, may come back). "Postponed" and "adjourned" mean the same
-     decision.
+   - `Adjourned`: the board met the scout and **postpones** its decision
+     (not approved tonight, may come back).
    - `NotApproved`: denied.
 
-The decision is made **in the room**. A scout is never "postponed" and then
-turns up later for a board that night. Status `Postponed` (the Postpone
-button, only allowed from `Registered`) marks a scout who is not reviewed
-tonight at all, e.g. paperwork not in order (see help.html). It is not a
-queue to come back from.
+**Postponed is not a board result.** It is the decision for a scout who
+**never sees their board**: they arrived unprepared and are sent away. That
+is the Postpone button, which works only on a `Registered` scout. Once a
+board is seated it is refused, because from then on the board's decision is
+the Result. A postponed scout is not waiting to come back that night, and a
+postponed scout has no Result. The Admin page therefore offers `Postponed`
+as a Status only, never as a Result, and `/complete-board` refuses it.
 
 **Correcting a result.** Wrong result clicked, or a result recorded against
 the wrong scout (mistaken identity): fix it on the Admin page's **Boards**

@@ -29,12 +29,12 @@
 # So the evening is capped at five concurrent boards no matter how many rooms
 # are free -- which is the constraint the scheduler actually has to survive.
 #
-# Sections 9-17 then work through what goes wrong on the night: malformed
+# Sections 9-18 then work through what goes wrong on the night: malformed
 # and replayed requests, every out-of-order step, adults and scouts signing
 # in twice, boards moved between rooms, a room renamed or deleted under a
 # board, a name with a comma in it, two operators seating the same chair at
-# once, the server restarting mid-evening, and a room switched between
-# Project and Final.
+# once, the server restarting mid-evening, a room switched between
+# Project and Final, and a recorded result corrected on the Admin page.
 # ------------------------------------------------------------------------
 
 set -u
@@ -570,6 +570,9 @@ refused "a made-up result is refused"         "$(complete "$LATE1" Maybe)"
 refused "a misspelled result is refused"      "$(complete "$LATE1" Approvd)"
 refused "a result in the wrong case is refused" "$(complete "$LATE1" approved)"
 refused "an empty result is refused"          "$(complete "$LATE1" "")"
+# Postponed is decided before any board meets the scout (the Postpone
+# button); once a board has met them, its decision is one of the three.
+refused "Postponed is not a board result"     "$(complete "$LATE1" Postponed)"
 chk "and the review is still running" "$(status_of "$LATE1")" "InProgress"
 chk "with its board still in the room" "$(adult_room "$FC1")" "101"
 
@@ -832,7 +835,16 @@ case " $admin_statuses " in
     *) bad "the Admin page cannot set a scout back to Registered" ;;
 esac
 
+# And every Result it offers must be a board's decision -- one /complete-board
+# would record. It once offered "Postponed", which is the Status of a scout
+# sent away before any board met them, not something a board decides.
+admin_results=$(awk -F'[][]' '/var RESULTS/ {print $2}' \
+    "$ROOT/src/main/resources/shkc/core/WEBROOT/admin.html" | tr -d '" ' | tr , ' ')
+chk "the Admin page offers exactly the board's three decisions as results" \
+    "$admin_results" "Approved Adjourned NotApproved"
+
 FIX1=$(xscout Dunleavy Peregrine 3301 Final)
+SENT=$(xscout Fairweather Rupert 3304 Final)
 RIGHT=$(xscout Esterhazy Quentin 3302 Final)
 WRONG=$(xscout Esterbrook Quentin 3303 Final)
 
@@ -877,6 +889,17 @@ accepted "and it completes"                  "$(complete "$WRONG" NotApproved)"
 chk "recording their own result"             "$(result_of "$WRONG")" "NotApproved"
 chk "and their own chair"                    "$(chair_of "$WRONG")" "$FC3"
 chk "while the first scout's result stands"  "$(result_of "$RIGHT")" "Approved"
+
+# Completed by mistake, when the scout had in fact been sent away unprepared
+# and never saw a board: they become Postponed, which carries no result.
+seat 104 "$SENT" "$FC1" "$M1" "$M2" >/dev/null
+start "$SENT" >/dev/null
+complete "$SENT" NotApproved >/dev/null
+admin_edit "$SENT" Status Postponed
+admin_edit "$SENT" Result ""
+chk "a scout sent away is recorded as Postponed, with no result" \
+    "$(status_of "$SENT")|$(result_of "$SENT")" "Postponed|"
+refused "and cannot be seated again that night" "$(seat 104 "$SENT" "$FC1" "$M1" "$M2")"
 chk "nobody committed after section 18"      "$(busy_adults)" "0"
 
 echo
