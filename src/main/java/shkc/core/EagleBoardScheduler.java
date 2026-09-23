@@ -410,7 +410,10 @@ public class EagleBoardScheduler {
             EagleBoardScheduler.verbose("ProjectCost: " + cost);
             EagleBoardScheduler.verbose("BSA Hours: " + bsaHours);
             EagleBoardScheduler.verbose("Other Hours: " + otherHours);
-            if (result != null && result.length() >= 5) {
+            // Exactly the three results the Complete dialog offers. This used
+            // to accept any string of five or more characters, so a typo or a
+            // hand-built request went into the district's record as a result.
+            if ("Approved".equals(result) || "Adjourned".equals(result) || "NotApproved".equals(result)) {
                if (notes == null) {
                   notes = "";
                }
@@ -449,27 +452,50 @@ public class EagleBoardScheduler {
                      }
                   }
 
+                  // A room renamed under the board no longer matches by name, but its
+                  // record still names the scout. Without this it stayed "occupied"
+                  // by a board that had finished, and nothing could be seated there.
                   if (room == null) {
-                     this.sendError("No room " + scout.getRoom() + " not found.", response);
-                  } else {
+                     for (RoomRecord candidateRoom : EagleBoardScheduler.this._roomRecords.getRecords()) {
+                        if (candidateRoom.getScout().length() > 0 && candidateRoom.getScout().equals(scout.getFullName())) {
+                           room = candidateRoom;
+                           break;
+                        }
+                     }
+                  }
+
+                  // The adults are released by the room name the SCOUT holds,
+                  // not through the room record. If the room was renamed or
+                  // deleted on the Admin page while the board sat in it, the
+                  // record is gone, but the review still happened: refusing
+                  // here lost the result, and the Reset that followed left
+                  // every member committed to a room that no longer existed.
+                  // "" and "N/A" are never a board's room ("N/A" marks the
+                  // adults who have gone home), so they release nobody.
+                  String boardRoom = scout.getRoom();
+
+                  if (boardRoom.length() > 0 && !"N/A".equals(boardRoom)) {
                      for (AdultRecord adult : EagleBoardScheduler.this._adultRecords.getRecords()) {
-                        if (adult.getRoom().equals(room.getRoom())) {
+                        if (adult.getRoom().equals(boardRoom)) {
                            adult.setRoom("");
                         }
                      }
+                  }
 
-                     scout.setStatus("Completed");
-                     scout.setRoom("N/A");
-                     scout.setNotes(notes);
-                     scout.setResult(result);
+                  scout.setStatus("Completed");
+                  scout.setRoom("N/A");
+                  scout.setNotes(notes);
+                  scout.setResult(result);
+                  if (room != null) {
                      room.setScout("");
                      room.setLeaders("");
-                     scout.updateFields(true);
-                     EagleBoardScheduler.this._scoutRecords.store();
-                     EagleBoardScheduler.this._roomRecords.store();
-                     EagleBoardScheduler.this._adultRecords.store();
-                     this.sendSuccess(response);
                   }
+
+                  scout.updateFields(true);
+                  EagleBoardScheduler.this._scoutRecords.store();
+                  EagleBoardScheduler.this._roomRecords.store();
+                  EagleBoardScheduler.this._adultRecords.store();
+                  this.sendSuccess(response);
                }
             } else {
                this.sendError("Invalid Result '" + result + "', expected Approved, Adjourned or NotApproved", response);
@@ -842,13 +868,32 @@ public class EagleBoardScheduler {
                   }
                }
 
-               if (room != null) {
+               // A room renamed under the board no longer matches by name, but its
+               // record still names the scout. Without this it stayed "occupied"
+               // by a board that had finished, and nothing could be seated there.
+               if (room == null) {
+                  for (RoomRecord candidateRoom : EagleBoardScheduler.this._roomRecords.getRecords()) {
+                     if (candidateRoom.getScout().length() > 0 && candidateRoom.getScout().equals(scout.getFullName())) {
+                        room = candidateRoom;
+                        break;
+                     }
+                  }
+               }
+
+               // Released by the scout's room name, as in CompleteBoardHandler:
+               // a room renamed or deleted under a board must not strand its
+               // members, who would otherwise stay committed to it all night.
+               String boardRoom = scout.getRoom();
+
+               if (boardRoom.length() > 0 && !"N/A".equals(boardRoom)) {
                   for (AdultRecord adult : EagleBoardScheduler.this._adultRecords.getRecords()) {
-                     if (adult.getRoom().equals(room.getRoom())) {
+                     if (adult.getRoom().equals(boardRoom)) {
                         adult.setRoom("");
                      }
                   }
+               }
 
+               if (room != null) {
                   room.setScout("");
                   room.setLeaders("");
                }
@@ -1030,6 +1075,15 @@ public class EagleBoardScheduler {
 
                      if (member.getRoom().length() > 0) {
                         this.sendError("ERROR: Member " + member.getFullName() + " already assigned to a board in room " + member.getRoom(), response);
+                        return;
+                     }
+
+                     // The size rules below count entries, so the same adult
+                     // listed twice would let two people pass as a board of
+                     // three. The UI's checkboxes cannot produce this; a
+                     // hand-built or replayed request can.
+                     if (members.contains(member)) {
+                        this.sendError("ERROR: Member " + member.getFullName() + " is listed more than once", response);
                         return;
                      }
 
