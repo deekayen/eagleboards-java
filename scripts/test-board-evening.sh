@@ -29,11 +29,12 @@
 # So the evening is capped at five concurrent boards no matter how many rooms
 # are free -- which is the constraint the scheduler actually has to survive.
 #
-# Sections 9-16 then work through what goes wrong on the night: malformed
+# Sections 9-17 then work through what goes wrong on the night: malformed
 # and replayed requests, every out-of-order step, adults and scouts signing
 # in twice, boards moved between rooms, a room renamed or deleted under a
 # board, a name with a comma in it, two operators seating the same chair at
-# once, and the server restarting mid-evening.
+# once, the server restarting mid-evening, and a room switched between
+# Project and Final.
 # ------------------------------------------------------------------------
 
 set -u
@@ -734,6 +735,64 @@ accepted "and completes"                                   "$(complete "$LATE10"
 accepted "the comma-named adult is still seatable after the restart" \
     "$(seat 101 "$LATE11" "$FC1" "$M1" "$JR")"
 reset "$LATE11" >/dev/null
+
+# ------------------------------------------- 17. a room changes board type
+echo
+echo "== 17. a room switched between Project and Final on the Admin page =="
+
+# When the evening's mix turns out different from the plan, rooms get
+# switched on the Admin page. A room's type is only where the UI suggests a
+# board should go (process_seat.js asks before crossing it); the size and
+# chair rules, and the room-card timers, all follow the SCOUT's board type.
+# Switching a room must never loosen a rule or disturb a board already in it.
+room_type() { awk -F, -v r="$1" 'NR>1 && $2==r {print $4}' "$ROOMS"; }
+set_room_type() {
+    post --data-urlencode "!nativeeditor_status=updated" --data-urlencode "gr_id=ROOM:$1" \
+         --data-urlencode "BoardType=$2" "$B/room-update"
+}
+
+TYPE1=$(xscout Achterberg Maximilian 3201 Final)
+TYPE2=$(xscout Brannigan Nikolai 3202 Project)
+TYPE3=$(xscout Castellanos Octavian 3203 Final)
+
+set_room_type 201A Final
+chk "project room 201A is now a Final room" "$(room_type ROOM:201A)" "Final"
+refused "a Final board of 2 is still refused there" "$(seat 201A "$TYPE1" "$FC1" "$M1")"
+accepted "a Final board of 3 seats there" "$(seat 201A "$TYPE1" "$FC1" "$M1" "$M2")"
+
+set_room_type 106 Project
+chk "final room 106 is now a Project room" "$(room_type ROOM:106)" "Project"
+refused "a Member still cannot chair a project review there" "$(seat 106 "$TYPE2" "$M3" "$M4")"
+refused "nor can a Final-only chair" "$(seat 106 "$TYPE2" "$FC2" "$M3")"
+accepted "a project review of 2 seats there" "$(seat 106 "$TYPE2" "$PC1" "$M3")"
+
+# A room whose type does not match the scout is the UI's confirm, not a
+# refusal: the operator may knowingly put a board in the "wrong" kind of room.
+set_room_type 102 Project
+accepted "a Final board may still go in a Project room" "$(seat 102 "$TYPE3" "$FC2" "$M5" "$M6")"
+
+# Switch rooms back while the boards are sitting in them.
+start "$TYPE1" >/dev/null
+set_room_type 201A Project
+set_room_type 106 Final
+set_room_type 102 Final
+chk "switching a room keeps the board in it" "$(room_scout ROOM:201A)" "Maximilian Achterberg"
+chk "and its adults"                          "$(adult_room "$FC1")" "201A"
+chk "and the review still under way"          "$(status_of "$TYPE1")" "InProgress"
+chk "the scout's own board type is untouched" \
+    "$(awk -F, -v i="$TYPE1" 'NR>1 && $2==i {print $12}' "$SCOUTS")" "Final"
+refused "the switched room cannot be double-booked" "$(seat 201A "$LATE11" "$FC3" "$M7" "$M8")"
+
+accepted "the Final board completes in what is now a Project room" "$(complete "$TYPE1" Approved)"
+start "$TYPE2" >/dev/null
+accepted "the project review completes in what is now a Final room" "$(complete "$TYPE2" Approved)"
+start "$TYPE3" >/dev/null
+accepted "and the third board completes too" "$(complete "$TYPE3" Approved)"
+chk "every board kept the chair it was seated with" \
+    "$(chair_of "$TYPE1") $(chair_of "$TYPE2") $(chair_of "$TYPE3")" "$FC1 $PC1 $FC2"
+chk "the switched rooms are free again" \
+    "$(room_scout ROOM:201A)$(room_scout ROOM:106)$(room_scout ROOM:102)" ""
+chk "nobody committed after section 17" "$(busy_adults)" "0"
 
 echo
 echo "== the evening ends clean =="
