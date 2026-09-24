@@ -210,6 +210,151 @@ check("three is legal for a board but only 'preferred-plus' for a project",
 check("two is refused for a board but fine for a project",
    [checkBoardSize(2), checkProjectSize(2)], ["too-few", "ok"]);
 
+// ------------------------------------------------------------------------
+// Auto-select (proposeBoard). The same cases are in the Windows version's
+// SchedulerLogicTests and the Mac version's BoardRulesTests; keep all three
+// in step.
+// ------------------------------------------------------------------------
+var proposeBoard = seat.proposeBoard;
+
+function poolAdult(id, uname, final, project, room) {
+   return { id: id, uname: uname, final: final, project: project, room: room || "" };
+}
+
+function queueScout(id, uname, btype) {
+   return { id: id, uname: uname, btype: btype };
+}
+
+console.log("== auto-select keeps chairs for the boards that need them ==");
+
+var p = proposeBoard(queueScout("S", "Troop1001", "Final"), [
+   poolAdult("FC", "Troop9001", "Chair", "Member"),
+   poolAdult("PC", "Troop9002", "Member", "Chair"),   // a Final member, but a Project chair
+   poolAdult("M1", "Troop9003", "Member", "Member"),
+   poolAdult("M2", "Troop9004", "Member", "Member")
+], []);
+check("member-only adults fill the member seats, not a project chair",
+   [p.chairId, p.memberIds, p.problems], ["FC", ["M1", "M2"], []]);
+
+p = proposeBoard(queueScout("S", "Troop1001", "Final"), [
+   poolAdult("BOTH", "Troop9001", "Chair", "Chair"),
+   poolAdult("FC", "Troop9002", "Chair", "Member"),
+   poolAdult("M1", "Troop9003", "Member", "Member"),
+   poolAdult("M2", "Troop9004", "Member", "Member")
+], []);
+check("a chair who can chair only this kind is used before one who can chair both",
+   p.chairId, "FC");
+
+p = proposeBoard(queueScout("S", "Troop1001", "Final"), [
+   poolAdult("FC", "Troop9001", "Chair", "Member"),
+   poolAdult("PC", "Troop9002", "Member", "Chair"),
+   poolAdult("M1", "Troop9003", "Member", "Member")
+], []);
+check("when member-only adults run out, a chair-capable adult fills the seat",
+   [p.chairId, p.memberIds, p.problems], ["FC", ["M1", "PC"], []]);
+
+console.log("== auto-select weighs the troops of the scouts still waiting ==");
+
+// B is listed before A, so sign-in order alone would give this board B and
+// leave A -- who shares the next scout's troop -- as that scout's only member.
+p = proposeBoard(queueScout("S", "Troop1001", "Project"), [
+   poolAdult("P1", "Troop3001", "Member", "Chair"),
+   poolAdult("P2", "Troop3002", "Member", "Chair"),
+   poolAdult("B", "Troop4001", "Member", "Member"),
+   poolAdult("A", "Troop2001", "Member", "Member")
+], [queueScout("T", "Troop2001", "Project")]);
+check("an adult who cannot serve the next scout's troop is used here instead",
+   [p.chairId, p.memberIds], ["P1", ["A"]]);
+
+// Seating a waiting scout now outranks keeping a chair for later: the only
+// way to leave T a full board is to give S the project chair from T's troop.
+p = proposeBoard(queueScout("S", "Troop1001", "Final"), [
+   poolAdult("FC1", "Troop3001", "Chair", "Member"),
+   poolAdult("FC2", "Troop3002", "Chair", "Member"),
+   poolAdult("M", "Troop3003", "Member", "Member"),
+   poolAdult("Y", "Troop2001", "Member", "Chair"),
+   poolAdult("Z", "Troop2001", "Member", "Member"),
+   poolAdult("W", "Troop3004", "Member", "Member")
+], [queueScout("T", "Troop2001", "Final")]);
+check("a scout still waiting who can be seated outranks a chair kept for later",
+   [p.chairId, p.memberIds], ["FC1", ["Z", "Y"]]);
+
+console.log("== auto-select never proposes someone who cannot sit ==");
+
+p = proposeBoard(queueScout("S", "Troop1001", "Final"), [
+   poolAdult("SAME", "Troop1001", "Chair", "Chair"),
+   poolAdult("BUSY", "Troop9001", "Chair", "Chair", "101"),
+   poolAdult("GONE", "Troop9002", "Chair", "Chair", "N/A"),
+   poolAdult("NOPE", "Troop9003", "Unavailable", "Member"),
+   poolAdult("FC", "Troop9004", "Chair", "Member"),
+   poolAdult("M1", "Troop9005", "Member", "Member"),
+   poolAdult("M2", "Troop9006", "Member", "Member")
+], []);
+check("not the scout's unit, not busy, not gone home, not Unavailable",
+   [p.chairId, p.memberIds], ["FC", ["M1", "M2"]]);
+
+p = proposeBoard(queueScout("S", "Troop1001", "Final"), [
+   poolAdult("M1", "Troop9001", "Member", "Member"),
+   poolAdult("M2", "Troop9002", "Member", "Member")
+], []);
+check("with no chair it still proposes the members, and says so",
+   [p.chairId, p.memberIds, p.problems], [null, ["M1", "M2"], ["No Final Chairs Available."]]);
+
+p = proposeBoard(queueScout("S", "Troop1001", "Final"), [
+   poolAdult("FC", "Troop9001", "Chair", "Member"),
+   poolAdult("M1", "Troop9002", "Member", "Member")
+], []);
+check("with too few members it proposes what there is, and says so",
+   [p.chairId, p.memberIds, p.problems], ["FC", ["M1"], ["Only 1 Final Members Available"]]);
+
+console.log("== a whole evening: five chairs, five boards at once ==");
+
+// The shape of scripts/test-board-evening.sh: 9 Final and 5 Project scouts,
+// 30 adults of whom only five chair anything -- one either kind, two Final
+// only, two Project only (and those two are plain Members of a Final board).
+// Proposing boards down the queue must reach the chair cap of five. Picking
+// in sign-in order gave the first Final board both project chairs as its
+// members, and the evening stalled at three.
+var evening = [
+   poolAdult("FC1", "Troop2001", "Chair", "Chair"),
+   poolAdult("FC2", "Troop2002", "Chair", "Member"),
+   poolAdult("FC3", "Troop2003", "Chair", "Member"),
+   poolAdult("PC1", "Troop2004", "Member", "Chair"),
+   poolAdult("PC2", "Troop2005", "Member", "Chair")
+];
+for (var n = 6; n <= 25; n++) {
+   evening.push(poolAdult("M" + n, "Troop" + (2000 + n), "Member", "Member"));
+}
+evening.push(poolAdult("U26", "Troop2026", "Member", "Unavailable"));
+evening.push(poolAdult("U27", "Troop2027", "Member", "Unavailable"));
+evening.push(poolAdult("U28", "Troop1001", "Unavailable", "Member"));
+evening.push(poolAdult("U29", "Troop1002", "Unavailable", "Member"));
+evening.push(poolAdult("U30", "Troop1003", "Unavailable", "Member"));
+
+var queue = [];
+for (var q = 1; q <= 14; q++) {
+   queue.push(queueScout("S" + q, "Troop" + (1000 + q), q <= 9 ? "Final" : "Project"));
+}
+
+var boards = { Final: 0, Project: 0 };
+var seatedIds = {};
+for (var s = 0; s < queue.length; s++) {
+   var stillWaiting = queue.filter(function (t) { return t !== queue[s] && !seatedIds[t.id]; });
+   var proposal = proposeBoard(queue[s], evening, stillWaiting);
+   if (proposal.problems.length === 0) {
+      seatedIds[queue[s].id] = true;
+      boards[queue[s].btype]++;
+      [proposal.chairId].concat(proposal.memberIds).forEach(function (id) {
+         evening.forEach(function (a) {
+            if (a.id === id) {
+               a.room = "R" + s;
+            }
+         });
+      });
+   }
+}
+check("five boards seat at once: three Final, two Project", boards, { Final: 3, Project: 2 });
+
 console.log("");
 if (failures > 0) {
    console.log("SEAT CONFLICT TESTS: FAIL — " + failures + " of " + checks + " checks failed");

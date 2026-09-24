@@ -360,37 +360,6 @@ SchedulerAdultGrid.prototype.selectForRoom = function (room_num) {
    this.sortChecked();
 };
 
-// Auto-select up to cnt available adults qualified as member_type_arr
-// (["Chair"] or ["Member"] or both) for the given board type, skipping
-// the scout's own unit and anyone in omit_ids. Checks them in the grid.
-SchedulerAdultGrid.prototype.findBoardMembers = function (s_uname, s_btype, member_type_arr, cnt, omit_ids) {
-   var this_obj = this;
-   var member_arr = [];
-
-   this.forEachRow(function (l_id) {
-      if (omit_ids.indexOf(l_id) >= 0) {
-         return;
-      }
-      var l_uname = this_obj.getColumnValue(l_id, "UnitName");
-      var l_final = this_obj.getColumnValue(l_id, "FinalBoard");
-      var l_project = this_obj.getColumnValue(l_id, "ProjectReview");
-      var l_room = this_obj.getColumnValue(l_id, "Room");
-
-      if (l_room == "" || l_room == "-") { // not occupied
-         if (l_uname != s_uname) {
-            if (((s_btype == "Final") && (member_type_arr.indexOf(l_final) >= 0))
-                  || ((s_btype == "Project") && (member_type_arr.indexOf(l_project) >= 0))) {
-               if (member_arr.length < cnt) {
-                  this_obj.checkRow(l_id);
-                  member_arr.push(l_id);
-               }
-            }
-         }
-      }
-   });
-   return member_arr;
-};
-
 SchedulerAdultGrid.prototype.setButtonStatus = function (enabled_buttons) {
    for (var name in this.buttons) {
       if (this.buttons[name]) {

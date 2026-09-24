@@ -543,27 +543,24 @@
                // the Verify step left every scout "Registered", which orphaned
                // this whole block -- clicking a scout cleared the adults and
                // then offered nothing back. "Verified" stays for legacy records.
+               // proposeBoard (process_seat.js) weighs the whole waiting line:
+               // it keeps chairs free for the boards still to come and spends
+               // adults whose troop rules them out for scouts still waiting.
                var errors = [];
-               var chair_arr = SCHEDULER_findBoardMembers(s_id, s_btype, ["Chair"], 1, []);
-               if (chair_arr.length === 0) {
-                  errors.push("No " + s_btype + " Chairs Available.");
-                  ebToast("Auto Select Error",
-                     "<span style='font-size: small'>No " + s_btype + " Chairs Available.</span>", "error");
+               var proposal = proposeBoard(
+                  SCHEDULER_scoutForProposal(s_id),
+                  SCHEDULER_adultsForProposal(),
+                  SCHEDULER_waitingForProposal(s_id));
+               if (proposal.chairId) {
+                  schedulerLeaderGrid.checkRow(proposal.chairId);
                }
-
-               var cnt = (s_btype == "Final") ? 2 : 1;
-               var members_arr = SCHEDULER_findBoardMembers(s_id, s_btype, ["Member"], cnt, chair_arr);
-               if (members_arr.length < cnt) {
-                  var new_members_arr = SCHEDULER_findBoardMembers(s_id, s_btype, ["Member", "Chair"],
-                          cnt - members_arr.length,
-                          chair_arr.concat(members_arr));
-                  members_arr = members_arr.concat(new_members_arr);
-                  if (members_arr.length < cnt) {
-                     errors.push("Not enough " + s_btype + " Members Available");
-                     ebToast("Auto Select Error",
-                        "<span style='font-size: small'>Only " + members_arr.length + " " + s_btype + " Members Available</span>", "error");
-                  }
-               }
+               proposal.memberIds.forEach(function (l_id) {
+                  schedulerLeaderGrid.checkRow(l_id);
+               });
+               proposal.problems.forEach(function (problem) {
+                  errors.push(problem);
+                  ebToast("Auto Select Error", "<span style='font-size: small'>" + problem + "</span>", "error");
+               });
 
                var rm_found = null;
                for (var r = 0; r < roomView.items.length; r++) {
@@ -619,9 +616,45 @@
             }
          }
 
-         function SCHEDULER_findBoardMembers(s_id, btype, member_type_arr, cnt, omit_ids) {
-            var s_uname = schedulerScoutGrid.getColumnValue(s_id, "UnitName");
-            return schedulerLeaderGrid.findBoardMembers(s_uname, btype, member_type_arr, cnt, omit_ids);
+         // The shapes proposeBoard takes, read from the grids. Every row is
+         // included, filtered out of view or not: the proposal needs the whole
+         // picture, and proposeBoard itself skips adults who are not free.
+         function SCHEDULER_scoutForProposal(s_id) {
+            return {
+               id: s_id,
+               uname: schedulerScoutGrid.getColumnValue(s_id, "UnitName"),
+               btype: schedulerScoutGrid.getColumnValue(s_id, "BoardType")
+            };
+         }
+
+         function SCHEDULER_adultsForProposal() {
+            var adults = [];
+            schedulerLeaderGrid.forEachRow(function (l_id) {
+               adults.push({
+                  id: l_id,
+                  uname: schedulerLeaderGrid.getColumnValue(l_id, "UnitName"),
+                  final: schedulerLeaderGrid.getColumnValue(l_id, "FinalBoard"),
+                  project: schedulerLeaderGrid.getColumnValue(l_id, "ProjectReview"),
+                  room: schedulerLeaderGrid.getColumnValue(l_id, "Room")
+               });
+            });
+            return adults;
+         }
+
+         // The other scouts still waiting, in queue order: pre-registered
+         // before walk-ins, then by sign-in number (sort_regnum).
+         function SCHEDULER_waitingForProposal(s_id) {
+            var waiting = [];
+            schedulerScoutGrid.forEachRow(function (w_id) {
+               var status = schedulerScoutGrid.getColumnValue(w_id, "Status");
+               if (w_id !== s_id && (status === "Registered" || status === "Verified")) {
+                  var scout = SCHEDULER_scoutForProposal(w_id);
+                  scout.regnum = schedulerScoutGrid.getColumnValue(w_id, "RegNum");
+                  waiting.push(scout);
+               }
+            });
+            waiting.sort(function (a, b) { return sort_regnum(a.regnum, b.regnum); });
+            return waiting;
          }
 
          // Locate a scout's leaders (by the Leader column) and parents

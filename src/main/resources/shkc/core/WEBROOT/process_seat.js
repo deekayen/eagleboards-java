@@ -111,9 +111,229 @@ function hasNonUnitMember(scout_uname, members) {
    return false;
 }
 
+// ------------------------------------------------------------------------
+// Auto-select: the board proposed when a waiting scout is selected.
+//
+// It used to take the first qualified chair and then the first adults whose
+// role for that board type was "Member", in sign-in order. A Final board's
+// "Member" is often someone who chairs project reviews, so the first Final
+// board of the night could take both project chairs as its members and leave
+// every project review with nobody to chair it. It also ignored the troops of
+// the scouts still waiting, so it could spend the one adult a later scout
+// could use on a board anyone could have filled.
+//
+// Now every legal board for the scout is considered -- one qualified chair
+// plus the working number of members, none from the scout's unit -- and the
+// one chosen is, in order of priority:
+//
+//   1. the one that leaves the most of the OTHER waiting scouts, taken in
+//      queue order, still able to get a full board right now from the adults
+//      left over (their chairs, and their units, both count);
+//   2. then the one that uses up the fewest chair qualifications, so
+//      member-only adults fill member seats and a chair who can chair only
+//      this kind of board is used before one who can chair both -- the
+//      chairs are what cap the evening, and walk-ins have not arrived yet;
+//   3. then the one whose adults could serve the fewest other waiting scouts,
+//      keeping the flexible adults for later;
+//   4. then sign-in order.
+//
+// When no full board exists it proposes what it can, in the same preference
+// order, and says what is missing -- as before.
+//
+// Pure, so it is tested headless (scripts/test-seat-conflicts.js), and the
+// same algorithm is in the Windows and Mac versions with the same tests.
+//
+//   scout    { id, uname, btype }
+//   adults   [{ id, uname, final, project, room }] in sign-in order;
+//            final/project are the roles "Chair", "Member" or "Unavailable"
+//   waiting  the OTHER waiting scouts [{ id, uname, btype }] in queue order
+//   returns  { chairId, memberIds, problems } -- memberIds excludes the chair
+var BOARD_TYPES = ["Final", "Project"];
+
+function adultRoleFor(adult, btype) {
+   return btype === "Project" ? adult.project : adult.final;
+}
+
+function adultIsFree(adult) {
+   return adult.room === "" || adult.room === "-";
+}
+
+// Same test as findUnitConflicts: a blank unit on either side is no match.
+function sharesUnit(adult, scout) {
+   return !!scout.uname && !!adult.uname && adult.uname === scout.uname;
+}
+
+function canSitFor(adult, scout) {
+   var role = adultRoleFor(adult, scout.btype);
+   return (role === "Chair" || role === "Member") && !sharesUnit(adult, scout);
+}
+
+function canChairFor(adult, scout) {
+   return adultRoleFor(adult, scout.btype) === "Chair" && !sharesUnit(adult, scout);
+}
+
+function chairQualifications(adult) {
+   var n = 0;
+   for (var t = 0; t < BOARD_TYPES.length; t++) {
+      if (adultRoleFor(adult, BOARD_TYPES[t]) === "Chair") {
+         n++;
+      }
+   }
+   return n;
+}
+
+// Members besides the chair at the district's working size.
+function membersBesideChair(btype) {
+   return (btype === "Project" ? PROJECT_MIN_MEMBERS : BOARD_MIN_MEMBERS) - 1;
+}
+
+// How many of the other waiting scouts, in queue order, can each still get a
+// full board at once from `pool` (entries sorted by preference).
+function countSeatable(pool, waiting) {
+   var used = {};
+   var seated = 0;
+   for (var w = 0; w < waiting.length; w++) {
+      var t = waiting[w];
+      var chair = null;
+      for (var i = 0; i < pool.length && chair === null; i++) {
+         if (!used[pool[i].adult.id] && canChairFor(pool[i].adult, t)) {
+            chair = pool[i].adult.id;
+         }
+      }
+      if (chair === null) {
+         continue;
+      }
+      var need = membersBesideChair(t.btype);
+      var picked = [chair];
+      for (var j = 0; j < pool.length && picked.length <= need; j++) {
+         var a = pool[j].adult;
+         if (!used[a.id] && a.id !== chair && canSitFor(a, t)) {
+            picked.push(a.id);
+         }
+      }
+      if (picked.length === need + 1) {
+         for (var k = 0; k < picked.length; k++) {
+            used[picked[k]] = true;
+         }
+         seated++;
+      }
+   }
+   return seated;
+}
+
+function proposeBoard(scout, adults, waiting) {
+   var result = { chairId: null, memberIds: [], problems: [] };
+   var need = membersBesideChair(scout.btype);
+
+   // Every free adult, with the keys that rank them: chair qualifications,
+   // then how many other waiting scouts they could sit for, then sign-in order.
+   var pool = [];
+   for (var i = 0; i < adults.length; i++) {
+      var a = adults[i];
+      if (!adultIsFree(a)) {
+         continue;
+      }
+      var useful = 0;
+      for (var w = 0; w < waiting.length; w++) {
+         if (canSitFor(a, waiting[w])) {
+            useful++;
+         }
+      }
+      pool.push({ adult: a, chairs: chairQualifications(a), useful: useful, order: i });
+   }
+   pool.sort(function (x, y) {
+      return (x.chairs - y.chairs) || (x.useful - y.useful) || (x.order - y.order);
+   });
+
+   var chairs = pool.filter(function (p) { return canChairFor(p.adult, scout); });
+   var sitters = pool.filter(function (p) { return canSitFor(p.adult, scout); });
+
+   // [seatable, -chairsUsed, -usefulness]: larger is better.
+   var best = null;
+   var bestScore = null;
+   var better = function (s, t) {
+      for (var n = 0; n < s.length; n++) {
+         if (s[n] !== t[n]) {
+            return s[n] > t[n];
+         }
+      }
+      return false;
+   };
+
+   var triedChairs = {};
+   chairs.forEach(function (chair) {
+      var chairProfile = chair.adult.uname + "|" + chair.adult.final + "|" + chair.adult.project;
+      if (triedChairs[chairProfile]) {
+         return;
+      }
+      triedChairs[chairProfile] = true;
+      var others = sitters.filter(function (p) { return p.adult.id !== chair.adult.id; });
+      // Each combination of `need` members, in preference order.
+      var combo = [];
+      var visit = function (start) {
+         if (combo.length === need) {
+            var board = [chair].concat(combo);
+            var taken = {};
+            var chairsUsed = 0;
+            var usefulness = 0;
+            board.forEach(function (p) {
+               taken[p.adult.id] = true;
+               chairsUsed += p.chairs;
+               usefulness += p.useful;
+            });
+            var rest = pool.filter(function (p) { return !taken[p.adult.id]; });
+            var score = [countSeatable(rest, waiting), -chairsUsed, -usefulness];
+            if (bestScore === null || better(score, bestScore)) {
+               bestScore = score;
+               best = board;
+            }
+            return;
+         }
+         // Adults from the same unit with the same roles are interchangeable
+         // here, so only the first of them is tried in each seat: the answer
+         // is the same, and the search is far smaller.
+         var tried = {};
+         for (var n = start; n < others.length; n++) {
+            var profile = others[n].adult.uname + "|" + others[n].adult.final + "|" + others[n].adult.project;
+            if (tried[profile]) {
+               continue;
+            }
+            tried[profile] = true;
+            combo.push(others[n]);
+            visit(n + 1);
+            combo.pop();
+         }
+      };
+      visit(0);
+   });
+
+   if (best !== null) {
+      result.chairId = best[0].adult.id;
+      result.memberIds = best.slice(1).map(function (p) { return p.adult.id; });
+      return result;
+   }
+
+   // No full board: propose what there is, best first, and say what is short.
+   if (chairs.length > 0) {
+      result.chairId = chairs[0].adult.id;
+   } else {
+      result.problems.push("No " + scout.btype + " Chairs Available.");
+   }
+   for (var s = 0; s < sitters.length && result.memberIds.length < need; s++) {
+      if (sitters[s].adult.id !== result.chairId) {
+         result.memberIds.push(sitters[s].adult.id);
+      }
+   }
+   if (result.memberIds.length < need) {
+      result.problems.push("Only " + result.memberIds.length + " " + scout.btype + " Members Available");
+   }
+   return result;
+}
+
 // Node (unit tests) picks this up; browsers ignore it and use the global.
 if (typeof module !== "undefined" && module.exports) {
    module.exports = {
+      proposeBoard: proposeBoard,
       findUnitConflicts: findUnitConflicts,
       hasNonUnitMember: hasNonUnitMember,
       checkBoardSize: checkBoardSize,
