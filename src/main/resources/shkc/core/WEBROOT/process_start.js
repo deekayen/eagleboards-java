@@ -40,7 +40,9 @@ function ProcessStartReview(s_id) {
       fetchText = "<br/><br/>Bring out to introduce them:";
       supporting.forEach(function (a) {
          fetchText += "<br/>&nbsp;&nbsp;<b>" + ebEscapeHtml(a.name) + "</b> — "
-            + (a.room === "Main" ? "main room" : "on the board in room <b>" + ebEscapeHtml(a.room) + "</b>");
+            + (a.room === "Main" ? "main room"
+               : a.room === "N/A" ? "marked as gone home"
+               : "on the board in room <b>" + ebEscapeHtml(a.room) + "</b>");
       });
    }
 
