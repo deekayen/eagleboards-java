@@ -62,10 +62,16 @@ function SchedulerAdultGrid(container_id, toolbar_id, title) {
            headerFilter: "list", headerFilterParams: { valuesLookup: true, clearable: true } },
          { title: "RM#", field: "Room", width: 60, headerFilter: "list", headerFilterParams: { valuesLookup: true, clearable: true } },
          { title: "Final", field: "FinalBoard", width: 90, headerFilter: "list", headerFilterParams: { valuesLookup: true, clearable: true } },
-         { title: "Project", field: "ProjectReview", widthGrow: 1, headerFilter: "list", headerFilterParams: { valuesLookup: true, clearable: true } }
+         { title: "Project", field: "ProjectReview", widthGrow: 1, headerFilter: "list", headerFilterParams: { valuesLookup: true, clearable: true } },
+         // Volunteering toward a Wood Badge ticket item. Filterable, so the
+         // ones still waiting for a board are easy to find.
+         { title: "WB", field: "WoodBadge", width: 52, hozAlign: "center",
+           headerTooltip: "Volunteering toward a Wood Badge ticket item",
+           headerFilter: "list", headerFilterParams: { values: { "Y": "Yes", "": "No" }, clearable: true } }
       ],
-      // RegTime is not shown; auto-select reads it for the waited-longest tie-break.
-      ["Sel", "Last", "First", "UnitName", "Room", "FinalBoard", "ProjectReview", "RegTime"]);
+      // RegTime and Supporting are not shown; auto-select reads them for its
+      // tie-breaks, and Start Review uses Supporting to say whom to fetch.
+      ["Sel", "Last", "First", "UnitName", "Room", "FinalBoard", "ProjectReview", "WoodBadge", "RegTime", "Supporting"]);
 
    this_obj = this;
 

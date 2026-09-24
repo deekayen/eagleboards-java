@@ -636,7 +636,9 @@
                   final: schedulerLeaderGrid.getColumnValue(l_id, "FinalBoard"),
                   project: schedulerLeaderGrid.getColumnValue(l_id, "ProjectReview"),
                   room: schedulerLeaderGrid.getColumnValue(l_id, "Room"),
-                  regTime: schedulerLeaderGrid.getColumnValue(l_id, "RegTime")
+                  regTime: schedulerLeaderGrid.getColumnValue(l_id, "RegTime"),
+                  woodBadge: schedulerLeaderGrid.getColumnValue(l_id, "WoodBadge"),
+                  supporting: schedulerLeaderGrid.getColumnValue(l_id, "Supporting")
                });
             });
 
@@ -671,6 +673,25 @@
             });
             waiting.sort(function (a, b) { return sort_regnum(a.regnum, b.regnum); });
             return waiting;
+         }
+
+         // The adults who said at sign-in that they came to support this
+         // scout, with where to find them: "Main" if not on a board.
+         function SCHEDULER_supportingAdults(s_id) {
+            var found = [];
+            schedulerLeaderGrid.forEachRow(function (l_id) {
+               var ids = (schedulerLeaderGrid.getColumnValue(l_id, "Supporting") || "").split("|");
+               if (ids.indexOf(s_id) >= 0) {
+                  var l_room = schedulerLeaderGrid.getColumnValue(l_id, "Room");
+                  found.push({
+                     id: l_id,
+                     name: schedulerLeaderGrid.getColumnValue(l_id, "First") + " "
+                        + schedulerLeaderGrid.getColumnValue(l_id, "Last"),
+                     room: (l_room === "" || l_room === "-") ? "Main" : l_room
+                  });
+               }
+            });
+            return found;
          }
 
          // Locate a scout's leaders (by the Leader column) and parents
@@ -718,9 +739,17 @@
                parent_match = [];
             }
 
+            // Those who linked themselves to this scout at sign-in come first
+            // and are not guessed at again below.
+            var supporting = SCHEDULER_supportingAdults(s_id);
+            var supporting_ids = supporting.map(function (a) { return a.id; });
+            var not_linked = function (l_id) { return supporting_ids.indexOf(l_id) < 0; };
+            leader_match = leader_match.filter(not_linked);
+            parent_match = parent_match.filter(not_linked);
+
             var adult_list = leader_match.concat(parent_match);
 
-            if (adult_list.length == 0) {
+            if (adult_list.length == 0 && supporting.length == 0) {
                ebToast("Cannot Locate",
                   "Scout : <b>" + s_first.charAt(0) + " " + s_last + "</b><br/>Leader(s): '" + s_leader + "' <b>not registered.</b>",
                   "warn", 3000);
@@ -728,6 +757,9 @@
             }
 
             var text = "Scout : <b>" + s_first + " " + s_last + " [" + s_room + "]</b>";
+            supporting.forEach(function (a) {
+               text = text + "<br/>Supporting: <b>" + ebEscapeHtml(a.name) + " [" + ebEscapeHtml(a.room) + "] </b>";
+            });
             for (var i = 0; i < adult_list.length; i++) {
                var l_id = adult_list[i];
                var l_last = schedulerLeaderGrid.getColumnValue(l_id, "Last");

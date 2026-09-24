@@ -763,9 +763,14 @@ public class EagleBoardScheduler {
             EagleBoardScheduler.verbose(request);
             AdultRecord adult = new AdultRecord(request.getParameterMap());
             adult.setRoom("");
+            adult.setValue("WoodBadge", "Y".equals(adult.getValue("WoodBadge")) ? "Y" : "");
+            adult.setValue("Supporting", adult.getValue("Supporting").trim());
             AdultRecord existing = EagleBoardScheduler.this._adultRecords.get(adult.getID());
             if (existing != null) {
                existing.updateFrom(adult, EagleBoardScheduler.ADULT_REG_FIELDS);
+               // Tonight-only answers: the latest sign-in says what is true now.
+               existing.setValue("WoodBadge", adult.getValue("WoodBadge"));
+               existing.setValue("Supporting", adult.getValue("Supporting"));
                adult = existing;
             } else {
                EagleBoardScheduler.verbose("NEW ADULT RECORD: " + adult);
@@ -775,6 +780,11 @@ public class EagleBoardScheduler {
             AdultRecord historyRecord = EagleBoardScheduler.this._adultHistoryRecords.get(adult.getID());
             if (historyRecord == null) {
                historyRecord = adult.clone();
+               // The history pre-fills next month's form. Whom someone came to
+               // support, and whether it counted toward a Wood Badge ticket,
+               // are answers for tonight only, so they are not kept.
+               historyRecord.setValue("WoodBadge", "");
+               historyRecord.setValue("Supporting", "");
                EagleBoardScheduler.verbose("Adding new Adult History Record: " + historyRecord);
                EagleBoardScheduler.this._adultHistoryRecords.add(historyRecord, false);
                adult.setFlags("W");
@@ -1079,6 +1089,15 @@ public class EagleBoardScheduler {
 
                      if (member.getRoom().length() > 0) {
                         this.sendError("ERROR: Member " + member.getFullName() + " already assigned to a board in room " + member.getRoom(), response);
+                        return;
+                     }
+
+                     // "No thanks" to this kind of board at sign-in is stored as
+                     // Unavailable for it. Auto-select and the grid skip them, but
+                     // a hand-picked or hand-built board must not seat them either.
+                     String memberRole = "Project".equals(scout.getBoardType()) ? member.getProjectReviewRole() : member.getFinalBoardRole();
+                     if ("Unavailable".equals(memberRole)) {
+                        this.sendError("ERROR: Member " + member.getFullName() + " is Unavailable for " + scout.getBoardType() + " boards", response);
                         return;
                      }
 

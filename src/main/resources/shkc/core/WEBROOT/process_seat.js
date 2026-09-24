@@ -135,7 +135,10 @@ function hasNonUnitMember(scout_uname, members) {
 //      chairs are what cap the evening, and walk-ins have not arrived yet;
 //   3. then the one whose adults could serve the fewest other waiting scouts,
 //      keeping the flexible adults for later;
-//   4. then the adults who have waited longest to volunteer since they were
+//   4. then volunteers who came to serve on any board -- not linked to a
+//      scout at sign-in, or counting it toward a Wood Badge ticket -- so the
+//      people who came only to volunteer are not the ones left sitting idle;
+//   5. then the adults who have waited longest to volunteer since they were
 //      last free (freeSinceTimes, below), and sign-in order within a minute.
 //
 // When no full board exists it proposes what it can, in the same preference
@@ -145,9 +148,11 @@ function hasNonUnitMember(scout_uname, members) {
 // same algorithm is in the Windows and Mac versions with the same tests.
 //
 //   scout    { id, uname, btype }
-//   adults   [{ id, uname, final, project, room, freeSince }] in sign-in
-//            order; final/project are the roles "Chair", "Member" or
-//            "Unavailable"; freeSince is from freeSinceTimes (blank sorts first)
+//   adults   [{ id, uname, final, project, room, freeSince, woodBadge,
+//            supporting }] in sign-in order; final/project are the roles
+//            "Chair", "Member" or "Unavailable"; freeSince is from
+//            freeSinceTimes (blank sorts first); woodBadge is "Y" or blank;
+//            supporting is the linked scout IDs, blank if none
 //   waiting  the OTHER waiting scouts [{ id, uname, btype }] in queue order
 //   returns  { chairId, memberIds, problems } -- memberIds excludes the chair
 var BOARD_TYPES = ["Final", "Project"];
@@ -182,6 +187,13 @@ function chairQualifications(adult) {
       }
    }
    return n;
+}
+
+// Came to serve on any board: not here for a particular scout, or counting
+// tonight toward a Wood Badge ticket item (who is then a volunteer first,
+// whoever else they came with).
+function cameForAnyBoard(adult) {
+   return adult.woodBadge === "Y" || !adult.supporting;
 }
 
 // Members besides the chair at the district's working size.
@@ -276,10 +288,11 @@ function proposeBoard(scout, adults, waiting) {
             useful++;
          }
       }
-      pool.push({ adult: a, chairs: chairQualifications(a), useful: useful, since: a.freeSince || "", order: i });
+      pool.push({ adult: a, chairs: chairQualifications(a), useful: useful,
+         anyBoard: cameForAnyBoard(a) ? 0 : 1, since: a.freeSince || "", order: i });
    }
    pool.sort(function (x, y) {
-      return (x.chairs - y.chairs) || (x.useful - y.useful)
+      return (x.chairs - y.chairs) || (x.useful - y.useful) || (x.anyBoard - y.anyBoard)
          || (x.since < y.since ? -1 : x.since > y.since ? 1 : 0) || (x.order - y.order);
    });
 

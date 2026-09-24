@@ -179,11 +179,20 @@ push be the verification.
   most other waiting scouts able to get a full board right now (chairs and
   troops both count), then the one using up the fewest chair qualifications
   (member-only adults in member seats, single-type chairs before
-  either-type), then the one keeping the most flexible adults, then the
-  adults who have waited longest to volunteer since they were last free
-  (`freeSinceTimes`: sign-in, or when their last board completed). It is only a proposal, not a rule, but the same algorithm and the
-  same test cases live in the Windows and Mac versions; change all three
-  together.
+  either-type), then the one keeping the most flexible adults, then
+  volunteers who came for any board (not linked to a scout, or Wood Badge),
+  then the adults who have waited longest to volunteer since they were last
+  free (`freeSinceTimes`: sign-in, or when their last board completed). It
+  is only a proposal, not a rule, but the same algorithm and the same test
+  cases live in the Windows and Mac versions; change all three together.
+- **What an adult says at sign-in.** Each board type is Member, Chair or
+  "No thanks" (stored as the role `Unavailable`, which Seat Board refuses).
+  Two per-night columns end the adult record: `WoodBadge` (`Y` or blank)
+  and `Supporting` (IDs of the scouts they came with, `|`-separated, since
+  commas become `~` on disk). Neither is copied into the adult history, so
+  next month's form never pre-fills them. Start Review names the supporting
+  adults and the room they are in, so someone can fetch them to introduce
+  the scout; Locate lists them first.
 
   Age is attested by the "I am 21+" button on the sign-in page, and the
   parent/relative rule is handled by unit matching, so neither needs a field on

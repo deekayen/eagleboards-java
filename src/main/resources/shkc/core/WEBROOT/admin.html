@@ -156,7 +156,7 @@
       <div class="eb-panel" id="panel-adults">
          <div class="eb-toolbar">
             <button id="adults-refresh">Refresh</button>
-            <a class="eb-btn" href="/adult-cells?cols=RegTime,Last,First,UnitType,Unit,Email,Phone,FinalBoard,ProjectReview,Room&amp;fmt=csv&amp;filename=Adults.csv">CSV</a>
+            <a class="eb-btn" href="/adult-cells?cols=RegTime,Last,First,UnitType,Unit,Email,Phone,FinalBoard,ProjectReview,Room,WoodBadge&amp;fmt=csv&amp;filename=Adults.csv">CSV</a>
             <span class="eb-sep"></span>
             <button id="adults-delete">Delete</button>
          </div>
@@ -444,7 +444,7 @@
          });
 
          // ---- Adults tab (registered adults) ----
-         var adultsCols = ["RegTime", "Last", "First", "UnitType", "Unit", "Email", "Phone", "FinalBoard", "ProjectReview", "Room"];
+         var adultsCols = ["RegTime", "Last", "First", "UnitType", "Unit", "Email", "Phone", "FinalBoard", "ProjectReview", "Room", "WoodBadge"];
          var adults = makeGrid({
             el: "#grid-adults",
             cellsPath: "/adult-cells",
@@ -462,7 +462,8 @@
                textCol("Phone", "Phone", 110),
                selectCol("Final", "FinalBoard", 100, ROLES),
                selectCol("Project", "ProjectReview", 100, ROLES),
-               textCol("Room", "Room", 90)
+               textCol("Room", "Room", 90),
+               selectCol("Wood Badge", "WoodBadge", 100, { "": "No", "Y": "Yes" })
             ]
          });
 
