@@ -86,7 +86,10 @@ function SchedulerScoutGrid(container_id, toolbar_id, title) {
          { title: "Status", field: "Status", width: 100, sorter: sort_status, headerFilter: "list", headerFilterParams: { valuesLookup: true, clearable: true } },
          { title: "Leader", field: "Leader", widthGrow: 1, headerFilter: "input" }
       ],
-      ["RegNum", "MinsSinceLastUpdate", "Last", "First", "UnitName", "BoardType", "Room", "Status", "Leader"]);
+      // The last two are not shown; auto-select reads them to tell when each
+      // adult came off their last board (freeSinceTimes in process_seat.js).
+      ["RegNum", "MinsSinceLastUpdate", "Last", "First", "UnitName", "BoardType", "Room", "Status", "Leader",
+       "LastUpdateTime", "BoardMembersIDs"]);
 
    var this_obj = this;
 
