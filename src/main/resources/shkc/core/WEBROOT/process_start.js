@@ -31,11 +31,25 @@ function ProcessStartReview(s_id) {
       return;
    }
 
+   // Whoever came to support this scout -- often their Scoutmaster, who may
+   // be sitting on another board right now -- introduces them. Name the room
+   // so someone can step in and fetch them for a moment.
+   var supporting = SCHEDULER_supportingAdults(s_id);
+   var fetchText = "";
+   if (supporting.length > 0) {
+      fetchText = "<br/><br/>Bring out to introduce them:";
+      supporting.forEach(function (a) {
+         fetchText += "<br/>&nbsp;&nbsp;<b>" + ebEscapeHtml(a.name) + "</b> — "
+            + (a.room === "Main" ? "main room" : "on the board in room <b>" + ebEscapeHtml(a.room) + "</b>");
+      });
+   }
+
    ebConfirm("Start Review",
       "Bring <b>" + s_first + " " + s_last + "</b> in to room "
       + s_room + " and start the review ?"
       + "<br/><br/>Do this once the board members have finished reading the"
-      + " application, references and project workbook.",
+      + " application, references and project workbook."
+      + fetchText,
       function (result) {
          if (result) {
             SendStartReviewRequest(s_id);

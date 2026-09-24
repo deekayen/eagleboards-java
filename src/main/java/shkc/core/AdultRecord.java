@@ -19,7 +19,13 @@ public class AdultRecord extends PersonRecord {
       "Room",
       "Flags",
       "Sel",
-      "BoardHistory"
+      "BoardHistory",
+      // Per night, set at sign-in and never carried into the adult history:
+      // "Y" if volunteering toward a Wood Badge ticket item, and the IDs of
+      // the scouts this adult came to support (their Scoutmaster, say),
+      // separated by "|". Appended so older files still line up.
+      "WoodBadge",
+      "Supporting"
    };
 
    public AdultRecord() {

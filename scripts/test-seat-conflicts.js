@@ -401,6 +401,42 @@ p = proposeBoard(queueScout("S", "Troop1001", "Final"), [
 check("waiting longest does not outrank keeping a chair free",
    p.memberIds, ["M1", "M2"]);
 
+console.log("== volunteers who came for any board go before a scout's own leaders ==");
+
+function volunteer(a, fields) {
+   return Object.assign(a, fields);
+}
+
+p = proposeBoard(queueScout("S", "Troop1001", "Final"), [
+   poolAdult("FC", "Troop9001", "Chair", "Member"),
+   volunteer(poolAdult("LEAD", "Troop9002", "Member", "Member"),
+      { supporting: "SCOUT:Other:Oli:3001", freeSince: "2026-09-24_18:00-0400" }),
+   volunteer(poolAdult("V1", "Troop9003", "Member", "Member"), { freeSince: "2026-09-24_19:30-0400" }),
+   volunteer(poolAdult("V2", "Troop9004", "Member", "Member"), { freeSince: "2026-09-24_19:40-0400" })
+], []);
+check("an unattached volunteer is proposed before a scout's leader who has waited longer",
+   p.memberIds, ["V1", "V2"]);
+
+p = proposeBoard(queueScout("S", "Troop1001", "Final"), [
+   poolAdult("FC", "Troop9001", "Chair", "Member"),
+   volunteer(poolAdult("LEAD", "Troop9002", "Member", "Member"),
+      { supporting: "SCOUT:Other:Oli:3001", freeSince: "2026-09-24_18:00-0400" }),
+   volunteer(poolAdult("WB", "Troop9003", "Member", "Member"),
+      { supporting: "SCOUT:Other:Oli:3001", woodBadge: "Y", freeSince: "2026-09-24_19:00-0400" }),
+   volunteer(poolAdult("V", "Troop9004", "Member", "Member"), { freeSince: "2026-09-24_19:30-0400" })
+], []);
+check("a Wood Badge volunteer counts as here for any board, even with a scout",
+   p.memberIds, ["WB", "V"]);
+
+p = proposeBoard(queueScout("S", "Troop1001", "Final"), [
+   poolAdult("FC", "Troop9001", "Chair", "Member"),
+   poolAdult("PC", "Troop9002", "Member", "Chair"),   // unattached, but a Project chair
+   volunteer(poolAdult("L1", "Troop9003", "Member", "Member"), { supporting: "SCOUT:A:A:1" }),
+   volunteer(poolAdult("L2", "Troop9004", "Member", "Member"), { supporting: "SCOUT:B:B:2" })
+], []);
+check("coming for any board does not outrank keeping a chair free",
+   p.memberIds, ["L1", "L2"]);
+
 console.log("");
 if (failures > 0) {
    console.log("SEAT CONFLICT TESTS: FAIL — " + failures + " of " + checks + " checks failed");
