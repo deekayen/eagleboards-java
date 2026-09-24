@@ -173,6 +173,17 @@ push be the verification.
     *entirely* of the scout's unit is refused with no override. Client-side
     only, deliberately: it is a judgement call, not an absolute.
 
+- **Auto-select** (`proposeBoard` in `process_seat.js`) proposes the board
+  when a waiting scout is selected. It weighs the whole waiting line, not
+  just this scout: of every legal board, it takes the one that leaves the
+  most other waiting scouts able to get a full board right now (chairs and
+  troops both count), then the one using up the fewest chair qualifications
+  (member-only adults in member seats, single-type chairs before
+  either-type), then the one keeping the most flexible adults, then sign-in
+  order. It is only a proposal, not a rule, but the same algorithm and the
+  same test cases live in the Windows and Mac versions; change all three
+  together.
+
   Age is attested by the "I am 21+" button on the sign-in page, and the
   parent/relative rule is handled by unit matching, so neither needs a field on
   `AdultRecord`. Keep the pure rules pure and tested (`test-seat-conflicts.js`)
