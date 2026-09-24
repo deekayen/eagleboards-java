@@ -64,7 +64,8 @@ function SchedulerAdultGrid(container_id, toolbar_id, title) {
          { title: "Final", field: "FinalBoard", width: 90, headerFilter: "list", headerFilterParams: { valuesLookup: true, clearable: true } },
          { title: "Project", field: "ProjectReview", widthGrow: 1, headerFilter: "list", headerFilterParams: { valuesLookup: true, clearable: true } }
       ],
-      ["Sel", "Last", "First", "UnitName", "Room", "FinalBoard", "ProjectReview"]);
+      // RegTime is not shown; auto-select reads it for the waited-longest tie-break.
+      ["Sel", "Last", "First", "UnitName", "Room", "FinalBoard", "ProjectReview", "RegTime"]);
 
    this_obj = this;
 

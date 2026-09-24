@@ -635,8 +635,24 @@
                   uname: schedulerLeaderGrid.getColumnValue(l_id, "UnitName"),
                   final: schedulerLeaderGrid.getColumnValue(l_id, "FinalBoard"),
                   project: schedulerLeaderGrid.getColumnValue(l_id, "ProjectReview"),
-                  room: schedulerLeaderGrid.getColumnValue(l_id, "Room")
+                  room: schedulerLeaderGrid.getColumnValue(l_id, "Room"),
+                  regTime: schedulerLeaderGrid.getColumnValue(l_id, "RegTime")
                });
+            });
+
+            // How long each has waited to volunteer: since sign-in, or since
+            // the last board they sat on was completed.
+            var boards = [];
+            schedulerScoutGrid.forEachRow(function (s_id) {
+               boards.push({
+                  status: schedulerScoutGrid.getColumnValue(s_id, "Status"),
+                  memberIds: schedulerScoutGrid.getColumnValue(s_id, "BoardMembersIDs"),
+                  lastUpdate: schedulerScoutGrid.getColumnValue(s_id, "LastUpdateTime")
+               });
+            });
+            var since = freeSinceTimes(adults, boards);
+            adults.forEach(function (a) {
+               a.freeSince = since[a.id];
             });
             return adults;
          }

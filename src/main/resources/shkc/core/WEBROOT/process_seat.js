@@ -135,7 +135,8 @@ function hasNonUnitMember(scout_uname, members) {
 //      chairs are what cap the evening, and walk-ins have not arrived yet;
 //   3. then the one whose adults could serve the fewest other waiting scouts,
 //      keeping the flexible adults for later;
-//   4. then sign-in order.
+//   4. then the adults who have waited longest to volunteer since they were
+//      last free (freeSinceTimes, below), and sign-in order within a minute.
 //
 // When no full board exists it proposes what it can, in the same preference
 // order, and says what is missing -- as before.
@@ -144,8 +145,9 @@ function hasNonUnitMember(scout_uname, members) {
 // same algorithm is in the Windows and Mac versions with the same tests.
 //
 //   scout    { id, uname, btype }
-//   adults   [{ id, uname, final, project, room }] in sign-in order;
-//            final/project are the roles "Chair", "Member" or "Unavailable"
+//   adults   [{ id, uname, final, project, room, freeSince }] in sign-in
+//            order; final/project are the roles "Chair", "Member" or
+//            "Unavailable"; freeSince is from freeSinceTimes (blank sorts first)
 //   waiting  the OTHER waiting scouts [{ id, uname, btype }] in queue order
 //   returns  { chairId, memberIds, problems } -- memberIds excludes the chair
 var BOARD_TYPES = ["Final", "Project"];
@@ -221,12 +223,47 @@ function countSeatable(pool, waiting) {
    return seated;
 }
 
+// When each adult last became free to volunteer, for the waited-longest
+// tie-break: when they signed in, or when the last board they sat on was
+// completed, whichever is later. Nothing stores the second, so it is read
+// from the Completed scouts, whose LastUpdateTime is when the result was
+// recorded and whose member list names who sat. A board that was reset never
+// happened and has no member list, so the adult's earlier wait stands.
+//
+// Times are the records' "yyyy-MM-dd_HH:mm-0400" stamps, which sort as text
+// within one event night. The member list is joined with commas, which the
+// CSV writer turns into "~" on disk -- and an ID whose name had a comma holds
+// a "~" of its own -- so the list is not split: each adult's whole ID is
+// looked for between separators.
+//
+//   adults   [{ id, regTime }]
+//   scouts   [{ status, memberIds, lastUpdate }]
+//   returns  { adultId: time }
+function freeSinceTimes(adults, scouts) {
+   var since = {};
+   var boards = scouts.filter(function (s) {
+      return s.status === "Completed" && s.memberIds && s.lastUpdate;
+   });
+   adults.forEach(function (a) {
+      since[a.id] = a.regTime || "";
+      var needle = "~" + a.id + "~";
+      boards.forEach(function (s) {
+         var list = "~" + s.memberIds.replace(/,/g, "~") + "~";
+         if (list.indexOf(needle) >= 0 && s.lastUpdate > since[a.id]) {
+            since[a.id] = s.lastUpdate;
+         }
+      });
+   });
+   return since;
+}
+
 function proposeBoard(scout, adults, waiting) {
    var result = { chairId: null, memberIds: [], problems: [] };
    var need = membersBesideChair(scout.btype);
 
    // Every free adult, with the keys that rank them: chair qualifications,
-   // then how many other waiting scouts they could sit for, then sign-in order.
+   // then how many other waiting scouts they could sit for, then how long they
+   // have waited to volunteer, then sign-in order.
    var pool = [];
    for (var i = 0; i < adults.length; i++) {
       var a = adults[i];
@@ -239,10 +276,11 @@ function proposeBoard(scout, adults, waiting) {
             useful++;
          }
       }
-      pool.push({ adult: a, chairs: chairQualifications(a), useful: useful, order: i });
+      pool.push({ adult: a, chairs: chairQualifications(a), useful: useful, since: a.freeSince || "", order: i });
    }
    pool.sort(function (x, y) {
-      return (x.chairs - y.chairs) || (x.useful - y.useful) || (x.order - y.order);
+      return (x.chairs - y.chairs) || (x.useful - y.useful)
+         || (x.since < y.since ? -1 : x.since > y.since ? 1 : 0) || (x.order - y.order);
    });
 
    var chairs = pool.filter(function (p) { return canChairFor(p.adult, scout); });
@@ -334,6 +372,7 @@ function proposeBoard(scout, adults, waiting) {
 if (typeof module !== "undefined" && module.exports) {
    module.exports = {
       proposeBoard: proposeBoard,
+      freeSinceTimes: freeSinceTimes,
       findUnitConflicts: findUnitConflicts,
       hasNonUnitMember: hasNonUnitMember,
       checkBoardSize: checkBoardSize,

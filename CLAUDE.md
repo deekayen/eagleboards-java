@@ -179,8 +179,9 @@ push be the verification.
   most other waiting scouts able to get a full board right now (chairs and
   troops both count), then the one using up the fewest chair qualifications
   (member-only adults in member seats, single-type chairs before
-  either-type), then the one keeping the most flexible adults, then sign-in
-  order. It is only a proposal, not a rule, but the same algorithm and the
+  either-type), then the one keeping the most flexible adults, then the
+  adults who have waited longest to volunteer since they were last free
+  (`freeSinceTimes`: sign-in, or when their last board completed). It is only a proposal, not a rule, but the same algorithm and the
   same test cases live in the Windows and Mac versions; change all three
   together.
 

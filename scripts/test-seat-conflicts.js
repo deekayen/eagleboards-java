@@ -355,6 +355,52 @@ for (var s = 0; s < queue.length; s++) {
 }
 check("five boards seat at once: three Final, two Project", boards, { Final: 3, Project: 2 });
 
+console.log("== the adults who have waited longest to volunteer go first ==");
+
+var freeSinceTimes = seat.freeSinceTimes;
+var since = freeSinceTimes([
+   { id: "ADULT:Able:Ann:1", regTime: "2026-09-24_19:00-0400" },
+   { id: "ADULT:Baker:Bo:2", regTime: "2026-09-24_19:10-0400" },
+   { id: "ADULT:Cole:Cy:3", regTime: "2026-09-24_19:05-0400" },
+   { id: "ADULT:Whitmore~ Jr.:Lysander:4", regTime: "2026-09-24_19:00-0400" },
+   { id: "ADULT:Lee:Al:1", regTime: "2026-09-24_19:00-0400" }
+], [
+   { status: "Completed", memberIds: "ADULT:Able:Ann:1,ADULT:Other:Oz:9", lastUpdate: "2026-09-24_19:40-0400" },
+   // as it reads back after a restart: the CSV stored the commas as "~"
+   { status: "Completed", memberIds: "ADULT:X:X:9~ADULT:Whitmore~ Jr.:Lysander:4~ADULT:Lee:Al:12",
+     lastUpdate: "2026-09-24_19:50-0400" },
+   { status: "Registered", memberIds: "", lastUpdate: "2026-09-24_20:00-0400" },   // a reset board
+   { status: "Seated", memberIds: "ADULT:Cole:Cy:3", lastUpdate: "2026-09-24_20:05-0400" }
+]);
+check("someone who came off a completed board has waited since it finished",
+   since["ADULT:Able:Ann:1"], "2026-09-24_19:40-0400");
+check("someone who has not sat has waited since they signed in",
+   since["ADULT:Baker:Bo:2"], "2026-09-24_19:10-0400");
+check("a board still running does not count as their last one",
+   since["ADULT:Cole:Cy:3"], "2026-09-24_19:05-0400");
+check("a name with a comma is found in a list read back after a restart",
+   since["ADULT:Whitmore~ Jr.:Lysander:4"], "2026-09-24_19:50-0400");
+check("an ID that is the start of another's is not mistaken for it",
+   since["ADULT:Lee:Al:1"], "2026-09-24_19:00-0400");
+
+p = proposeBoard(queueScout("S", "Troop1001", "Final"), [
+   Object.assign(poolAdult("FC", "Troop9001", "Chair", "Member"), { freeSince: "2026-09-24_19:00-0400" }),
+   Object.assign(poolAdult("M1", "Troop9002", "Member", "Member"), { freeSince: "2026-09-24_19:40-0400" }),
+   Object.assign(poolAdult("M2", "Troop9003", "Member", "Member"), { freeSince: "2026-09-24_19:10-0400" }),
+   Object.assign(poolAdult("M3", "Troop9004", "Member", "Member"), { freeSince: "2026-09-24_19:20-0400" })
+], []);
+check("among equals, those who have waited longest are proposed, not the first to sign in",
+   p.memberIds, ["M2", "M3"]);
+
+p = proposeBoard(queueScout("S", "Troop1001", "Final"), [
+   Object.assign(poolAdult("FC", "Troop9001", "Chair", "Member"), { freeSince: "2026-09-24_19:00-0400" }),
+   Object.assign(poolAdult("PC", "Troop9002", "Member", "Chair"), { freeSince: "2026-09-24_18:30-0400" }),
+   Object.assign(poolAdult("M1", "Troop9003", "Member", "Member"), { freeSince: "2026-09-24_19:30-0400" }),
+   Object.assign(poolAdult("M2", "Troop9004", "Member", "Member"), { freeSince: "2026-09-24_19:35-0400" })
+], []);
+check("waiting longest does not outrank keeping a chair free",
+   p.memberIds, ["M1", "M2"]);
+
 console.log("");
 if (failures > 0) {
    console.log("SEAT CONFLICT TESTS: FAIL — " + failures + " of " + checks + " checks failed");
