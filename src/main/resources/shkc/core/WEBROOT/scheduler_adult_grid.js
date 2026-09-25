@@ -87,7 +87,7 @@ function SchedulerAdultGrid(container_id, toolbar_id, title) {
 
    this.toolbar = document.getElementById(toolbar_id);
    this.buttons = {};
-   var names = ["Filter", "Clear", "Enable", "Disable"];
+   var names = ["Filter", "Clear", "Enable", "Disable", "Link"];
    for (var i = 0; i < names.length; i++) {
       this.buttons[names[i]] = this.toolbar.querySelector("[data-action='" + names[i] + "']");
    }
@@ -125,6 +125,8 @@ function SchedulerAdultGrid(container_id, toolbar_id, title) {
                }
             });
          }
+      } else if (id === "Link") {
+         this_obj.toggleSupportLink();
       } else if (id === "Enable") {
          var e_id = this_obj.getSelectedRowId();
          if (e_id) {
@@ -385,12 +387,14 @@ SchedulerAdultGrid.prototype.updateButtonStatus = function (l_id) {
    }
    var room = this.getColumnValue(l_id, "Room");
 
+   // Link works for anyone highlighted, on a board or not: a Scoutmaster is
+   // often already sitting on one when someone notices they came with a scout.
    if (room === "N/A") {
-      this.setButtonStatus(["Enable", "Clear", "Filter"]);
+      this.setButtonStatus(["Enable", "Clear", "Filter", "Link"]);
    } else if (room === "") {
-      this.setButtonStatus(["Disable", "Clear", "Filter"]);
+      this.setButtonStatus(["Disable", "Clear", "Filter", "Link"]);
    } else {
-      this.setButtonStatus(["Filter", "Clear"]);
+      this.setButtonStatus(["Filter", "Clear", "Link"]);
    }
 };
 
@@ -414,4 +418,52 @@ SchedulerAdultGrid.prototype.updateRoom = function (l_id, room_value) {
             refresh_all();
          }, 500);
       });
+};
+
+// Link the highlighted adult to the selected scout as someone who came to
+// support them -- their Scoutmaster, say -- or undo that. For the adult who
+// did not check the scout at sign-in, or signed in before the scout did.
+// Start Review and Locate then name them. The same Supporting column the
+// sign-in form writes, saved through /adult-update.
+SchedulerAdultGrid.prototype.toggleSupportLink = function () {
+   var this_obj = this;
+   var l_id = this.getSelectedRowId();
+   var s_id = schedulerScoutGrid.getSelectedRowId();
+   if (!l_id) {
+      return;
+   }
+   if (!s_id) {
+      ebAlert("Link", "Select the scout in the Youth list first, then highlight the adult here and press Link.");
+      return;
+   }
+
+   var adult = ebEscapeHtml(this.getColumnValue(l_id, "First") + " " + this.getColumnValue(l_id, "Last"));
+   var scout = ebEscapeHtml(schedulerScoutGrid.getColumnValue(s_id, "First") + " "
+      + schedulerScoutGrid.getColumnValue(s_id, "Last"));
+   var supporting = this.getColumnValue(l_id, "Supporting") || "";
+   var linked = supporting.split("|").indexOf(s_id) >= 0;
+   var updated = withSupportLink(supporting, s_id, !linked);
+   var question = linked
+      ? "<b>" + adult + "</b> is linked as supporting <b>" + scout + "</b>. Unlink them?"
+      : "Link <b>" + adult + "</b> as supporting <b>" + scout + "</b>?"
+        + "<br/><br/>Start Review will then say where to find them.";
+
+   ebConfirm(linked ? "Unlink" : "Link", question, function (result) {
+      if (!result) {
+         return;
+      }
+      ebSaveRow("/adult-update", "updated", l_id, { Supporting: updated })
+         .then(function (ok) {
+            if (!ok) {
+               ebAlert("Link Error", "The change was not saved.");
+               return;
+            }
+            this_obj.table.updateData([{ id: l_id, Supporting: updated }]);
+            ebMessage(linked ? "Unlinked" : "Linked",
+               adult + (linked ? " is no longer linked to " : " is linked to ") + scout);
+         })
+         .catch(function () {
+            ebAlert("Link Error", "The change was not saved.");
+         });
+   });
 };

@@ -192,7 +192,9 @@ push be the verification.
   commas become `~` on disk). Neither is copied into the adult history, so
   next month's form never pre-fills them. Start Review names the supporting
   adults and the room they are in, so someone can fetch them to introduce
-  the scout; Locate lists them first.
+  the scout; Locate lists them first. An operator links or unlinks them
+  after both have signed in with the adult panel's **Link** button (scout
+  selected, adult highlighted), which writes the same column.
 
   Age is attested by the "I am 21+" button on the sign-in page, and the
   parent/relative rule is handled by unit matching, so neither needs a field on

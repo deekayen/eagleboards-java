@@ -437,6 +437,22 @@ p = proposeBoard(queueScout("S", "Troop1001", "Final"), [
 check("coming for any board does not outrank keeping a chair free",
    p.memberIds, ["L1", "L2"]);
 
+console.log("== linking an adult to a scout from the scheduler ==");
+
+var withSupportLink = seat.withSupportLink;
+check("links a scout to an adult who supports nobody yet",
+   withSupportLink("", "SCOUT:A:A:1", true), "SCOUT:A:A:1");
+check("adds a second scout after the first",
+   withSupportLink("SCOUT:A:A:1", "SCOUT:B:B:2", true), "SCOUT:A:A:1|SCOUT:B:B:2");
+check("never lists a scout twice",
+   withSupportLink("SCOUT:A:A:1|SCOUT:B:B:2", "SCOUT:A:A:1", true), "SCOUT:B:B:2|SCOUT:A:A:1");
+check("unlinks one scout and keeps the rest",
+   withSupportLink("SCOUT:A:A:1|SCOUT:B:B:2", "SCOUT:A:A:1", false), "SCOUT:B:B:2");
+check("unlinking the last scout leaves nothing",
+   withSupportLink("SCOUT:A:A:1", "SCOUT:A:A:1", false), "");
+check("an ID holding '~' from a comma name is kept whole",
+   withSupportLink("SCOUT:Doe~ Jr.:Jan:1", "SCOUT:B:B:2", true), "SCOUT:Doe~ Jr.:Jan:1|SCOUT:B:B:2");
+
 console.log("");
 if (failures > 0) {
    console.log("SEAT CONFLICT TESTS: FAIL — " + failures + " of " + checks + " checks failed");
