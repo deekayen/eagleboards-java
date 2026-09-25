@@ -196,6 +196,19 @@ function cameForAnyBoard(adult) {
    return adult.woodBadge === "Y" || !adult.supporting;
 }
 
+// An adult's Supporting list ("|"-separated scout IDs) with one scout
+// linked or unlinked, for the scheduler's Link button. Order is kept, and a
+// scout is never listed twice.
+function withSupportLink(supporting, scoutId, linked) {
+   var ids = (supporting || "").split("|").filter(function (id) {
+      return id !== "" && id !== scoutId;
+   });
+   if (linked) {
+      ids.push(scoutId);
+   }
+   return ids.join("|");
+}
+
 // Members besides the chair at the district's working size.
 function membersBesideChair(btype) {
    return (btype === "Project" ? PROJECT_MIN_MEMBERS : BOARD_MIN_MEMBERS) - 1;
@@ -385,6 +398,7 @@ function proposeBoard(scout, adults, waiting) {
 if (typeof module !== "undefined" && module.exports) {
    module.exports = {
       proposeBoard: proposeBoard,
+      withSupportLink: withSupportLink,
       freeSinceTimes: freeSinceTimes,
       findUnitConflicts: findUnitConflicts,
       hasNonUnitMember: hasNonUnitMember,
