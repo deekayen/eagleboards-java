@@ -42,7 +42,7 @@ function SchedulerAdultGrid(container_id, toolbar_id, title) {
                var room = cell.getRow().getData().Room || "";
                var why = "";
                if (room === "N/A") {
-                  why = "Disabled for tonight -- enable them first";
+                  why = "Disabled for this event -- enable them first";
                } else if (room.length > 0) {
                   why = "Already seated on the board in room " + room;
                }
@@ -433,7 +433,7 @@ SchedulerAdultGrid.prototype.toggleSupportLink = function () {
       return;
    }
    if (!s_id) {
-      ebAlert("Link", "Select the scout in the Youth list first, then highlight the adult here and press Link.");
+      ebAlert("Link", "Select the youth in the Youth list first, then highlight the adult here and press Link.");
       return;
    }
 

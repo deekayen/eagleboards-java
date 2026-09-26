@@ -420,16 +420,16 @@ function ProcessSeatBoard(s_id) {
    var s_status = schedulerScoutGrid.getColumnValue(s_id, "Status");
 
    if (s_status == "Seated") {
-      ebAlert("Schedule Error", "Scout " + s_first + " " + s_last + " board is already seated.");
+      ebAlert("Schedule Error", "Youth " + s_first + " " + s_last + " board is already seated.");
       return;
    } else if (s_status == "InProgress") {
-      ebAlert("Schedule Error", "Scout is currently in a board see room " + s_room);
+      ebAlert("Schedule Error", "Youth is currently in a board see room " + s_room);
       return;
    } else if (s_status == "Completed") {
-      ebAlert("Schedule Error", "Scout has already completed his " + s_btype + " board");
+      ebAlert("Schedule Error", "Youth has already completed their " + s_btype + " board");
       return;
    } else if (s_status == "Postponed") {
-      ebAlert("Schedule Error", "Scout has already postponed his " + s_btype + " board");
+      ebAlert("Schedule Error", "Youth has already postponed their " + s_btype + " board");
       return;
    } else if (s_status != "Registered" && s_status != "Verified") {
       // "Verified" is accepted for legacy records only; Verify was removed and
@@ -480,7 +480,7 @@ function ProcessSeatBoard(s_id) {
          // home. Reporting that as "assigned to a board in room N/A" sent the
          // operator looking for a room that does not exist.
          ebAlert("Schedule Error",
-            "Member '" + l_last + ", " + l_first + "' has been disabled for tonight."
+            "Member '" + l_last + ", " + l_first + "' has been disabled for this event."
             + "<br/>Use Enable on the Adult Board Members panel if they are back.");
          return;
       }
@@ -667,7 +667,7 @@ function ProcessSeatBoard(s_id) {
             return;
          }
       } else {
-         ebAlert("Schedule Error", "No BoardType selected for scout " + s_last);
+         ebAlert("Schedule Error", "No BoardType selected for youth " + s_last);
          return;
       }
 
@@ -692,7 +692,7 @@ function ProcessSeatBoard(s_id) {
          ebAlert("Schedule Error",
             "<p style='text-align: left'>"
             + "<b>Every selected board member is in " + s_uname
-            + ", the same unit as scout " + s_first + " " + s_last + ":</b>"
+            + ", the same unit as youth " + s_first + " " + s_last + ":</b>"
             + conflict_names
             + "<br/><br/>A board of review held at the unit level must include"
             + " at least one district or council representative who is not"
@@ -706,10 +706,10 @@ function ProcessSeatBoard(s_id) {
          "<p style='text-align: left'>"
          + "<b>" + unit_conflicts.length + " selected board member"
          + (unit_conflicts.length == 1 ? " is" : "s are")
-         + " in " + s_uname + ", the same unit as scout "
+         + " in " + s_uname + ", the same unit as youth "
          + s_first + " " + s_last + ":</b>"
          + conflict_names
-         + "<br/><br/>This council does not permit adults from the scout's own"
+         + "<br/><br/>This council does not permit adults from the youth's own"
          + " unit to sit on a board of review.<br/><br/>"
          + "Continuing falls back to the national requirement, which this"
          + " board still meets: at least one member is not affiliated with "

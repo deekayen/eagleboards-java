@@ -230,7 +230,7 @@
             href="/youth-cells?cols=RegNum,Last,First,Phone,Email,BoardType,DOB,UnitType,Unit,Leader,Status,Result,BoardChair,BoardMembers,Notes&amp;fmt=csv&amp;filename=Report.csv">CSV</a>
          <span class="eb-sep"></span>
          <button data-action="Admin" title="Table Admin Page">Admin</button>
-         <button data-action="Login" title="Scout/Adult Login Page">Login</button>
+         <button data-action="Login" title="Youth/Adult Login Page">Login</button>
          <button data-action="Help" title="Administrator Help Page">Help</button>
          <span class="eb-sep"></span>
          <button data-action="AddRoom" title="Add New Room">+ Room</button>
@@ -244,9 +244,9 @@
       <div class="eb-panel">
          <div class="eb-panel-title">Youth</div>
          <div class="eb-toolbar" id="scout-toolbar">
-            <button data-action="Seat" title="Put the board members in a room to read the application, references and project workbook. The scout stays outside until you press Start Review.">Seat Board</button>
-            <button data-action="Start" title="Bring the scout into the room and begin the interview. Press this once the members are done reading and are ready for the candidate.">Start Review</button>
-            <button data-action="Complete" title="Finish the review and record the result. Available once the scout has been brought in.">Complete</button>
+            <button data-action="Seat" title="Put the board members in a room to read the application, references and project workbook. The youth stays outside until you press Start Review.">Seat Board</button>
+            <button data-action="Start" title="Bring the youth into the room and begin the interview. Press this once the members are done reading and are ready for the candidate.">Start Review</button>
+            <button data-action="Complete" title="Finish the review and record the result. Available once the youth has been brought in.">Complete</button>
             <span class="eb-sep"></span>
             <button data-action="Locate" title="Locate Leaders/Parents">Locate</button>
             <button data-action="Filter" title="Show Completed Records">View</button>
@@ -265,7 +265,7 @@
             <button data-action="Enable" title="Make Adult Available">Enable</button>
             <button data-action="Disable" title="Make Adult Unavailable">Disable</button>
             <span class="eb-sep"></span>
-            <button data-action="Link" title="Link the highlighted adult to the selected scout as someone who came to support them, or unlink them">Link</button>
+            <button data-action="Link" title="Link the highlighted adult to the selected youth as someone who came to support them, or unlink them">Link</button>
          </div>
          <div class="eb-grid-adults" id="grid-adults"></div>
       </div>
@@ -753,12 +753,12 @@
 
             if (adult_list.length == 0 && supporting.length == 0) {
                ebToast("Cannot Locate",
-                  "Scout : <b>" + s_first.charAt(0) + " " + s_last + "</b><br/>Leader(s): '" + s_leader + "' <b>not registered.</b>",
+                  "Youth : <b>" + s_first.charAt(0) + " " + s_last + "</b><br/>Leader(s): '" + s_leader + "' <b>not registered.</b>",
                   "warn", 3000);
                return;
             }
 
-            var text = "Scout : <b>" + s_first + " " + s_last + " [" + s_room + "]</b>";
+            var text = "Youth : <b>" + s_first + " " + s_last + " [" + s_room + "]</b>";
             supporting.forEach(function (a) {
                text = text + "<br/>Supporting: <b>" + ebEscapeHtml(a.name) + " [" + ebEscapeHtml(a.room) + "] </b>";
             });
