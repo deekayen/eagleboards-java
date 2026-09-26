@@ -11,7 +11,7 @@
        PROVENANCE.md and the decompiled-raw / v2019.06.18-rebuild tags.
        Bump this in the same commit that cuts a release. The release workflow
        refuses to publish when the tag and this value disagree. -->
-  <version>2026.09.09</version>
+  <version>2026.09.26</version>
   <packaging>jar</packaging>
 
   <name>Eagle Board Scheduler</name>
