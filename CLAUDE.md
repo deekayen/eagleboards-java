@@ -221,4 +221,4 @@ push be the verification.
   working directory; there's usually nothing to `git pull` unless a Dependabot
   PR was merged on GitHub.
 - Follow-up work and decisions are tracked as GitHub issues on
-  `deekayen/eagleboards`.
+  `deekayen/eagleboards-java`.
