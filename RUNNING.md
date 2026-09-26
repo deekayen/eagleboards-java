@@ -26,7 +26,7 @@ automatically when there is no display, so a headless Pi is fine.
 ## Build
 
 ```sh
-git clone https://github.com/deekayen/eagleboards.git
+git clone https://github.com/deekayen/eagleboards-java.git
 cd eagleboards
 git config core.hooksPath scripts/hooks   # required; see SECURITY.md
 ./mvnw package

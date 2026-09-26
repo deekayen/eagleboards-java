@@ -59,7 +59,7 @@ works.
 ## First-time setup
 
 ```sh
-git clone https://github.com/deekayen/eagleboards.git
+git clone https://github.com/deekayen/eagleboards-java.git
 cd eagleboards
 git config core.hooksPath scripts/hooks   # REQUIRED - see "Never commit data"
 ```
