@@ -546,7 +546,7 @@ function ProcessSeatBoard(s_id) {
                if (result) {
                   showChairDialog(rm_id);
                }
-            });
+            }, "Use This Room");
          return;
       } else if (rm_data.Scout.length > 2) {
          ebAlert("Schedule Error",
@@ -566,7 +566,7 @@ function ProcessSeatBoard(s_id) {
       }
       ebModalForm("Seat Board",
          "<label>Chair: <select name='Chair'>" + opts + "</select></label>",
-         [{ name: "Okay", label: "Okay" }, { name: "Cancel", label: "Cancel" }],
+         [{ name: "Okay", label: "Seat Board" }, { name: "Cancel", label: "Cancel" }],
          function (name, body) {
             if (name == "Okay") {
                var actual_chair_id = body.querySelector("select[name='Chair']").value;
@@ -632,7 +632,7 @@ function ProcessSeatBoard(s_id) {
                   if (res) {
                      proceedToRoomCheck();
                   }
-               });
+               }, "Seat Anyway");
             return;
          }
       } else if (s_btype == "Project") {
@@ -663,7 +663,7 @@ function ProcessSeatBoard(s_id) {
                   if (res) {
                      proceedToRoomCheck();
                   }
-               });
+               }, "Seat Anyway");
             return;
          }
       } else {
@@ -719,7 +719,7 @@ function ProcessSeatBoard(s_id) {
             if (res) {
                proceedToCountChecks();
             }
-         });
+         }, "Seat Anyway");
       return;
    }
 

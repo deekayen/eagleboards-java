@@ -15,7 +15,7 @@ function ProcessPostponeBoard(s_id) {
             if (result) {
                SendPostponeRequest(s_id);
             }
-         });
+         }, "Postpone");
    } else {
       ebAlert("Postpone Error",
          "Postpone Error<br/>Invalid Status: '" + s_status + "'<br/>Expected: 'Registered' | 'Verified'", "scout");

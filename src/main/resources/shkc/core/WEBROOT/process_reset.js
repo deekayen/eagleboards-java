@@ -15,7 +15,7 @@ function ProcessResetBoard(s_id) {
             if (result) {
                SendResetRequest(s_id);
             }
-         });
+         }, "Reset");
    } else {
       ebAlert("Reset Error",
          "Reset Error<br/>Invalid Status: '" + s_status + "'<br/>Expected: 'Verified' | 'Seated' | 'InProgress'", "scout");

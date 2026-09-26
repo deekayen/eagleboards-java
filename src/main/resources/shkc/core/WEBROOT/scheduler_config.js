@@ -237,64 +237,65 @@ function ebMessage(title, html, region) {
    ebShowMessage(region, "ok", title, html);
 }
 
-function ebModalOverlay() {
-   var ov = document.createElement("div");
-   ov.className = "eb-modal-overlay";
-   return ov;
+function ebDialogEl() {
+   var dlg = document.createElement("dialog");
+   dlg.className = "eb-dialog";
+   document.body.appendChild(dlg);
+   return dlg;
 }
 
-// Confirm dialog. callback(true|false).
-function ebConfirm(title, html, callback) {
-   var ov = ebModalOverlay();
-   var box = document.createElement("div");
-   box.className = "eb-modal";
-   box.innerHTML = "<div class='eb-modal-title'>" + title + "</div>"
-      + "<div class='eb-modal-body'>" + html + "</div>"
-      + "<div class='eb-modal-buttons'>"
-      + "<button class='eb-ok'>OK</button>"
-      + "<button class='eb-cancel'>Cancel</button>"
+// Confirm dialog (P-4: native <dialog>/showModal). callback(true|false).
+// Esc/backdrop close the same as Cancel. okLabel defaults to "OK" but
+// should usually be the concrete verb the title asks about (P-4: buttons
+// are verbs that answer the title).
+function ebConfirm(title, html, callback, okLabel) {
+   var dlg = ebDialogEl();
+   dlg.innerHTML = "<div class='eb-dialog-title'>" + title + "</div>"
+      + "<div class='eb-dialog-body'>" + html + "</div>"
+      + "<div class='eb-dialog-buttons'>"
+      + "<button type='button' class='eb-cancel' data-name='Cancel'>Cancel</button>"
+      + "<button type='button' class='eb-ok'>" + (okLabel || "OK") + "</button>"
       + "</div>";
-   ov.appendChild(box);
-   document.body.appendChild(ov);
-   function done(result) {
-      document.body.removeChild(ov);
+   var result = false;
+   dlg.querySelector(".eb-ok").addEventListener("click", function () { result = true; dlg.close(); });
+   dlg.querySelector(".eb-cancel").addEventListener("click", function () { dlg.close(); });
+   dlg.addEventListener("close", function () {
+      dlg.remove();
       if (callback) { callback(result); }
-   }
-   box.querySelector(".eb-ok").addEventListener("click", function () { done(true); });
-   box.querySelector(".eb-cancel").addEventListener("click", function () { done(false); });
-   box.querySelector(".eb-ok").focus();
+   });
+   dlg.showModal();
+   dlg.querySelector(".eb-ok").focus();
 }
 
-// Modal with arbitrary body HTML and named buttons.
+// Modal with arbitrary body HTML and named buttons (P-4: native <dialog>).
 // buttons: [{name, label}], callback(name, bodyElement) — return false from
-// callback to keep the dialog open (for validation).
+// callback to keep the dialog open (for validation). Esc/backdrop close
+// without calling back, same as a Cancel button with no handler.
 function ebModalForm(title, bodyHtml, buttons, callback) {
-   var ov = ebModalOverlay();
-   var box = document.createElement("div");
-   box.className = "eb-modal";
+   var dlg = ebDialogEl();
    var btnHtml = "";
    for (var i = 0; i < buttons.length; i++) {
-      btnHtml += "<button data-name='" + buttons[i].name + "'>" + buttons[i].label + "</button>";
+      btnHtml += "<button type='button' data-name='" + buttons[i].name + "'>" + buttons[i].label + "</button>";
    }
-   box.innerHTML = "<div class='eb-modal-title'>" + title + "</div>"
-      + "<div class='eb-modal-body'></div>"
-      + "<div class='eb-modal-buttons'>" + btnHtml + "</div>";
-   var body = box.querySelector(".eb-modal-body");
+   dlg.innerHTML = "<div class='eb-dialog-title'>" + title + "</div>"
+      + "<div class='eb-dialog-body'></div>"
+      + "<div class='eb-dialog-buttons'>" + btnHtml + "</div>";
+   var body = dlg.querySelector(".eb-dialog-body");
    body.innerHTML = bodyHtml;
-   ov.appendChild(box);
-   document.body.appendChild(ov);
-   var btns = box.querySelectorAll(".eb-modal-buttons button");
+   var btns = dlg.querySelectorAll(".eb-dialog-buttons button");
    for (var b = 0; b < btns.length; b++) {
       (function (btn) {
          btn.addEventListener("click", function () {
             var keep = callback && callback(btn.getAttribute("data-name"), body);
             if (keep !== false) {
-               document.body.removeChild(ov);
+               dlg.close();
             }
          });
       })(btns[b]);
    }
+   dlg.addEventListener("close", function () { dlg.remove(); });
+   dlg.showModal();
    var first = body.querySelector("input,select,textarea");
    if (first) { first.focus(); }
-   return { close: function () { if (ov.parentNode) { document.body.removeChild(ov); } }, body: body };
+   return { close: function () { dlg.close(); }, body: body };
 }

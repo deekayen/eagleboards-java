@@ -448,20 +448,31 @@ body.eb-operator .eb-adult-selected {
 }
 body.eb-operator .eb-adult-selected .tabulator-cell { color: var(--eb-dark-gray); }
 
-/* Modals and toasts */
-body.eb-operator .eb-modal-title {
+/* Native <dialog> (P-4). The backdrop and centering are the browser's;
+   only its color needs stating. */
+dialog.eb-dialog::backdrop {
+   background: rgba(0, 0, 0, 0.35);
+}
+body.eb-operator .eb-dialog-title {
    background: var(--eb-olive);
    color: var(--eb-light-tan);
    border-bottom: none;
 }
-body.eb-operator .eb-modal-buttons button {
+body.eb-operator .eb-dialog-buttons button {
    min-height: 32px;
    padding: 5px 20px;
    font-weight: 700;
    color: #ffffff;
    background: var(--eb-olive);
    border: 1px solid var(--eb-olive);
-   border-radius: 3px;
+}
+/* Cancel answers no action, so it's the same white/neutral intent as the
+   toolbar's navigation buttons, not the primary olive fill. */
+body.eb-operator .eb-dialog-buttons button.eb-cancel,
+body.eb-operator .eb-dialog-buttons button[data-name="Cancel"] {
+   color: var(--eb-heading);
+   background: var(--eb-page-bg);
+   border-color: var(--eb-heading);
 }
 /* Persistent messages (D-14): white on Scouting Red = 5.63:1, light tan on
    olive = 9.58:1 -- both fixed pairings, unaffected by theme (see the

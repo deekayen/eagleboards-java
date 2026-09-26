@@ -56,7 +56,7 @@ function ProcessStartReview(s_id) {
          if (result) {
             SendStartReviewRequest(s_id);
          }
-      });
+      }, "Start Review");
 }
 
 function SendStartReviewRequest(s_id) {

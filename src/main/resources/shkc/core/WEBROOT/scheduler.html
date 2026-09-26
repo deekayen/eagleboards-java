@@ -172,48 +172,39 @@
             padding: 0 2px;
          }
 
-         /* modal dialogs */
-         .eb-modal-overlay {
-            position: fixed;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0,0,0,0.35);
-            z-index: 1100;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-         }
-         .eb-modal {
-            background: #ffffff;
-            border: 1px solid #888;
+         /* native <dialog> (P-4): see ebConfirm/ebModalForm in
+            scheduler_config.js. The browser supplies the backdrop and
+            centering; ::backdrop is styled in eb-ui.css. */
+         dialog.eb-dialog {
+            border: 1px solid var(--eb-line);
             border-radius: 4px;
             min-width: 300px;
             max-width: 480px;
+            padding: 0;
             box-shadow: 0 4px 16px rgba(0,0,0,0.35);
             text-align: left;
+            background: var(--eb-page-bg);
+            color: var(--eb-dark-gray);
          }
-         .eb-modal-title {
-            background: #E9E9E4;
-            border-bottom: 1px solid #b6b0a4;
+         .eb-dialog-title {
             padding: 6px 10px;
             font-weight: bold;
             font-size: 14px;
          }
-         .eb-modal-body {
+         .eb-dialog-body {
             padding: 12px;
             font-size: 13px;
          }
-         .eb-modal-body label { font-size: 13px; }
-         .eb-modal-buttons {
+         .eb-dialog-body label { font-size: 13px; }
+         .eb-dialog-buttons {
             padding: 8px 12px 12px 12px;
             display: flex;
             gap: 12px;
             justify-content: center;
          }
-         .eb-modal-buttons button {
+         .eb-dialog-buttons button {
             padding: 4px 18px;
-            border: 1px solid #b6b0a4;
             border-radius: 3px;
-            background: #E9E9E4;
             cursor: pointer;
             font-size: 13px;
          }
@@ -854,7 +845,7 @@
                      if (result) {
                         ProcessRemoveRoom(room);
                      }
-                  });
+                  }, "Remove");
                }
             } else {
                ebAlert("Remove Room Error", "No Room Selected", "room");
@@ -914,7 +905,7 @@
                            if (result) {
                               ProcessChangeRoom(rmid1, rmid2);
                            }
-                        });
+                        }, "Change Anyway");
                   } else {
                      ProcessChangeRoom(rmid1, rmid2);
                   }
