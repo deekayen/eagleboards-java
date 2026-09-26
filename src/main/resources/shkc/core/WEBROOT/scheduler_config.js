@@ -299,3 +299,50 @@ function ebModalForm(title, bodyHtml, buttons, callback) {
    if (first) { first.focus(); }
    return { close: function () { dlg.close(); }, body: body };
 }
+
+// P-1: a right-click menu built on the Popover API, offering the same
+// actions as a toolbar's own buttons -- one item per enabled button,
+// clicking it just clicks that button, so the action lives in exactly one
+// place. buttons: an array of the real <button> elements (disabled ones
+// are left out); x/y: viewport coordinates (e.g. a contextmenu event's
+// clientX/clientY).
+function ebContextMenu(buttons, x, y) {
+   var old = document.getElementById("eb-context-menu");
+   if (old) {
+      old.remove();
+   }
+
+   var enabled = buttons.filter(function (btn) { return btn && !btn.disabled; });
+   if (enabled.length === 0) {
+      return;
+   }
+
+   var menu = document.createElement("div");
+   menu.id = "eb-context-menu";
+   menu.className = "eb-context-menu";
+   menu.setAttribute("popover", "auto");
+
+   enabled.forEach(function (btn) {
+      var item = document.createElement("button");
+      item.type = "button";
+      item.textContent = btn.textContent;
+      if (btn.title) {
+         item.title = btn.title;
+      }
+      item.addEventListener("click", function () {
+         menu.hidePopover();
+         btn.click();
+      });
+      menu.appendChild(item);
+   });
+
+   document.body.appendChild(menu);
+   menu.style.left = x + "px";
+   menu.style.top = y + "px";
+   menu.showPopover();
+   menu.addEventListener("toggle", function (ev) {
+      if (ev.newState === "closed") {
+         menu.remove();
+      }
+   });
+}

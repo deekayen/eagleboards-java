@@ -123,7 +123,7 @@ function SchedulerAdultGrid(container_id, toolbar_id, title) {
                if (result == true) {
                   this_obj.updateRoom(r_id, "N/A");
                }
-            });
+            }, "Disable");
          }
       } else if (id === "Link") {
          this_obj.toggleSupportLink();
@@ -141,7 +141,7 @@ function SchedulerAdultGrid(container_id, toolbar_id, title) {
                   if (result == true) {
                      this_obj.updateRoom(e_id, "");
                   }
-               });
+               }, "Enable");
             }
          }
       }
@@ -195,6 +195,12 @@ SchedulerAdultGrid.prototype.prepareRows = function (rows) {
 
 SchedulerAdultGrid.prototype.onUserSelect = function (l_id) {
    this.updateButtonStatus(l_id);
+};
+
+// P-1: the per-adult actions, not View/Clear (those are page settings, not
+// something done to this adult).
+SchedulerAdultGrid.prototype.onContextMenu = function (l_id, e) {
+   ebContextMenu([this.buttons.Enable, this.buttons.Disable, this.buttons.Link], e.clientX, e.clientY);
 };
 
 SchedulerAdultGrid.prototype.updateSelected = function (l_id) {
@@ -467,5 +473,5 @@ SchedulerAdultGrid.prototype.toggleSupportLink = function () {
          .catch(function () {
             ebAlert("Link Error", "The change was not saved.", "adult");
          });
-   });
+   }, linked ? "Unlink" : "Link");
 };

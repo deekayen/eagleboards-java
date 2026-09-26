@@ -69,6 +69,16 @@ function SchedulerGrid(container_id, title, url, columns, colnames) {
       this_obj.onUserSelect(row.getIndex());
    });
 
+   // P-1: right-click offers the same actions as the toolbar, for whichever
+   // row is under the pointer -- selects it first, same as a left click,
+   // then defers to the subclass (each toolbar's buttons differ).
+   this.table.on("rowContext", function (e, row) {
+      e.preventDefault();
+      this_obj.setSelected(row.getIndex());
+      this_obj.onUserSelect(row.getIndex());
+      this_obj.onContextMenu(row.getIndex(), e);
+   });
+
    // Tabulator initializes asynchronously; data/filter calls must wait.
    this._built = false;
    this.ready = new Promise(function (resolve) {
@@ -85,6 +95,10 @@ SchedulerGrid.prototype.constructor = SchedulerGrid;
 SchedulerGrid.prototype.styleRow = function (row) {
    SCHEDULER_styleRowByStatus(row, row.getIndex() === this._selectedId);
 };
+
+// No menu unless a subclass defines one (P-1). id: the row just
+// right-clicked and selected; e: the contextmenu event (for clientX/Y).
+SchedulerGrid.prototype.onContextMenu = function (id, e) {};
 
 SchedulerGrid.prototype.isRowSelected = function (id) {
    return id === this._selectedId;

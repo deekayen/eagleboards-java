@@ -175,6 +175,15 @@ SchedulerScoutGrid.prototype.onUserSelect = function (s_id) {
    SCHEDULER_selectScout(s_id);
 };
 
+// P-1: the board-lifecycle actions, not the View toggle (that's a page
+// setting, not something done to this youth).
+SchedulerScoutGrid.prototype.onContextMenu = function (s_id, e) {
+   ebContextMenu(
+      [this.buttons.Seat, this.buttons.Start, this.buttons.Complete,
+       this.buttons.Locate, this.buttons.Reset, this.buttons.Postpone],
+      e.clientX, e.clientY);
+};
+
 SchedulerScoutGrid.prototype.updateSelected = function (id) {
    this.updateButtonStatus(id);
 };

@@ -172,6 +172,35 @@
             padding: 0 2px;
          }
 
+         /* P-1: right-click menu built on the Popover API. See
+            ebContextMenu in scheduler_config.js. */
+         .eb-context-menu {
+            margin: 0;
+            padding: 4px;
+            border: 1px solid var(--eb-line);
+            border-radius: 4px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.35);
+            background: var(--eb-page-bg);
+            display: flex;
+            flex-direction: column;
+            min-width: 160px;
+         }
+         .eb-context-menu button {
+            display: block;
+            width: 100%;
+            padding: 6px 10px;
+            border: none;
+            background: none;
+            color: var(--eb-dark-gray);
+            text-align: left;
+            font-size: 13px;
+            cursor: pointer;
+         }
+         .eb-context-menu button:hover,
+         .eb-context-menu button:focus-visible {
+            background: var(--eb-surface);
+         }
+
          /* native <dialog> (P-4): see ebConfirm/ebModalForm in
             scheduler_config.js. The browser supplies the backdrop and
             centering; ::backdrop is styled in eb-ui.css. */
@@ -341,6 +370,18 @@
                card.addEventListener("click", function () {
                   var id = this.getAttribute("data-id");
                   t.select(id, false);
+               });
+               // P-1: right-click offers Remove/Change Room for this card,
+               // reusing the same main-toolbar buttons Add/Remove/Change
+               // Room already are.
+               card.addEventListener("contextmenu", function (e) {
+                  e.preventDefault();
+                  var id = this.getAttribute("data-id");
+                  t.select(id, false);
+                  ebContextMenu([
+                     document.querySelector('#main-toolbar [data-action="RemoveRoom"]'),
+                     document.querySelector('#main-toolbar [data-action="ChangeRoom"]')
+                  ], e.clientX, e.clientY);
                });
                this.el.appendChild(card);
             }
