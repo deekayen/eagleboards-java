@@ -83,7 +83,8 @@ function SchedulerScoutGrid(container_id, toolbar_id, title) {
            headerFilter: "list", headerFilterParams: { valuesLookup: true, clearable: true } },
          { title: "F/P", field: "BoardType", width: 70, headerFilter: "list", headerFilterParams: { valuesLookup: true, clearable: true } },
          { title: "RM#", field: "Room", width: 64, headerFilter: "list", headerFilterParams: { valuesLookup: true, clearable: true } },
-         { title: "Status", field: "Status", width: 100, sorter: sort_status, headerFilter: "list", headerFilterParams: { valuesLookup: true, clearable: true } },
+         { title: "Status", field: "Status", width: 100, sorter: sort_status, headerFilter: "list", headerFilterParams: { valuesLookup: true, clearable: true },
+           formatter: function (cell) { return SCHEDULER_statusCellHtml(cell.getValue()); } },
          { title: "Leader", field: "Leader", widthGrow: 1, headerFilter: "input" }
       ],
       // The last two are not shown; auto-select reads them to tell when each

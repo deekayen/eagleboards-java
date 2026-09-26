@@ -168,20 +168,22 @@ function SchedulerAdultGrid(container_id, toolbar_id, title) {
 SchedulerAdultGrid.prototype = new SchedulerGrid();
 SchedulerAdultGrid.prototype.constructor = SchedulerAdultGrid;
 
-// Adults are colored by availability, not status.
+// Adults are colored by availability, not status. RM# already shows the
+// same room/"N/A" as text two columns over, so this is a redundant cue
+// rather than the only one (see the file header on the "ST" icon column
+// that was removed for the opposite reason: restating RM# with no
+// accessible name of its own).
 SchedulerAdultGrid.prototype.styleRow = function (row) {
    var el = row.getElement();
    var room = row.getData().Room || "";
    var selected = this.isRowSelected(row.getIndex());
+   el.classList.remove("eb-adult-gone", "eb-adult-committed");
    if (room === "N/A") {
-      el.style.color = "#888888";
+      el.classList.add("eb-adult-gone");
    } else if (room.length > 0) {
-      el.style.color = "#ff0000";
-   } else {
-      el.style.color = "#000000";
+      el.classList.add("eb-adult-committed");
    }
-   el.style.backgroundColor = selected ? "#e8f0fe" : "";
-   el.style.textDecoration = selected ? "underline" : "";
+   el.classList.toggle("eb-adult-selected", !!selected);
 };
 
 SchedulerAdultGrid.prototype.prepareRows = function (rows) {

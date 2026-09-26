@@ -28,26 +28,46 @@ var SCHEDULER_FinalRedTime = 45;
 
 var SCHEDULER_Config = null;
 
-var status2StyleMap = {};
-var status2SelectedStyleMap = {};
+// Status appearance (D-13) is theme-driven: eb-ui.css defines a background
+// (and its own dark-mode variant) for each of these classes, applied to the
+// row alongside eb-row-selected. No JS color map, no inline styles.
+var status2Class = {
+   "Registered": "eb-status-registered",
+   "Verified": "eb-status-verified",
+   "Seated": "eb-status-seated",
+   "InProgress": "eb-status-inprogress",
+   "Completed": "eb-status-completed",
+   "Postponed": "eb-status-postponed"
+};
 
-function SCHEDULER_setDefaultColors() {
-   status2StyleMap["Registered"] = "#ffcccc";
-   status2StyleMap["Verified"] = "#ffffcc";
-   status2StyleMap["Seated"] = "#ccffff";
-   status2StyleMap["InProgress"] = "#ccffcc";
-   status2StyleMap["Completed"] = "#ffffff";
-   status2StyleMap["Postponed"] = "#909090";
+// A small currentColor glyph beside the status text, so status is never
+// color alone (D-13). Shapes, not colors, carry the distinction: a hollow
+// ring waiting, a half-filled ring convening, a filled circle under way, a
+// check for done, two bars for on hold.
+var status2IconPath = {
+   "Registered": "<circle cx='6' cy='6' r='4.25' fill='none' stroke='currentColor' stroke-width='1.7'/>",
+   "Verified": "<circle cx='6' cy='6' r='4.25' fill='none' stroke='currentColor' stroke-width='1.7'/><circle cx='6' cy='6' r='1.6' fill='currentColor'/>",
+   "Seated": "<path d='M6 1.5a4.5 4.5 0 000 9 4.5 4.5 0 010-9z' fill='currentColor'/><circle cx='6' cy='6' r='4.25' fill='none' stroke='currentColor' stroke-width='1.7'/>",
+   "InProgress": "<circle cx='6' cy='6' r='4.5' fill='currentColor'/>",
+   "Completed": "<path d='M2.2 6.3l2.4 2.4 5.2-5.6' fill='none' stroke='currentColor' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/>",
+   "Postponed": "<rect x='2.8' y='2' width='2' height='8' fill='currentColor'/><rect x='7.2' y='2' width='2' height='8' fill='currentColor'/>"
+};
 
-   status2SelectedStyleMap["Registered"] = "#ff6666";
-   status2SelectedStyleMap["Verified"] = "#ffff66";
-   status2SelectedStyleMap["Seated"] = "#66ffff";
-   status2SelectedStyleMap["InProgress"] = "#66ff66";
-   status2SelectedStyleMap["Completed"] = "#eeeeee";
-   status2SelectedStyleMap["Postponed"] = "#9f7f7f";
+// Tabulator "Status" column formatter for the scout and board grids.
+function SCHEDULER_statusCellHtml(status) {
+   var path = status2IconPath[status];
+   var icon = path
+      ? "<svg class='eb-status-icon' viewBox='0 0 12 12' aria-hidden='true' focusable='false'>" + path + "</svg>"
+      : "";
+   return "<span class='eb-status-cell'>" + icon + status + "</span>";
 }
 
-SCHEDULER_setDefaultColors();
+// Per-status color overrides read from config.properties (RegisteredColor..
+// PostponedHiColor). These stay readable for an older file that still sets
+// them (SPEC.md D-13); a new config does not, and the theme default in
+// eb-ui.css applies with no override at all.
+var status2Override = {};
+var status2SelectedOverride = {};
 
 // The server's toJSON emits keys without quotes: {Name: "DEFAULT", ...}
 function ebParseLooseJSON(text) {
@@ -76,19 +96,19 @@ var SCHEDULER_configReady = fetch("/config-autofill?Name=DEFAULT&fmt=json")
          SCHEDULER_FinalYellowTime = parseInt(SCHEDULER_Config.FinalYellowMins, 10) || SCHEDULER_FinalYellowTime;
          SCHEDULER_FinalRedTime = parseInt(SCHEDULER_Config.FinalRedMins, 10) || SCHEDULER_FinalRedTime;
 
-         status2StyleMap["Registered"] = SCHEDULER_Config.RegisteredColor || status2StyleMap["Registered"];
-         status2StyleMap["Verified"] = SCHEDULER_Config.VerifiedColor || status2StyleMap["Verified"];
-         status2StyleMap["Seated"] = SCHEDULER_Config.SeatedColor || status2StyleMap["Seated"];
-         status2StyleMap["InProgress"] = SCHEDULER_Config.InProgressColor || status2StyleMap["InProgress"];
-         status2StyleMap["Completed"] = SCHEDULER_Config.CompletedColor || status2StyleMap["Completed"];
-         status2StyleMap["Postponed"] = SCHEDULER_Config.PostponedColor || status2StyleMap["Postponed"];
+         status2Override["Registered"] = SCHEDULER_Config.RegisteredColor;
+         status2Override["Verified"] = SCHEDULER_Config.VerifiedColor;
+         status2Override["Seated"] = SCHEDULER_Config.SeatedColor;
+         status2Override["InProgress"] = SCHEDULER_Config.InProgressColor;
+         status2Override["Completed"] = SCHEDULER_Config.CompletedColor;
+         status2Override["Postponed"] = SCHEDULER_Config.PostponedColor;
 
-         status2SelectedStyleMap["Registered"] = SCHEDULER_Config.RegisteredHiColor || status2SelectedStyleMap["Registered"];
-         status2SelectedStyleMap["Verified"] = SCHEDULER_Config.VerifiedHiColor || status2SelectedStyleMap["Verified"];
-         status2SelectedStyleMap["Seated"] = SCHEDULER_Config.SeatedHiColor || status2SelectedStyleMap["Seated"];
-         status2SelectedStyleMap["InProgress"] = SCHEDULER_Config.InProgressHiColor || status2SelectedStyleMap["InProgress"];
-         status2SelectedStyleMap["Completed"] = SCHEDULER_Config.CompletedHiColor || status2SelectedStyleMap["Completed"];
-         status2SelectedStyleMap["Postponed"] = SCHEDULER_Config.PostponedHiColor || status2SelectedStyleMap["Postponed"];
+         status2SelectedOverride["Registered"] = SCHEDULER_Config.RegisteredHiColor;
+         status2SelectedOverride["Verified"] = SCHEDULER_Config.VerifiedHiColor;
+         status2SelectedOverride["Seated"] = SCHEDULER_Config.SeatedHiColor;
+         status2SelectedOverride["InProgress"] = SCHEDULER_Config.InProgressHiColor;
+         status2SelectedOverride["Completed"] = SCHEDULER_Config.CompletedHiColor;
+         status2SelectedOverride["Postponed"] = SCHEDULER_Config.PostponedHiColor;
       }
       console.log(SCHEDULER_Config);
       return SCHEDULER_Config;
@@ -147,26 +167,34 @@ function sort_regnum(a, b) {
    return (isNaN(na) ? 0 : na) - (isNaN(nb) ? 0 : nb);
 }
 
-// Returns {background, selected} styling info for a status.
-function status2style(status, selected) {
-   if (selected) {
-      return status2SelectedStyleMap[status];
-   }
-   return status2StyleMap[status];
-}
-
-// Applies status coloring to a Tabulator row element.
+// Applies the status class (D-13, D-16: see eb-ui.css) to a Tabulator row
+// element, plus any config.properties color override for an older file
+// (set as custom properties the class's CSS reads with a var() fallback --
+// see SCHEDULER_statusIconHtml's comment above status2Override).
 function SCHEDULER_styleRowByStatus(row, selected) {
    var el = row.getElement();
    var status = row.getData().Status;
-   var bg = status2style(status, selected);
-   if (bg) {
-      el.style.backgroundColor = bg;
-   } else {
-      el.style.backgroundColor = "";
+
+   for (var key in status2Class) {
+      el.classList.remove(status2Class[key]);
    }
-   el.style.textDecoration = selected ? "underline" : "";
-   el.style.color = "#000000";
+   if (status2Class[status]) {
+      el.classList.add(status2Class[status]);
+   }
+   el.classList.toggle("eb-row-selected", !!selected);
+
+   var override = status2Override[status];
+   var selectedOverride = status2SelectedOverride[status];
+   if (override) {
+      el.style.setProperty("--eb-status-override", override);
+   } else {
+      el.style.removeProperty("--eb-status-override");
+   }
+   if (selectedOverride) {
+      el.style.setProperty("--eb-status-override-selected", selectedOverride);
+   } else {
+      el.style.removeProperty("--eb-status-override-selected");
+   }
 }
 
 // ------------------------------------------------------------------------

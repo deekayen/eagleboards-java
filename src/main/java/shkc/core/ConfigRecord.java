@@ -50,18 +50,10 @@ public class ConfigRecord extends DataRecord {
       this.setIfNotSet("ProjectRedMins", "40");
       this.setIfNotSet("FinalYellowMins", "30");
       this.setIfNotSet("FinalRedMins", "45");
-      this.setIfNotSet("RegisteredColor", "#ffcccc");
-      this.setIfNotSet("VerifiedColor", "#ffffcc");
-      this.setIfNotSet("SeatedColor", "#ccffff");
-      this.setIfNotSet("InProgressColor", "#ccffcc");
-      this.setIfNotSet("CompletedColor", "#ffffff");
-      this.setIfNotSet("PostponedColor", "#909090");
-      this.setIfNotSet("RegisteredHiColor", "#ff6666");
-      this.setIfNotSet("VerifiedHiColor", "#ffff66");
-      this.setIfNotSet("SeatedHiColor", "#66ffff");
-      this.setIfNotSet("InProgressHiColor", "#66ff66");
-      this.setIfNotSet("CompletedHiColor", "#eeeeee");
-      this.setIfNotSet("PostponedHiColor", "#9f7f7f");
+      // RegisteredColor..PostponedHiColor (see COLUMNS) are read but no longer
+      // defaulted here: colors now come from the theme (D-13), and these keys
+      // exist only so an older config.properties that still sets them keeps
+      // loading and saving correctly rather than losing the columns.
    }
 
    private void setIfNotSet(String column, String defaultValue) {

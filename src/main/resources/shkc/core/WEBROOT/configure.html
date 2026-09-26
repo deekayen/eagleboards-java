@@ -10,10 +10,10 @@
             margin: 0 auto;
          }
          .cfg-manager {
-            border: 1px solid #b6b0a4;
+            border: 1px solid var(--eb-line);
             border-radius: 4px;
             padding: 12px 16px 16px 16px;
-            background: #ffffff;
+            background: var(--eb-page-bg);
          }
          .cfg-manager > legend {
             font-weight: bold;
@@ -27,7 +27,7 @@
             justify-content: center;
          }
          .cfg-columns fieldset {
-            border: 1px solid #cbd8e4;
+            border: 1px solid var(--eb-line);
             border-radius: 4px;
             padding: 10px 14px;
             margin: 0;
@@ -50,13 +50,9 @@
             width: 60px;
             font-size: 13px;
             padding: 2px 4px;
-         }
-         .cfg-row input[type=color] {
-            width: 48px;
-            height: 24px;
-            padding: 0;
-            border: 1px solid #999;
-            cursor: pointer;
+            color: var(--eb-dark-gray);
+            background: var(--eb-page-bg);
+            border: 1px solid var(--eb-line);
          }
          /* Provenance for the timer defaults. Sits inside the Settings
             fieldset and is wider than the number rows, so the column is
@@ -64,11 +60,11 @@
          .cfg-note {
             margin: 12px 0 2px;
             padding: 8px 10px;
-            border-top: 1px solid #cbd8e4;
+            border-top: 1px solid var(--eb-line);
             font-size: 11px;
             line-height: 1.45;
             text-align: left;
-            color: #333;
+            color: var(--eb-warm-gray);
             max-width: 380px;
          }
          .cfg-note p {
@@ -92,16 +88,17 @@
          }
          .cfg-buttons button {
             padding: 6px 24px;
-            border: 1px solid #b6b0a4;
+            border: 1px solid var(--eb-line);
             border-radius: 3px;
-            background: #E9E9E4;
+            background: var(--eb-surface);
+            color: var(--eb-dark-gray);
             font-weight: bold;
             font-size: 13px;
             cursor: pointer;
          }
          #cfg-status {
             text-align: center;
-            color: #a00;
+            color: var(--eb-red-text);
             font-size: 13px;
             min-height: 18px;
          }
@@ -167,36 +164,6 @@
                            your district actually runs.</p>
                      </div>
                   </fieldset>
-                  <fieldset>
-                     <legend>Normal Colors</legend>
-                     <div class="cfg-row"><label for="RegisteredColor">Registered:</label>
-                        <input type="color" id="RegisteredColor" name="RegisteredColor" value="#ffcccc"/></div>
-                     <div class="cfg-row"><label for="VerifiedColor">Verified:</label>
-                        <input type="color" id="VerifiedColor" name="VerifiedColor" value="#ffffcc"/></div>
-                     <div class="cfg-row"><label for="SeatedColor">Seated:</label>
-                        <input type="color" id="SeatedColor" name="SeatedColor" value="#ccffff"/></div>
-                     <div class="cfg-row"><label for="InProgressColor">InProgress:</label>
-                        <input type="color" id="InProgressColor" name="InProgressColor" value="#ccffcc"/></div>
-                     <div class="cfg-row"><label for="CompletedColor">Completed:</label>
-                        <input type="color" id="CompletedColor" name="CompletedColor" value="#ffffff"/></div>
-                     <div class="cfg-row"><label for="PostponedColor">Postponed:</label>
-                        <input type="color" id="PostponedColor" name="PostponedColor" value="#909090"/></div>
-                  </fieldset>
-                  <fieldset>
-                     <legend>Highlighted Colors</legend>
-                     <div class="cfg-row"><label for="RegisteredHiColor">Registered:</label>
-                        <input type="color" id="RegisteredHiColor" name="RegisteredHiColor" value="#ff6666"/></div>
-                     <div class="cfg-row"><label for="VerifiedHiColor">Verified:</label>
-                        <input type="color" id="VerifiedHiColor" name="VerifiedHiColor" value="#ffff66"/></div>
-                     <div class="cfg-row"><label for="SeatedHiColor">Seated:</label>
-                        <input type="color" id="SeatedHiColor" name="SeatedHiColor" value="#66ffff"/></div>
-                     <div class="cfg-row"><label for="InProgressHiColor">InProgress:</label>
-                        <input type="color" id="InProgressHiColor" name="InProgressHiColor" value="#66ff66"/></div>
-                     <div class="cfg-row"><label for="CompletedHiColor">Completed:</label>
-                        <input type="color" id="CompletedHiColor" name="CompletedHiColor" value="#eeeeee"/></div>
-                     <div class="cfg-row"><label for="PostponedHiColor">Postponed:</label>
-                        <input type="color" id="PostponedHiColor" name="PostponedHiColor" value="#9f7f7f"/></div>
-                  </fieldset>
                </div>
                <input type="hidden" name="Type" value="CONFIG"/>
                <input type="hidden" name="ID" value="DEFAULT"/>
@@ -228,9 +195,6 @@
 
          var TIME_FIELDS = ["RefreshTimeSecs", "ProjectYellowMins", "ProjectRedMins",
             "FinalYellowMins", "FinalRedMins"];
-         var COLOR_FIELDS = ["RegisteredColor", "VerifiedColor", "SeatedColor", "InProgressColor",
-            "CompletedColor", "PostponedColor", "RegisteredHiColor", "VerifiedHiColor",
-            "SeatedHiColor", "InProgressHiColor", "CompletedHiColor", "PostponedHiColor"];
 
          // populate from the stored DEFAULT config record
          fetch("/config-autofill?Name=DEFAULT&fmt=json")
@@ -247,13 +211,6 @@
                   v = cfg[TIME_FIELDS[i]];
                   if (el && v != null && v !== "") {
                      el.value = v;
-                  }
-               }
-               for (i = 0; i < COLOR_FIELDS.length; i++) {
-                  el = form.elements[COLOR_FIELDS[i]];
-                  v = cfg[COLOR_FIELDS[i]];
-                  if (el && v && /^#[0-9a-fA-F]{6}$/.test(v)) {
-                     el.value = v.toLowerCase();
                   }
                }
             })

@@ -75,7 +75,7 @@
             cursor: default;
          }
          .eb-toolbar .eb-sep {
-            border-left: 1px solid #b6b0a4;
+            border-left: 1px solid var(--eb-line);
             height: 20px;
          }
          .eb-toolbar .eb-title {
@@ -86,10 +86,13 @@
          .eb-toolbar input {
             font-size: 13px;
             padding: 2px 4px;
+            color: var(--eb-dark-gray);
+            background: var(--eb-page-bg);
+            border: 1px solid var(--eb-line);
          }
          .eb-panel {
-            border: 1px solid #b6b0a4;
-            background: #ffffff;
+            border: 1px solid var(--eb-line);
+            background: var(--eb-page-bg);
             display: flex;
             flex-direction: column;
             min-height: 0;
@@ -127,23 +130,18 @@
             padding: 6px;
             flex: 1 1 auto;
             min-height: 96px;
-            background: #ffffff;
+            background: var(--eb-page-bg);
          }
          .eb-room-card {
             flex: 0 0 200px;
             min-height: 84px;
-            border: 1px solid #cbd8e4;
+            border: 1px solid var(--eb-line);
             border-radius: 3px;
-            background: #E9E9E4;
             padding: 6px 8px;
             cursor: pointer;
             font-size: 13px;
             text-align: left;
             overflow: hidden;
-         }
-         .eb-room-card.selected {
-            background: #ffff99;
-            border-color: #b6b0a4;
          }
 
          /* toast notices */
