@@ -18,6 +18,7 @@
       <script src="scheduler_scout_grid.js"></script>
       <script src="scheduler_board_grid.js"></script>
       <script src="scheduler_adult_grid.js"></script>
+      <script src="scheduler_details_pane.js"></script>
 
       <style type="text/css">
          html, body { height: 100%; }
@@ -119,6 +120,75 @@
             flex: 1 1 auto;
             min-height: 80px;
          }
+
+         /* Details pane (D-10/D-11): the selected youth's board, beside the
+            queue -- room, members with the chair marked, live rule
+            feedback, then the free-adults grid filling what's left. See
+            SchedulerDetailsPane in scheduler_details_pane.js. */
+         #details-container {
+            display: flex;
+            flex-direction: column;
+            flex: 1 1 auto;
+            min-height: 0;
+            overflow: hidden;
+         }
+         .eb-details-empty {
+            padding: 12px;
+            color: var(--eb-warm-gray);
+            font-size: 13px;
+         }
+         .eb-details-content {
+            display: none;   /* SchedulerDetailsPane.render() shows it once a youth is selected */
+            flex: 1 1 auto;
+            overflow-y: auto;
+            min-height: 160px;
+            padding: 2px 8px 4px;
+         }
+         .eb-details-room {
+            font-size: 13px;
+            font-weight: bold;
+            padding: 6px 0 2px;
+         }
+         .eb-details-section-title {
+            font-size: 12px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: .02em;
+            color: var(--eb-warm-gray);
+            padding: 6px 8px 2px;
+            flex: 0 0 auto;
+         }
+         .eb-details-members-list {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+         }
+         .eb-details-member {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 3px 4px;
+            font-size: 13px;
+         }
+         .eb-details-member .eb-status-icon { width: 12px; height: 12px; }
+         .eb-details-chair { font-weight: bold; }
+         .eb-details-none { color: var(--eb-warm-gray); font-style: italic; }
+         .eb-details-remove {
+            margin-left: auto;
+            border: none;
+            background: none;
+            color: inherit;
+            font-size: 15px;
+            line-height: 1;
+            cursor: pointer;
+            padding: 0 4px;
+         }
+         .eb-details-problems {
+            font-size: 12px;
+            padding: 4px 8px;
+            color: var(--eb-red-text);
+         }
+         .eb-details-problems:empty { display: none; }
 
          /* room cards */
          #roomview {
@@ -279,32 +349,45 @@
       <div class="eb-panel">
          <div class="eb-panel-title">Youth</div>
          <div class="eb-toolbar" id="scout-toolbar">
-            <button data-action="Seat" title="Put the board members in a room to read the application, references and project workbook. The youth stays outside until you press Start Review.">Seat Board</button>
-            <button data-action="Start" title="Bring the youth into the room and begin the interview. Press this once the members are done reading and are ready for the candidate.">Start Review</button>
-            <button data-action="Complete" title="Finish the review and record the result. Available once the youth has been brought in.">Complete</button>
-            <span class="eb-sep"></span>
-            <button data-action="Locate" title="Locate Leaders/Parents">Locate</button>
             <button data-action="Filter" title="Show Completed Records">View</button>
-            <button data-action="Reset" title="Reset Board">Reset</button>
-            <button data-action="Postpone" title="Postpone Board">Postpone</button>
          </div>
          <div class="eb-messages" id="scout-messages"></div>
          <div class="eb-grid-scouts" id="grid-scouts"></div>
       </div>
 
-      <div class="eb-panel">
-         <div class="eb-panel-title">Adult Board Members</div>
-         <div class="eb-toolbar" id="adult-toolbar">
-            <button data-action="Filter" title="Show All Leaders">View</button>
-            <button data-action="Clear" title="Uncheck All">Clear</button>
+      <div class="eb-panel" id="details-panel">
+         <div class="eb-panel-title">Board Details</div>
+         <!-- D-10/D-11: the selected youth's board is built here, beside
+              the queue -- room, members with the chair marked, live rule
+              feedback, and one status-driven primary action. The Free
+              Adults grid below (schedulerLeaderGrid) is the "free adults
+              to add from" D-10 asks for: clicking a row there adds that
+              adult to the board being built. -->
+         <div class="eb-toolbar" id="details-toolbar">
+            <button data-action="Primary" title="Seat, start or complete this youth's board">Seat Board</button>
+            <button data-action="Fill" title="Propose a full board from scratch">Fill the Rest</button>
+            <button data-action="Clear" title="Unpick every member">Clear</button>
             <span class="eb-sep"></span>
-            <button data-action="Enable" title="Make Adult Available">Enable</button>
-            <button data-action="Disable" title="Make Adult Unavailable">Disable</button>
-            <span class="eb-sep"></span>
-            <button data-action="Link" title="Link the highlighted adult to the selected youth as someone who came to support them, or unlink them">Link</button>
+            <button data-action="Locate" title="Locate Leaders/Parents">Locate</button>
+            <button data-action="Reset" title="Reset Board">Reset</button>
+            <button data-action="Postpone" title="Postpone Board">Postpone</button>
          </div>
-         <div class="eb-messages" id="adult-messages"></div>
-         <div class="eb-grid-adults" id="grid-adults"></div>
+         <div class="eb-messages" id="details-messages"></div>
+         <div id="details-container" class="eb-details-container">
+            <div class="eb-details-empty">Select a youth to build their board.</div>
+            <div class="eb-details-content">
+               <div class="eb-details-room"></div>
+               <div class="eb-details-section-title">Members</div>
+               <ul class="eb-details-members-list"></ul>
+               <div class="eb-details-problems"></div>
+            </div>
+            <div class="eb-details-section-title">Free Adults</div>
+            <div class="eb-toolbar" id="adult-toolbar">
+               <button data-action="Filter" title="Show All Leaders">View</button>
+            </div>
+            <div class="eb-messages" id="adult-messages"></div>
+            <div class="eb-grid-adults" id="grid-adults"></div>
+         </div>
       </div>
       </div>
 
@@ -447,6 +530,8 @@
          // ------------------------------------------------------------
          // Panels
          // ------------------------------------------------------------
+         var detailsPane = new SchedulerDetailsPane("details-container", "details-toolbar", "details-messages");
+
          var schedulerScoutGrid = new SchedulerScoutGrid("grid-scouts", "scout-toolbar", "Youth");
          schedulerScoutGrid.load();
 
@@ -465,6 +550,7 @@
             }
             schedulerBoardGrid.highlight();
             schedulerScoutGrid.highlight();
+            detailsPane.render();
          };
 
          document.getElementById("room-filter").addEventListener("keyup", function (ev) {
@@ -561,76 +647,17 @@
          }
 
          function SCHEDULER_autoSelect(s_id) {
-            var s_last = schedulerScoutGrid.getColumnValue(s_id, "Last");
-            var s_first = schedulerScoutGrid.getColumnValue(s_id, "First");
-            var s_btype = schedulerScoutGrid.getColumnValue(s_id, "BoardType");
             var s_room = schedulerScoutGrid.getColumnValue(s_id, "Room");
             var s_status = schedulerScoutGrid.getColumnValue(s_id, "Status");
-
-            // Checked adults are the operator's work in progress: they have
-            // decided who is sitting this board. Clicking around the interface
-            // must not throw that away -- only the Adult panel's Clear button
-            // should. So when anything is already checked, leave the adult
-            // checkboxes and the room that goes with them completely alone.
-            var boardAlreadyChosen = schedulerLeaderGrid.getCheckedRowIds();
 
             // Row highlight is not a selection of people; always safe to reset.
             schedulerLeaderGrid.clearSelection();
             schedulerBoardGrid.clearSelection();
             schedulerScoutGrid.highlight();
 
-            if (boardAlreadyChosen) {
-               return;
-            }
-
-            schedulerLeaderGrid.uncheckAll();
-            roomView.unselectAll();
-
-            if (s_status == "Seated") {
+            if (s_status == "Seated" || s_status == "InProgress") {
                SCHEDULER_selectAllForRoom(s_room);
-            } else if (s_status == "InProgress") {
-               SCHEDULER_selectAllForRoom(s_room);
-            } else if (s_status == "Registered" || s_status == "Verified") {
-               // Auto-select used to be reachable only from "Verified". Removing
-               // the Verify step left every scout "Registered", which orphaned
-               // this whole block -- clicking a scout cleared the adults and
-               // then offered nothing back. "Verified" stays for legacy records.
-               // proposeBoard (process_seat.js) weighs the whole waiting line:
-               // it keeps chairs free for the boards still to come and spends
-               // adults whose troop rules them out for scouts still waiting.
-               var proposal = proposeBoard(
-                  SCHEDULER_scoutForProposal(s_id),
-                  SCHEDULER_adultsForProposal(),
-                  SCHEDULER_waitingForProposal(s_id));
-               var errors = proposal.problems.slice();
-               if (proposal.chairId) {
-                  schedulerLeaderGrid.checkRow(proposal.chairId);
-               }
-               proposal.memberIds.forEach(function (l_id) {
-                  schedulerLeaderGrid.checkRow(l_id);
-               });
-
-               var rm_found = null;
-               for (var r = 0; r < roomView.items.length; r++) {
-                  var data = roomView.items[r];
-                  if ((data.Scout == "" || data.Scout == "-")
-                          && (data.BoardType == s_btype)) {
-                     roomView.select(data.id, true);
-                     rm_found = data.id;
-                     break;
-                  }
-               }
-
-               if (!rm_found) {
-                  errors.push("No " + s_btype + " rooms available.");
-               }
-
-               if (errors.length > 0) {
-                  ebAlert("Auto Select Error", errors.join("<br/>"), "scout");
-               } else {
-                  ebMessage("Auto Select OK", "Ready to seat <b>" + s_last + ", " + s_first + "</b>.", "scout");
-               }
-            } else {
+            } else if (s_status != "Registered" && s_status != "Verified") {
                if ((s_room.length > 0) && (s_room !== "N/A")) {
                   SCHEDULER_selectAllForRoom(s_room);
                } else {
@@ -638,6 +665,14 @@
                }
                schedulerBoardGrid.highlight();
             }
+
+            // Picks, room targeting for a new board, and rule feedback are
+            // the details pane's job now (D-10); it no-ops when s_id is the
+            // same youth already showing, so re-selecting never throws away
+            // manual picks (this replaces the old "anything checked at all"
+            // guard, which could not tell a different scout's stale picks
+            // from this one's).
+            detailsPane.onScoutSelected(s_id);
          }
 
          function SCHEDULER_selectAllForRoom(room_num) {
@@ -645,8 +680,7 @@
                return;
             }
 
-            schedulerLeaderGrid.uncheckAll();
-            schedulerLeaderGrid.selectForRoom(room_num);
+            schedulerLeaderGrid.pickForRoom(room_num);
             schedulerBoardGrid.selectForRoom(room_num);
             schedulerScoutGrid.selectForRoom(room_num);
 
@@ -797,9 +831,13 @@
             var adult_list = leader_match.concat(parent_match);
 
             if (adult_list.length == 0 && supporting.length == 0) {
+               // Locate never mutates anything, so this failure branch never
+               // offers Undo -- unlike the "Located" success message below,
+               // which passes through undoLabel from a caller that reached
+               // Locate as a side effect of a reversible action (e.g. Complete).
                ebAlert("Cannot Locate",
                   "Youth : <b>" + s_first.charAt(0) + " " + s_last + "</b><br/>Leader(s): '" + s_leader + "' <b>not registered.</b>",
-                  "scout", undoLabel);
+                  "scout");
                return;
             }
 

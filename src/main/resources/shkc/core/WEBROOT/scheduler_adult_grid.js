@@ -1,8 +1,13 @@
 // ------------------------------------------------------------------------
-// scheduler_adult_grid.js — Adult Board Members panel (Tabulator).
+// scheduler_adult_grid.js — the "free adults to add from" grid inside the
+// details pane (D-10). Not a separate always-ticked grid: clicking a row
+// adds/removes that adult from the selected youth's board-in-progress
+// (SchedulerDetailsPane owns what "the board-in-progress" means); a picked
+// adult drops out of this list, since they're no longer free -- they show
+// up in the details pane's own Members list instead.
 //
-// Columns:  @ (Sel checkbox), Last, First, Unit, RM# (Room),
-//           Final (FinalBoard), Project (ProjectReview)
+// Columns:  Last, First, Unit, RM# (Room), Final (FinalBoard), Project
+//           (ProjectReview), WB (WoodBadge)
 //
 // There was an "ST" column here: a 44px person icon rendered from the Room
 // field -- plain when free, busy when seated, greyed when Room was "N/A".
@@ -10,11 +15,12 @@
 // was an abbreviation spelled out nowhere, and the <img> carried no alt or
 // title, so it was unreadable by hover or by screen reader. Removed rather
 // than captioned; RM# is the readable form of the same field.
-// Behavior: checking an adult marks them for the next Seat action and
-//           bubbles checked rows to the top; row text turns red when the
-//           adult is assigned to a room and grey when disabled (Room=N/A).
-// Toolbar:  View/Hide (hide assigned/unavailable), Clear (uncheck all),
-//           Enable / Disable (Room "" <-> "N/A" via /adult-update).
+//
+// Picks are client-side only (see SchedulerDetailsPane) -- there is no
+// server column for "who's currently picked" anymore. Enable/Disable/Link
+// live on the right-click menu only (P-1); each already carries the row id
+// straight from the click, so none of them need a separate "selected row"
+// concept the way picking briefly needed one before this rewrite.
 // ------------------------------------------------------------------------
 
 function SchedulerAdultGrid(container_id, toolbar_id, title) {
@@ -22,39 +28,6 @@ function SchedulerAdultGrid(container_id, toolbar_id, title) {
 
    SchedulerGrid.call(this, container_id, title, "/adult-cells",
       [
-         {
-            // 46, not 40: the heading plus the sort arrow needs 43px, so at
-            // 40 the "@" itself was being ellipsised. Every other truncated
-            // heading on this page was fixed by reclaiming the arrow's
-            // over-reserved padding in eb-ui.css; this column was the one
-            // case genuinely too narrow for its own title.
-            title: "@", field: "Sel", width: 46, hozAlign: "center",
-            sorter: "string", headerSort: true,
-            // An adult already sitting on a board, or stood down for the night
-            // (Room "N/A"), cannot join a second board -- ProcessSeatBoard and
-            // the server both refuse it. The box used to stay clickable while
-            // the "View" filter was showing everyone, so the operator could
-            // tick someone who was mid-board, have the tick saved, and only
-            // find out at Seat Board. Disable it at the source instead: the
-            // reason is in the tooltip, and Sel stays clean.
-            formatter: function (cell) {
-               var checked = cell.getValue() == "1";
-               var room = cell.getRow().getData().Room || "";
-               var why = "";
-               if (room === "N/A") {
-                  why = "Disabled for this event -- enable them first";
-               } else if (room.length > 0) {
-                  why = "Already seated on the board in room " + room;
-               }
-               return "<input type='checkbox'" + (checked ? " checked" : "")
-                  + (why ? " disabled title=\"" + why + "\"" : "") + "/>";
-            },
-            cellClick: function (e, cell) {
-               if (e.target && e.target.tagName === "INPUT" && !e.target.disabled) {
-                  this_obj.onCheck(cell.getRow().getIndex(), e.target.checked);
-               }
-            }
-         },
          { title: "Last", field: "Last", width: 90, headerFilter: "input" },
          { title: "First", field: "First", width: 90, headerFilter: "input" },
          // Display-only shortening; see scheduler_grid.js.
@@ -71,23 +44,16 @@ function SchedulerAdultGrid(container_id, toolbar_id, title) {
       ],
       // RegTime and Supporting are not shown; auto-select reads them for its
       // tie-breaks, and Start Review uses Supporting to say whom to fetch.
-      ["Sel", "Last", "First", "UnitName", "Room", "FinalBoard", "ProjectReview", "WoodBadge", "RegTime", "Supporting"]);
+      ["Last", "First", "UnitName", "Room", "FinalBoard", "ProjectReview", "WoodBadge", "RegTime", "Supporting"]);
 
    this_obj = this;
 
-   this.showAll = false;   // old "Filter" two-state: off = hide assigned/unavailable adults
-
-   // r_id -> "0"/"1" for a Sel write whose /adult-update save hasn't
-   // resolved yet. The periodic poll (refresh_polling, every RefreshTimeSecs)
-   // fetches independently of that save, so it can win the race and land with
-   // the pre-click value; mergeIncoming reasserts the local value until the
-   // save is confirmed, so the poll can't un-check a box out from under
-   // whoever just clicked it.
-   this._pendingSel = {};
+   this.showAll = false;   // old "Filter" two-state: off = hide assigned/unavailable/picked adults
+   this._picked = {};       // r_id -> true, this session's picks for the selected youth
 
    this.toolbar = document.getElementById(toolbar_id);
    this.buttons = {};
-   var names = ["Filter", "Clear", "Enable", "Disable", "Link"];
+   var names = ["Filter"];
    for (var i = 0; i < names.length; i++) {
       this.buttons[names[i]] = this.toolbar.querySelector("[data-action='" + names[i] + "']");
    }
@@ -103,47 +69,6 @@ function SchedulerAdultGrid(container_id, toolbar_id, title) {
          this_obj.showAll = !this_obj.showAll;
          this_obj.setFilterIcon(this_obj.showAll);
          this_obj.updateHidden(this_obj.showAll);
-      } else if (id === "Clear") {
-         this_obj.uncheckAll();
-      } else if (id === "Disable") {
-         var r_id = this_obj.getSelectedRowId();
-         if (!r_id) {
-            return;
-         }
-         var room = this_obj.getColumnValue(r_id, "Room");
-         var lname = this_obj.getColumnValue(r_id, "Last");
-         var fname = this_obj.getColumnValue(r_id, "First");
-
-         if (room === "N/A") {
-            ebAlert("Disable Error", fname + " " + lname + " already disabled.", "adult");
-         } else if (room && (room.length > 0)) {
-            ebAlert("Disable Error", fname + " " + lname + " is currently assigned to room " + room + ".", "adult");
-         } else {
-            ebConfirm("Confirm Disable", "Do you want to disable " + fname + " " + lname + "  ?", function (result) {
-               if (result == true) {
-                  this_obj.updateRoom(r_id, "N/A");
-               }
-            }, "Disable");
-         }
-      } else if (id === "Link") {
-         this_obj.toggleSupportLink();
-      } else if (id === "Enable") {
-         var e_id = this_obj.getSelectedRowId();
-         if (e_id) {
-            var e_room = this_obj.getColumnValue(e_id, "Room");
-            var e_lname = this_obj.getColumnValue(e_id, "Last");
-            var e_fname = this_obj.getColumnValue(e_id, "First");
-
-            if (e_room !== "N/A") {
-               ebAlert("Enable Error", e_fname + " " + e_lname + " is not disabled.", "adult");
-            } else {
-               ebConfirm("Confirm Enable", "Do you want to enable " + e_fname + " " + e_lname + "  ?", function (result) {
-                  if (result == true) {
-                     this_obj.updateRoom(e_id, "");
-                  }
-               }, "Enable");
-            }
-         }
       }
    });
 
@@ -151,6 +76,9 @@ function SchedulerAdultGrid(container_id, toolbar_id, title) {
 
    this.ready.then(function () {
       this_obj.table.setFilter(function (data) {
+         if (this_obj._picked[data.id]) {
+            return false;   // shown in the details pane's Members list instead
+         }
          if (!this_obj.showAll) {
             var room = data.Room || "";
             if (room.length > 0) {
@@ -186,121 +114,73 @@ SchedulerAdultGrid.prototype.styleRow = function (row) {
    el.classList.toggle("eb-adult-selected", !!selected);
 };
 
-SchedulerAdultGrid.prototype.prepareRows = function (rows) {
-   for (var i = 0; i < rows.length; i++) {
-      var v = rows[i].Sel;
-      rows[i].Sel = (v == "1" || v == "true") ? "1" : "0";
+// Clicking a free adult adds them to the youth currently selected in the
+// details pane; SchedulerDetailsPane decides whether that's allowed right
+// now (a youth must be selected, and not already Completed/Postponed).
+SchedulerAdultGrid.prototype.onUserSelect = function (l_id) {
+   if (typeof detailsPane !== "undefined") {
+      detailsPane.addMember(l_id);
    }
 };
 
-SchedulerAdultGrid.prototype.onUserSelect = function (l_id) {
-   this.updateButtonStatus(l_id);
-};
-
-// P-1: the per-adult actions, not View/Clear (those are page settings, not
-// something done to this adult).
+// P-1: Enable/Disable/Link, not View (that's a page setting, not something
+// done to this adult). Each of these takes the row id directly rather than
+// reading a "selected" row, so right-clicking works the same whether or
+// not this row happens to be part of anyone's board-in-progress.
 SchedulerAdultGrid.prototype.onContextMenu = function (l_id, e) {
-   ebContextMenu([this.buttons.Enable, this.buttons.Disable, this.buttons.Link], e.clientX, e.clientY);
+   var this_obj = this;
+   var room = this.getColumnValue(l_id, "Room");
+   var items = [];
+   if (room === "N/A") {
+      items.push(this._menuButton("Enable", function () { this_obj.enableAdult(l_id); }));
+   } else if (room === "") {
+      items.push(this._menuButton("Disable", function () { this_obj.disableAdult(l_id); }));
+   }
+   items.push(this._menuButton("Link", function () { this_obj.toggleSupportLink(l_id); }));
+   ebContextMenu(items, e.clientX, e.clientY);
 };
 
-SchedulerAdultGrid.prototype.updateSelected = function (l_id) {
-   this.updateButtonStatus(l_id);
+// ebContextMenu takes real <button> elements (it reads their text/title and
+// clones the click); build throwaway ones here since these actions no
+// longer live in the toolbar at all.
+SchedulerAdultGrid.prototype._menuButton = function (label, onClick) {
+   var b = document.createElement("button");
+   b.type = "button";
+   b.textContent = label;
+   b.addEventListener("click", onClick);
+   return b;
 };
 
 SchedulerAdultGrid.prototype.doAfterLoad = function () {
    this.updateHidden(null);
-   this.updateButtonStatus();
 };
 
-// User toggled a checkbox: persist Sel (dataProcessor parity), bubble
-// checked rows to the top, recolor.
-SchedulerAdultGrid.prototype.onCheck = function (r_id, state) {
-   this.setChecked(r_id, state, true);
+// this youth's board is done with them, or the operator removed them --
+// either way they're free to be picked again.
+SchedulerAdultGrid.prototype.setPicked = function (r_id, state) {
    if (state) {
-      this.sortChecked();
+      this._picked[r_id] = true;
+   } else {
+      delete this._picked[r_id];
    }
+   this.table.refreshFilter();
 };
 
-SchedulerAdultGrid.prototype.setChecked = function (r_id, state, persist) {
-   this.table.updateData([{ id: r_id, Sel: state ? "1" : "0" }]);
-   if (persist) {
-      var this_obj = this;
-      var value = state ? "1" : "0";
-      this._pendingSel[r_id] = value;
-      ebSaveRow("/adult-update", "updated", r_id, { Sel: value }).then(function () {
-         // Only clear if nothing re-checked/unchecked this row since: a
-         // later click's own pending write must not be cleared by an
-         // earlier click's save resolving after it.
-         if (this_obj._pendingSel[r_id] === value) {
-            delete this_obj._pendingSel[r_id];
-         }
-      });
-   }
+SchedulerAdultGrid.prototype.isPicked = function (r_id) {
+   return !!this._picked[r_id];
 };
 
-// Reassert any Sel write still in flight to the server over a poll's
-// possibly-stale fetch. See _pendingSel above.
-SchedulerAdultGrid.prototype.mergeIncoming = function (rows) {
-   var pending = this._pendingSel;
-   for (var i = 0; i < rows.length; i++) {
-      if (Object.prototype.hasOwnProperty.call(pending, rows[i].id)) {
-         rows[i].Sel = pending[rows[i].id];
-      }
-   }
-   return rows;
+SchedulerAdultGrid.prototype.pickRow = function (r_id) {
+   this.setPicked(r_id, true);
 };
 
-SchedulerAdultGrid.prototype.sortChecked = function () {
-   this.table.setSort([{ column: "Sel", dir: "desc" }]);
-   var rows = this.table.getRows("active");
-   if (rows.length > 0) {
-      rows[0].getElement().scrollIntoView({ block: "nearest" });
-   }
-};
-
-SchedulerAdultGrid.prototype.checkRow = function (r_id) {
-   // Persist. Sel is a server column, and refresh() replaces the grid's data
-   // with whatever the server holds -- so a check that only existed locally
-   // silently vanished at the next poll, taking an auto-selected board with it.
-   this.setChecked(r_id, true, true);
-   this.sortChecked();
-};
-
-SchedulerAdultGrid.prototype.uncheckAll = function () {
-   var this_obj = this;
-   var patches = [];
-   this.forEachRow(function (r_id) {
-      if (this_obj.getColumnValue(r_id, "Sel") == "1") {
-         patches.push({ id: r_id, Sel: "0" });
-      }
-   });
-   if (patches.length > 0) {
-      this.table.updateData(patches);
-      // Persist too, for the mirror-image reason: a local-only clear left Sel=1
-      // on the server, so the next poll resurrected every box the operator had
-      // just cleared. Clearing and checking have to agree on where truth lives.
-      // Routed through _pendingSel like setChecked, so a poll landing between
-      // this save and its response can't resurrect the box either.
-      patches.forEach(function (patch) {
-         this_obj._pendingSel[patch.id] = "0";
-         ebSaveRow("/adult-update", "updated", patch.id, { Sel: "0" }).then(function () {
-            if (this_obj._pendingSel[patch.id] === "0") {
-               delete this_obj._pendingSel[patch.id];
-            }
-         });
-      });
-   }
+SchedulerAdultGrid.prototype.unpickAll = function () {
+   this._picked = {};
+   this.table.refreshFilter();
 };
 
 SchedulerAdultGrid.prototype.getCheckedRowIds = function () {
-   var results = [];
-   var this_obj = this;
-   this.forEachRow(function (r_id) {
-      if (this_obj.getColumnValue(r_id, "Sel") == "1") {
-         results.push(r_id);
-      }
-   });
-   return results.join();
+   return Object.keys(this._picked).join();
 };
 
 SchedulerAdultGrid.prototype.setFilterIcon = function (state) {
@@ -315,95 +195,23 @@ SchedulerAdultGrid.prototype.setFilterIcon = function (state) {
 };
 
 SchedulerAdultGrid.prototype.updateHidden = function (state) {
-   var this_obj = this;
    if (state == null) {
       state = this.showAll;
       this.setFilterIcon(state);
    }
-   if (state) {
-      // when showing everyone, drop stale checks on assigned adults
-      var patches = [];
-      this.forEachRow(function (r_id) {
-         var room = this_obj.getColumnValue(r_id, "Room") || "";
-         if (room.length > 0 && this_obj.getColumnValue(r_id, "Sel") == "1") {
-            patches.push({ id: r_id, Sel: "0" });
-         }
-      });
-      if (patches.length > 0) {
-         this.table.updateData(patches);
-      }
-   }
    this.table.refreshFilter();
-   this.updateButtonStatus();
 };
 
-// Called by SendSeatRequest right after a successful /seat-board. The
-// server (SeatBoardHandler) sets Room on each member but never touches Sel,
-// so without this their checkbox stays "1" indefinitely -- which makes
-// getCheckedRowIds() report them as an operator-chosen board for every
-// scout selected afterward (SCHEDULER_autoSelect then leaves the stale
-// checks alone instead of auto-picking fresh members). Setting Room here
-// too closes the window before refresh_all() lands where a fast click to
-// the next scout would still see these adults as available and re-pick
-// them into a second board while they sit in this one.
-SchedulerAdultGrid.prototype.markSeated = function (member_ids, room_value) {
+// Picks every adult currently in room_num, for viewing (read-only-ish) a
+// board that's already Seated/InProgress -- not for building a new one.
+SchedulerAdultGrid.prototype.pickForRoom = function (room_num) {
    var this_obj = this;
-   var patches = member_ids.map(function (id) {
-      return { id: id, Room: room_value, Sel: "0" };
-   });
-   this.table.updateData(patches);
-   this.highlight();
-   member_ids.forEach(function (id) {
-      this_obj._pendingSel[id] = "0";
-      ebSaveRow("/adult-update", "updated", id, { Sel: "0" }).then(function () {
-         if (this_obj._pendingSel[id] === "0") {
-            delete this_obj._pendingSel[id];
-         }
-      });
-   });
-};
-
-SchedulerAdultGrid.prototype.selectForRoom = function (room_num) {
-   var this_obj = this;
-   this.showAll = true;
-   this.setFilterIcon(true);
-   this.table.refreshFilter();
+   this.unpickAll();
    this.forEachRow(function (r_id) {
       if (this_obj.getColumnValue(r_id, "Room") == room_num) {
-         this_obj.setChecked(r_id, true, false);
-         this_obj.selectById(r_id);
+         this_obj.setPicked(r_id, true);
       }
    });
-   this.sortChecked();
-};
-
-SchedulerAdultGrid.prototype.setButtonStatus = function (enabled_buttons) {
-   for (var name in this.buttons) {
-      if (this.buttons[name]) {
-         this.buttons[name].disabled = (enabled_buttons.indexOf(name) < 0);
-      }
-   }
-};
-
-SchedulerAdultGrid.prototype.updateButtonStatus = function (l_id) {
-   if (!l_id) {
-      l_id = this.getSelectedRowId();
-   }
-   if (!l_id) {
-      this.setButtonStatus(["Filter", "Clear"]);
-      return;
-   }
-   var room = this.getColumnValue(l_id, "Room");
-
-   // Link works for anyone highlighted, on a board or not: a Scoutmaster is
-   // often already sitting on one when someone notices they came with a scout.
-   if (room === "N/A") {
-      this.setButtonStatus(["Enable", "Clear", "Filter", "Link"]);
-   } else if (room === "") {
-      this.setButtonStatus(["Disable", "Clear", "Filter", "Link"]);
-   } else {
-      this.setButtonStatus(["Filter", "Clear", "Link"]);
-   }
 };
 
 // Enable/disable an adult by rewriting their Room value.
@@ -431,20 +239,52 @@ SchedulerAdultGrid.prototype.updateRoom = function (l_id, room_value) {
       });
 };
 
-// Link the highlighted adult to the selected scout as someone who came to
+SchedulerAdultGrid.prototype.disableAdult = function (l_id) {
+   var this_obj = this;
+   var room = this.getColumnValue(l_id, "Room");
+   var lname = this.getColumnValue(l_id, "Last");
+   var fname = this.getColumnValue(l_id, "First");
+
+   if (room === "N/A") {
+      ebAlert("Disable Error", fname + " " + lname + " already disabled.", "adult");
+   } else if (room && (room.length > 0)) {
+      ebAlert("Disable Error", fname + " " + lname + " is currently assigned to room " + room + ".", "adult");
+   } else {
+      ebConfirm("Confirm Disable", "Do you want to disable " + fname + " " + lname + "  ?", function (result) {
+         if (result == true) {
+            this_obj.updateRoom(l_id, "N/A");
+         }
+      }, "Disable");
+   }
+};
+
+SchedulerAdultGrid.prototype.enableAdult = function (l_id) {
+   var this_obj = this;
+   var room = this.getColumnValue(l_id, "Room");
+   var lname = this.getColumnValue(l_id, "Last");
+   var fname = this.getColumnValue(l_id, "First");
+
+   if (room !== "N/A") {
+      ebAlert("Enable Error", fname + " " + lname + " is not disabled.", "adult");
+   } else {
+      ebConfirm("Confirm Enable", "Do you want to enable " + fname + " " + lname + "  ?", function (result) {
+         if (result == true) {
+            this_obj.updateRoom(l_id, "");
+         }
+      }, "Enable");
+   }
+};
+
+// Link the given adult to the selected youth as someone who came to
 // support them -- their Scoutmaster, say -- or undo that. For the adult who
-// did not check the scout at sign-in, or signed in before the scout did.
+// did not check the youth at sign-in, or signed in before the youth did.
 // Start Review and Locate then name them. The same Supporting column the
 // sign-in form writes, saved through /adult-update.
-SchedulerAdultGrid.prototype.toggleSupportLink = function () {
+SchedulerAdultGrid.prototype.toggleSupportLink = function (l_id) {
    var this_obj = this;
-   var l_id = this.getSelectedRowId();
    var s_id = schedulerScoutGrid.getSelectedRowId();
-   if (!l_id) {
-      return;
-   }
    if (!s_id) {
-      ebAlert("Link", "Select the youth in the Youth list first, then highlight the adult here and press Link.", "adult");
+      ebAlert("Link", "Select the youth in the Youth list first, then right-click the adult to Link.", "adult");
       return;
    }
 

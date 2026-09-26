@@ -111,11 +111,14 @@ function SchedulerScoutGrid(container_id, toolbar_id, title) {
 
    this.toolbar = document.getElementById(toolbar_id);
    this.buttons = {};
-   var names = ["Seat", "Start", "Complete", "Locate", "Filter", "Reset", "Postpone"];
+   var names = ["Filter"];
    for (var i = 0; i < names.length; i++) {
       this.buttons[names[i]] = this.toolbar.querySelector("[data-action='" + names[i] + "']");
    }
 
+   // Seat/Start Review/Complete/Locate/Reset/Postpone moved to the details
+   // pane's own toolbar (D-10/D-11): one status-driven primary action next
+   // to the board it acts on, not always-visible buttons up here.
    this.toolbar.addEventListener("click", function (ev) {
       var btn = ev.target.closest("button[data-action]");
       if (!btn || btn.disabled) {
@@ -127,32 +130,10 @@ function SchedulerScoutGrid(container_id, toolbar_id, title) {
          this_obj.showCompleted = !this_obj.showCompleted;
          this_obj.setFilterButton();
          this_obj.updateHidden(this_obj.showCompleted);
-         return;
-      }
-
-      var s_id = this_obj.getSelectedRowId();
-      if (!s_id) {
-         ebAlert("Error", "No Youth Selected !!", "scout");
-         return;
-      }
-
-      if (id === "Seat") {
-         ProcessSeatBoard(s_id);
-      } else if (id === "Start") {
-         ProcessStartReview(s_id);
-      } else if (id === "Complete") {
-         ProcessCompleteBoard(s_id);
-      } else if (id === "Postpone") {
-         ProcessPostponeBoard(s_id);
-      } else if (id === "Reset") {
-         ProcessResetBoard(s_id);
-      } else if (id === "Locate") {
-         SCHEDULER_locateAdults(s_id, true);
       }
    });
 
    this.setFilterButton();
-   this.updateButtonStatus();
 
    // apply the Completed/Postponed visibility filter permanently; it
    // consults this.showCompleted each time it runs.
@@ -171,21 +152,24 @@ SchedulerScoutGrid.prototype = new SchedulerGrid();
 SchedulerScoutGrid.prototype.constructor = SchedulerScoutGrid;
 
 SchedulerScoutGrid.prototype.onUserSelect = function (s_id) {
-   this.updateButtonStatus(s_id);
    SCHEDULER_selectScout(s_id);
 };
 
 // P-1: the board-lifecycle actions, not the View toggle (that's a page
-// setting, not something done to this youth).
+// setting, not something done to this youth). These now live in the
+// details pane (D-10/D-11), so the menu borrows its buttons.
 SchedulerScoutGrid.prototype.onContextMenu = function (s_id, e) {
    ebContextMenu(
-      [this.buttons.Seat, this.buttons.Start, this.buttons.Complete,
-       this.buttons.Locate, this.buttons.Reset, this.buttons.Postpone],
+      [detailsPane.buttons.Primary, detailsPane.buttons.Locate,
+       detailsPane.buttons.Reset, detailsPane.buttons.Postpone],
       e.clientX, e.clientY);
 };
 
+// Programmatic selection (e.g. clicking a room card selects the scout in
+// it via selectForRoom) doesn't run the auto-select cascade, but the
+// details pane still needs to show that scout's board.
 SchedulerScoutGrid.prototype.updateSelected = function (id) {
-   this.updateButtonStatus(id);
+   detailsPane.onScoutSelected(id);
 };
 
 SchedulerScoutGrid.prototype.setRoomTimerUpdateFunction = function (f) {
@@ -204,9 +188,13 @@ SchedulerScoutGrid.prototype.setFilterButton = function () {
 };
 
 SchedulerScoutGrid.prototype.doAfterLoad = function () {
-   this.updateButtonStatus();
    this.updateHidden(null);
    this.checkTimers();
+   // Keeps the details pane's primary-action label in step with this
+   // youth's latest status on every poll, not only right after the
+   // operator's own click (e.g. Start Review completing, or another
+   // window's changes arriving here).
+   detailsPane.render();
 };
 
 SchedulerScoutGrid.prototype.updateHidden = function (state) {
@@ -273,43 +261,5 @@ SchedulerScoutGrid.prototype.checkTimers = function () {
    });
 };
 
-SchedulerScoutGrid.prototype.setButtonStatus = function (enabled_buttons) {
-   for (var name in this.buttons) {
-      if (this.buttons[name]) {
-         this.buttons[name].disabled = (enabled_buttons.indexOf(name) < 0);
-      }
-   }
-};
-
-SchedulerScoutGrid.prototype.updateButtonStatus = function (s_id) {
-   if (s_id == null) {
-      s_id = this.getSelectedRowId();
-      if (s_id == null) {
-         this.setButtonStatus(["Filter"]);
-         return;
-      }
-   }
-   var status = this.getColumnValue(s_id, "Status");
-
-   if (status === "Registered") {
-      // Verify was removed, so a registered scout is seated directly.
-      this.setButtonStatus(["Seat", "Postpone", "Locate", "Filter"]);
-   } else if (status === "Verified") {
-      // Legacy records only: nothing sets this status anymore, but a carried-
-      // over scout must still be seatable rather than stuck.
-      this.setButtonStatus(["Seat", "Reset", "Postpone", "Locate", "Filter"]);
-   } else if (status === "Seated") {
-      // Board is convening -- members have the room and the paperwork, the
-      // scout is still outside. "Start Review" is the only way forward;
-      // Complete is withheld until the scout has actually been reviewed.
-      this.setButtonStatus(["Start", "Reset", "Locate", "Filter"]);
-   } else if (status === "InProgress") {
-      this.setButtonStatus(["Reset", "Complete", "Locate", "Filter"]);
-   } else if (status === "Completed") {
-      this.setButtonStatus(["Locate", "Filter"]);
-   } else if (status === "Postponed") {
-      this.setButtonStatus(["Locate", "Filter"]);
-   } else {
-      this.setButtonStatus(["Filter"]);
-   }
-};
+// Button enable/disable by status now lives on the details pane (D-11:
+// one status-driven primary action) -- see SchedulerDetailsPane._setButtons.
