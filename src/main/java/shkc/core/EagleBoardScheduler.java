@@ -9,7 +9,9 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.Enumeration;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.StringTokenizer;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -42,6 +44,57 @@ public class EagleBoardScheduler {
    private DataRecordFile<ScoutRecord> _scoutsScheduledRecords = null;
    private DataRecordFile<AdultRecord> _adultRecords = null;
    private DataRecordFile<AdultRecord> _adultHistoryRecords = null;
+
+   // Undo (O-2, SPEC.md): single level, guarded by LOCK like everything
+   // else. Each reversible handler builds an UndoBuilder, records the
+   // OLD value of every field it's about to change, and commits it (with
+   // the NEW value it just wrote) right before sending success -- this
+   // replaces whatever the previous action left, so there is only ever
+   // one board's worth of undo. RestoreBoardHandler re-checks each
+   // field's current value against what this action wrote before
+   // touching anything: if something else changed it since (another
+   // request, or a hand-edit on the Admin page), that field -- and the
+   // whole restore -- is refused rather than guessed at.
+   private String _undoDescription = null;
+   private List<UndoField> _undoFields = null;
+
+   private static class UndoField {
+      final String recordType;
+      final String id;
+      final String column;
+      final String oldValue;
+      final String newValue;
+
+      UndoField(String recordType, String id, String column, String oldValue, String newValue) {
+         this.recordType = recordType;
+         this.id = id;
+         this.column = column;
+         this.oldValue = oldValue;
+         this.newValue = newValue;
+      }
+   }
+
+   // Built by a handler as it mutates records, then handed to setUndo()
+   // once every field's NEW value has actually been written.
+   private class UndoBuilder {
+      private List<UndoField> _fields = new ArrayList<>();
+
+      // Call AFTER record's setter has already run, so newValue is the
+      // value the handler just wrote (not the one it's about to write).
+      UndoBuilder field(String recordType, DataRecord record, String column, String oldValue) {
+         this._fields.add(new UndoField(recordType, record.getID(), column, oldValue, record.getValue(column)));
+         return this;
+      }
+
+      boolean isEmpty() {
+         return this._fields.isEmpty();
+      }
+
+      void commit(String description) {
+         EagleBoardScheduler.this._undoDescription = description;
+         EagleBoardScheduler.this._undoFields = this._fields;
+      }
+   }
 
    public static void main(String[] args) throws Exception {
       String shortFlags = "vw?";
@@ -255,6 +308,7 @@ public class EagleBoardScheduler {
       this._server.addHandler("/complete-board", new EagleBoardScheduler.CompleteBoardHandler());
       this._server.addHandler("/postpone-board", new EagleBoardScheduler.PostponeBoardHandler());
       this._server.addHandler("/reset-board", new EagleBoardScheduler.ResetBoardHandler());
+      this._server.addHandler("/restore-board", new EagleBoardScheduler.RestoreBoardHandler());
       this._server.addHandler("/adult-autofill", new EagleBoardScheduler.AutoFillHandler<>(this._adultHistoryRecords, "Email"));
       this._server.addHandler("/youth-autofill", new EagleBoardScheduler.AutoFillHandler<>(this._scoutsScheduledRecords, "Email"));
       this._server.addHandler("/config-autofill", new EagleBoardScheduler.AutoFillHandler<>(this._configRecords, "Name"));
@@ -314,7 +368,7 @@ public class EagleBoardScheduler {
 
    public class AdultUpdateHandler extends EagleBoardScheduler.DataRecordUpdateHandler<AdultRecord> {
       public AdultUpdateHandler() {
-         super(EagleBoardScheduler.this._adultRecords);
+         super(EagleBoardScheduler.this._adultRecords, "Adult");
       }
    }
 
@@ -473,28 +527,44 @@ public class EagleBoardScheduler {
                   // "" and "N/A" are never a board's room ("N/A" marks the
                   // adults who have gone home), so they release nobody.
                   String boardRoom = scout.getRoom();
+                  UndoBuilder undo = new UndoBuilder();
 
                   if (boardRoom.length() > 0 && !"N/A".equals(boardRoom)) {
                      for (AdultRecord adult : EagleBoardScheduler.this._adultRecords.getRecords()) {
                         if (adult.getRoom().equals(boardRoom)) {
+                           String oldAdultRoom = adult.getRoom();
                            adult.setRoom("");
+                           undo.field("Adult", adult, "Room", oldAdultRoom);
                         }
                      }
                   }
 
+                  String oldScoutStatus = scout.getStatus();
+                  String oldScoutRoom = scout.getRoom();
+                  String oldScoutNotes = scout.getValue("Notes");
+                  String oldScoutResult = scout.getValue("Result");
                   scout.setStatus("Completed");
                   scout.setRoom("N/A");
                   scout.setNotes(notes);
                   scout.setResult(result);
+                  undo.field("Scout", scout, "Status", oldScoutStatus);
+                  undo.field("Scout", scout, "Room", oldScoutRoom);
+                  undo.field("Scout", scout, "Notes", oldScoutNotes);
+                  undo.field("Scout", scout, "Result", oldScoutResult);
                   if (room != null) {
+                     String oldRoomScout = room.getScout();
+                     String oldRoomLeaders = room.getLeaders();
                      room.setScout("");
                      room.setLeaders("");
+                     undo.field("Room", room, "Scout", oldRoomScout);
+                     undo.field("Room", room, "Leaders", oldRoomLeaders);
                   }
 
                   scout.updateFields(true);
                   EagleBoardScheduler.this._scoutRecords.store();
                   EagleBoardScheduler.this._roomRecords.store();
                   EagleBoardScheduler.this._adultRecords.store();
+                  undo.commit("Complete board for " + scout.getFullName());
                   this.sendSuccess(response);
                }
             } else {
@@ -646,9 +716,19 @@ public class EagleBoardScheduler {
 
    public class DataRecordUpdateHandler<T extends DataRecord> implements WebServer.WebHandler {
       private DataRecordFile<T> _records;
+      // Non-null only for the handlers O-2 covers (adult field edits --
+      // Disable/Enable/Link -- and room rename); null everywhere else
+      // (scout/room-admin edits, adult/scout-scheduled history), which
+      // just don't offer Undo. See UndoBuilder.
+      private String _undoRecordType;
 
       public DataRecordUpdateHandler(DataRecordFile<T> records) {
+         this(records, null);
+      }
+
+      public DataRecordUpdateHandler(DataRecordFile<T> records, String undoRecordType) {
          this._records = records;
+         this._undoRecordType = undoRecordType;
       }
 
       @Override
@@ -676,21 +756,37 @@ public class EagleBoardScheduler {
                   return;
                }
 
+               UndoBuilder undo = new UndoBuilder();
                if ("deleted".equals(status)) {
                   this._records.remove(rowId);
                } else {
+                  boolean isEdit = this._undoRecordType != null && !"inserted".equals(status);
                   for (String column : this._records.getColumns()) {
                      String value = request.getParameter(column);
                      EagleBoardScheduler.verbose("CHECKING: " + column + " => " + value);
                      if (value != null) {
+                        String oldValue = record.getValue(column);
                         EagleBoardScheduler.verbose("UPDATING: " + column + " => " + value);
                         record.put(column, value);
+                        // "Sel" is the operator's in-progress checkbox pick,
+                        // saved on every click (including auto-select's own
+                        // programmatic checks) so it survives a refresh --
+                        // not a reversible action in the O-2 sense, and an
+                        // auto-select's Sel writes can land after the seat
+                        // they preceded, which would otherwise clobber that
+                        // seat's own undo snapshot.
+                        if (isEdit && !"Sel".equals(column)) {
+                           undo.field(this._undoRecordType, record, column, oldValue);
+                        }
                      }
                   }
                }
 
                record.updateFields(false);
                this._records.store();
+               if (this._undoRecordType != null && !"inserted".equals(status) && !"deleted".equals(status) && !undo.isEmpty()) {
+                  undo.commit(this._undoRecordType + " " + rowId + " updated");
+               }
                this.sendResponse(status, rowId, response);
             }
          }
@@ -724,9 +820,13 @@ public class EagleBoardScheduler {
             } else if (!scout.getStatus().equals("Seated")) {
                this.sendError("ERROR: Invalid Status '" + scout.getStatus() + "', expected '" + "Seated" + "'", response);
             } else {
+               String oldScoutStatus = scout.getStatus();
                scout.setStatus("InProgress");
+               UndoBuilder undo = new UndoBuilder();
+               undo.field("Scout", scout, "Status", oldScoutStatus);
                scout.updateFields(true);
                EagleBoardScheduler.this._scoutRecords.store();
+               undo.commit("Start review for " + scout.getFullName());
                this.sendSuccess(response);
             }
          }
@@ -924,6 +1024,86 @@ public class EagleBoardScheduler {
       }
    }
 
+   // O-2 (SPEC.md): undoes the last reversible action -- Seat/Start
+   // Review/Complete, a room change, or an adult Disable/Enable/Link.
+   // Reset and Postpone never set _undoFields (they stay confirm-only),
+   // so there's nothing to check for those. Generic "revert last
+   // snapshot": refuses per-field if anything else has changed a value
+   // since, rather than guessing, and refuses the whole restore if any
+   // field fails so a board is never left half-undone.
+   public class RestoreBoardHandler extends EagleBoardScheduler.CoreBoardHandler {
+      @Override
+      public synchronized void handle(String target, HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException {
+         synchronized (EagleBoardScheduler.this.LOCK) {
+            List<UndoField> fields = EagleBoardScheduler.this._undoFields;
+            if (fields == null || fields.isEmpty()) {
+               this.sendError("Nothing to undo.", response);
+               return;
+            }
+
+            Map<String, DataRecord> touched = new HashMap<>();
+            for (UndoField f : fields) {
+               DataRecordFile<? extends DataRecord> file = EagleBoardScheduler.this.recordsFor(f.recordType);
+               DataRecord record = file == null ? null : file.get(f.id);
+               if (record == null) {
+                  this.sendError("Board changed since -- cannot undo automatically.", response);
+                  return;
+               }
+
+               // Something else (another request, or a hand-edit on the
+               // Admin page) changed this field after this action wrote it:
+               // restoring the OLD value now would silently clobber that
+               // change, so refuse the whole restore instead.
+               String current = record.getValue(f.column);
+               if (!java.util.Objects.equals(current, f.newValue)) {
+                  this.sendError("Board changed since -- cannot undo automatically.", response);
+                  return;
+               }
+
+               touched.put(f.recordType + ":" + f.id, record);
+            }
+
+            for (UndoField f : fields) {
+               DataRecord record = touched.get(f.recordType + ":" + f.id);
+               record.setValue(f.column, f.oldValue);
+            }
+
+            boolean touchedScout = false;
+            boolean touchedRoom = false;
+            boolean touchedAdult = false;
+            for (String key : touched.keySet()) {
+               touchedScout = touchedScout || key.startsWith("Scout:");
+               touchedRoom = touchedRoom || key.startsWith("Room:");
+               touchedAdult = touchedAdult || key.startsWith("Adult:");
+            }
+            if (touchedScout) {
+               EagleBoardScheduler.this._scoutRecords.store();
+            }
+            if (touchedRoom) {
+               EagleBoardScheduler.this._roomRecords.store();
+            }
+            if (touchedAdult) {
+               EagleBoardScheduler.this._adultRecords.store();
+            }
+
+            EagleBoardScheduler.this._undoFields = null;
+            EagleBoardScheduler.this._undoDescription = null;
+            this.sendSuccess(response);
+         }
+      }
+   }
+
+   private DataRecordFile<? extends DataRecord> recordsFor(String recordType) {
+      if ("Scout".equals(recordType)) {
+         return this._scoutRecords;
+      } else if ("Room".equals(recordType)) {
+         return this._roomRecords;
+      } else if ("Adult".equals(recordType)) {
+         return this._adultRecords;
+      }
+      return null;
+   }
+
    public class RoomCellsHandler extends EagleBoardScheduler.DataRecordCellsHandler<RoomRecord> {
       public RoomCellsHandler() {
          super(EagleBoardScheduler.this._roomRecords);
@@ -963,30 +1143,43 @@ public class EagleBoardScheduler {
                   } else {
                      List<AdultRecord> adultsInRoom1 = EagleBoardScheduler.this._adultRecords.get("Room", room1.getRoom());
                      List<AdultRecord> adultsInRoom2 = EagleBoardScheduler.this._adultRecords.get("Room", room2.getRoom());
+                     String room1Name = room1.getRoom();
+                     String room2Name = room2.getRoom();
                      room1.setLeaders(leaders2);
                      room2.setLeaders(leaders1);
                      room1.setScout(scout2);
                      room2.setScout(scout1);
 
+                     UndoBuilder undo = new UndoBuilder();
+                     undo.field("Room", room1, "Leaders", leaders1);
+                     undo.field("Room", room2, "Leaders", leaders2);
+                     undo.field("Room", room1, "Scout", scout1);
+                     undo.field("Room", room2, "Scout", scout2);
+
                      for (ScoutRecord scoutMovingTo2 : scoutsInRoom1) {
-                        scoutMovingTo2.setRoom(room2.getRoom());
+                        scoutMovingTo2.setRoom(room2Name);
+                        undo.field("Scout", scoutMovingTo2, "Room", room1Name);
                      }
 
                      for (ScoutRecord scoutMovingTo1 : scoutsInRoom2) {
-                        scoutMovingTo1.setRoom(room1.getRoom());
+                        scoutMovingTo1.setRoom(room1Name);
+                        undo.field("Scout", scoutMovingTo1, "Room", room2Name);
                      }
 
                      for (AdultRecord adultMovingTo2 : adultsInRoom1) {
-                        adultMovingTo2.setRoom(room2.getRoom());
+                        adultMovingTo2.setRoom(room2Name);
+                        undo.field("Adult", adultMovingTo2, "Room", room1Name);
                      }
 
                      for (AdultRecord adultMovingTo1 : adultsInRoom2) {
-                        adultMovingTo1.setRoom(room1.getRoom());
+                        adultMovingTo1.setRoom(room1Name);
+                        undo.field("Adult", adultMovingTo1, "Room", room2Name);
                      }
 
                      EagleBoardScheduler.this._roomRecords.store();
                      EagleBoardScheduler.this._scoutRecords.store();
                      EagleBoardScheduler.this._adultRecords.store();
+                     undo.commit("Change room " + room1Name + " <-> " + room2Name);
                      this.sendSuccess(response);
                   }
                }
@@ -999,7 +1192,7 @@ public class EagleBoardScheduler {
 
    public class RoomUpdateHandler extends EagleBoardScheduler.DataRecordUpdateHandler<RoomRecord> {
       public RoomUpdateHandler() {
-         super(EagleBoardScheduler.this._roomRecords);
+         super(EagleBoardScheduler.this._roomRecords, "Room");
       }
    }
 
@@ -1181,6 +1374,15 @@ public class EagleBoardScheduler {
                   }
 
                   String memberNameList = memberNames.toString();
+                  String oldRoomScout = room.getScout();
+                  String oldRoomLeaders = room.getLeaders();
+                  String oldScoutRoom = scout.getRoom();
+                  String oldScoutStatus = scout.getStatus();
+                  String oldBoardMembers = scout.getValue("BoardMembers");
+                  String oldBoardMemberIDs = scout.getValue("BoardMembersIDs");
+                  String oldBoardChair = scout.getValue("BoardChair");
+                  String oldBoardChairID = scout.getValue("BoardChairID");
+
                   room.setScout(scout.getFullName());
                   room.setLeaders(memberNameList);
                   scout.setRoom(room.getRoom());
@@ -1200,14 +1402,27 @@ public class EagleBoardScheduler {
                      scout.setBoardChairID(chair.getID());
                   }
 
+                  UndoBuilder undo = new UndoBuilder();
+                  undo.field("Room", room, "Scout", oldRoomScout);
+                  undo.field("Room", room, "Leaders", oldRoomLeaders);
+                  undo.field("Scout", scout, "Room", oldScoutRoom);
+                  undo.field("Scout", scout, "Status", oldScoutStatus);
+                  undo.field("Scout", scout, "BoardMembers", oldBoardMembers);
+                  undo.field("Scout", scout, "BoardMembersIDs", oldBoardMemberIDs);
+                  undo.field("Scout", scout, "BoardChair", oldBoardChair);
+                  undo.field("Scout", scout, "BoardChairID", oldBoardChairID);
+
                   for (AdultRecord seatedMember : members) {
+                     String oldMemberRoom = seatedMember.getRoom();
                      seatedMember.setRoom(room.getRoom());
+                     undo.field("Adult", seatedMember, "Room", oldMemberRoom);
                   }
 
                   scout.updateFields(true);
                   EagleBoardScheduler.this._scoutRecords.store();
                   EagleBoardScheduler.this._roomRecords.store();
                   EagleBoardScheduler.this._adultRecords.store();
+                  undo.commit("Seat board for " + scout.getFullName());
                   this.sendSuccess(response);
                }
             }

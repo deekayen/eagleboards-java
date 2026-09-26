@@ -161,8 +161,13 @@
             text-align: left;
          }
          .eb-message-body { flex: 1 1 auto; }
-         .eb-message-dismiss {
+         .eb-message-actions {
+            display: flex;
+            align-items: center;
+            gap: 6px;
             flex: 0 0 auto;
+         }
+         .eb-message-dismiss {
             border: none;
             background: none;
             color: inherit;
@@ -170,6 +175,15 @@
             line-height: 1;
             cursor: pointer;
             padding: 0 2px;
+         }
+         .eb-message-undo {
+            border: 1px solid currentColor;
+            background: none;
+            color: inherit;
+            padding: 2px 10px;
+            border-radius: 3px;
+            font-size: 12px;
+            cursor: pointer;
          }
 
          /* P-1: right-click menu built on the Popover API. See
@@ -729,7 +743,7 @@
 
          // Locate a scout's leaders (by the Leader column) and parents
          // (same unit + same last name) among the registered adults.
-         function SCHEDULER_locateAdults(s_id, parents) {
+         function SCHEDULER_locateAdults(s_id, parents, undoLabel) {
             var s_last = schedulerScoutGrid.getColumnValue(s_id, "Last");
             var s_first = schedulerScoutGrid.getColumnValue(s_id, "First");
             var s_uname = schedulerScoutGrid.getColumnValue(s_id, "UnitName");
@@ -785,7 +799,7 @@
             if (adult_list.length == 0 && supporting.length == 0) {
                ebAlert("Cannot Locate",
                   "Youth : <b>" + s_first.charAt(0) + " " + s_last + "</b><br/>Leader(s): '" + s_leader + "' <b>not registered.</b>",
-                  "scout");
+                  "scout", undoLabel);
                return;
             }
 
@@ -809,7 +823,7 @@
                }
             }
 
-            ebMessage("Located", text, "scout");
+            ebMessage("Located", text, "scout", undoLabel);
          }
 
          // ------------------------------------------------------------
@@ -992,7 +1006,11 @@
          function ProcessChangeRoom(rmid1, rmid2) {
             ebAction("/room-change", { RmID1: rmid1, RmID2: rmid2 })
                .then(function (res) {
-                  if (!res.ok) {
+                  if (res.ok) {
+                     // The room cards already show the swap (D-14); the
+                     // message here is only to offer Undo (O-2).
+                     ebMessage("Rooms Changed", rmid1 + " ↔ " + rmid2, "room", "Undo");
+                  } else {
                      ebAlert("Change Room Error", " Change Room '" + rmid1 + " <==> " + rmid2 + "' Failed.<br/>" + res.text, "room");
                   }
                })

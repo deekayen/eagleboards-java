@@ -66,7 +66,9 @@ function SendStartReviewRequest(s_id) {
    ebAction("/inprogress-board", { ScoutID: s_id })
       .then(function (res) {
          if (res.ok) {
-            // Status shows InProgress already (D-14): no separate message.
+            // Status shows InProgress already (D-14); the message here is
+            // only to offer Undo (O-2).
+            ebMessage("Review Started", s_first + " " + s_last + ".", "scout", "Undo");
          } else {
             ebAlert("Start Error",
                s_first + " " + s_last + " could not be started.<br/> " + res.text, "scout");

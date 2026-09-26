@@ -211,7 +211,11 @@ function ebMessageSlot(region) {
    return document.getElementById((region || "main") + "-messages");
 }
 
-function ebShowMessage(region, kind, title, html) {
+// undoLabel, when given, adds an Undo button (O-2) that posts
+// /restore-board and refreshes on success, or shows why not on failure
+// (typically "Board changed since -- can't undo automatically", from
+// something else having touched the same records first).
+function ebShowMessage(region, kind, title, html, undoLabel) {
    var slot = ebMessageSlot(region);
    if (!slot) {
       return;
@@ -219,22 +223,39 @@ function ebShowMessage(region, kind, title, html) {
    slot.innerHTML = "";
    var m = document.createElement("div");
    m.className = "eb-message eb-message-" + kind;
-   m.innerHTML = "<span class='eb-message-body'><b>" + title + ":</b> " + html + "</span>"
-      + "<button type='button' class='eb-message-dismiss' aria-label='Dismiss'>&times;</button>";
+   var actionsHtml = "<span class='eb-message-actions'>"
+      + (undoLabel ? "<button type='button' class='eb-message-undo'>" + undoLabel + "</button>" : "")
+      + "<button type='button' class='eb-message-dismiss' aria-label='Dismiss'>&times;</button>"
+      + "</span>";
+   m.innerHTML = "<span class='eb-message-body'><b>" + title + ":</b> " + html + "</span>" + actionsHtml;
    m.querySelector(".eb-message-dismiss").addEventListener("click", function () {
       if (m.parentNode) {
          m.parentNode.removeChild(m);
       }
    });
+   if (undoLabel) {
+      m.querySelector(".eb-message-undo").addEventListener("click", function () {
+         ebAction("/restore-board", {}).then(function (res) {
+            if (res.ok) {
+               if (m.parentNode) {
+                  m.parentNode.removeChild(m);
+               }
+               refresh_all();
+            } else {
+               ebAlert("Undo Error", res.text || "Could not undo.", region);
+            }
+         });
+      });
+   }
    slot.appendChild(m);
 }
 
-function ebAlert(title, html, region) {
-   ebShowMessage(region, "error", title, html);
+function ebAlert(title, html, region, undoLabel) {
+   ebShowMessage(region, "error", title, html, undoLabel);
 }
 
-function ebMessage(title, html, region) {
-   ebShowMessage(region, "ok", title, html);
+function ebMessage(title, html, region, undoLabel) {
+   ebShowMessage(region, "ok", title, html, undoLabel);
 }
 
 function ebDialogEl() {

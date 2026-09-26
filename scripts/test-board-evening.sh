@@ -957,6 +957,45 @@ post --data-urlencode "!nativeeditor_status=updated" --data-urlencode "gr_id=$NO
 chk "and can be undone" "$(adult_col "$NOPROJ" 18)" ""
 chk "nobody committed after section 19" "$(busy_adults)" "0"
 
+# ------------------------------------ 20. undo (O-2 / restore-board)
+echo
+echo "== 20. undo the last reversible action =="
+
+restore() { act /restore-board; }
+
+U1=$(xscout Prescott Odalys 3501 Final)
+seat 101 "$U1" "$FC1" "$M1" "$M2" >/dev/null
+chk "seated before undo" "$(status_of "$U1")" "Seated"
+accepted "undo the seat" "$(restore)"
+chk "undo puts the scout back to Registered" "$(status_of "$U1")" "Registered"
+chk "undo frees the room" "$(room_scout ROOM:101)" ""
+chk "undo frees the chair and members" \
+    "$(adult_room "$FC1")|$(adult_room "$M1")|$(adult_room "$M2")" "||"
+refused "undo again once it has already been used" "$(restore)"
+
+# Start Review, then undo back to Seated.
+seat 101 "$U1" "$FC1" "$M1" "$M2" >/dev/null
+start "$U1" >/dev/null
+chk "in progress before undo" "$(status_of "$U1")" "InProgress"
+accepted "undo start review" "$(restore)"
+chk "undo puts the scout back to Seated" "$(status_of "$U1")" "Seated"
+
+# Undo is refused, not guessed at, once something else has changed the same
+# field it would restore -- here, a correction made on the Admin page.
+start "$U1" >/dev/null
+admin_edit "$U1" Status "Seated"
+refused "undo refuses once something else changed the same field" "$(restore)"
+reset "$U1" >/dev/null
+
+# Disable an adult, then undo the disable.
+post --data-urlencode "!nativeeditor_status=updated" --data-urlencode "gr_id=$M1" \
+    --data-urlencode "Room=N/A" "$B/adult-update"
+chk "adult disabled before undo" "$(adult_room "$M1")" "N/A"
+accepted "undo the disable" "$(restore)"
+chk "undo re-enables the adult" "$(adult_room "$M1")" ""
+
+chk "nobody committed after section 20" "$(busy_adults)" "0"
+
 echo
 echo "== the evening ends clean =="
 chk "no board left convening"  "$(n_status Seated)" "0"

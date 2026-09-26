@@ -414,7 +414,10 @@ SchedulerAdultGrid.prototype.updateRoom = function (l_id, room_value) {
 
    ebSaveRow("/adult-update", "updated", l_id, { Room: room_value })
       .then(function (ok) {
-         if (!ok) {
+         if (ok) {
+            var label = (room_value === "N/A") ? "Disabled" : "Enabled";
+            ebMessage(label, l_first + " " + l_last + ".", "adult", "Undo");
+         } else {
             ebAlert("Update Error", l_first + " " + l_last + " update failed.", "adult");
          }
       })
@@ -468,7 +471,7 @@ SchedulerAdultGrid.prototype.toggleSupportLink = function () {
             }
             this_obj.table.updateData([{ id: l_id, Supporting: updated }]);
             ebMessage(linked ? "Unlinked" : "Linked",
-               adult + (linked ? " is no longer linked to " : " is linked to ") + scout, "adult");
+               adult + (linked ? " is no longer linked to " : " is linked to ") + scout, "adult", "Undo");
          })
          .catch(function () {
             ebAlert("Link Error", "The change was not saved.", "adult");

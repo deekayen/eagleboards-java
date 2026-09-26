@@ -739,7 +739,8 @@ function SendSeatRequest(room_id, s_id, chair_id, member_ids) {
       .then(function (res) {
          if (res.ok) {
             // The row's own Status/room columns already show the result
-            // (D-14): no separate success message.
+            // (D-14); the message here is only to offer Undo (O-2).
+            ebMessage("Seated", s_first + " " + s_last + ".", "scout", "Undo");
             // Mark these adults occupied and unchecked in the local grid right
             // away, rather than waiting on refresh_all() below. Without this, a
             // fast click to the next Registered scout re-runs auto-select

@@ -54,8 +54,9 @@ function SendCompleteRequest(s_id, result, notes) {
       .then(function (res) {
          if (res.ok) {
             // Status shows Completed already (D-14); SCHEDULER_locateAdults
-            // below shows who to bring in, which is the useful message here.
-            SCHEDULER_locateAdults(s_id, true);
+            // below shows who to bring in, which is the useful message here,
+            // with Undo (O-2) added to that same message.
+            SCHEDULER_locateAdults(s_id, true, "Undo");
          } else {
             ebAlert("Complete Error",
                s_first + " " + s_last + " complete failed.<br/> " + res.text, "scout");
