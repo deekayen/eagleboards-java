@@ -10,7 +10,7 @@ function ProcessCompleteBoard(s_id) {
    var s_status = schedulerScoutGrid.getColumnValue(s_id, "Status");
 
    if (s_status == "Completed") {
-      ebAlert("Complete Error", s_first + " " + s_last + " has already completed his board ");
+      ebAlert("Complete Error", s_first + " " + s_last + " has already completed his board ", "scout");
       return;
    } else if (s_status == "InProgress") {
       ebModalForm("Complete Board: " + s_first + " " + s_last,
@@ -37,7 +37,7 @@ function ProcessCompleteBoard(s_id) {
             }
          });
    } else {
-      ebAlert("Complete Error", s_first + " " + s_last + " has not been seated yet.");
+      ebAlert("Complete Error", s_first + " " + s_last + " has not been seated yet.", "scout");
       return;
    }
 }
@@ -53,15 +53,16 @@ function SendCompleteRequest(s_id, result, notes) {
    })
       .then(function (res) {
          if (res.ok) {
-            ebMessage("Completed", s_first + " " + s_last + " Completed OK");
+            // Status shows Completed already (D-14); SCHEDULER_locateAdults
+            // below shows who to bring in, which is the useful message here.
             SCHEDULER_locateAdults(s_id, true);
          } else {
             ebAlert("Complete Error",
-               s_first + " " + s_last + " complete failed.<br/> " + res.text);
+               s_first + " " + s_last + " complete failed.<br/> " + res.text, "scout");
          }
       })
       .catch(function () {
-         ebAlert("Complete Error", s_first + " " + s_last + " Complete Failed.");
+         ebAlert("Complete Error", s_first + " " + s_last + " Complete Failed.", "scout");
       })
       .then(function () {
          setTimeout(function () {

@@ -420,28 +420,28 @@ function ProcessSeatBoard(s_id) {
    var s_status = schedulerScoutGrid.getColumnValue(s_id, "Status");
 
    if (s_status == "Seated") {
-      ebAlert("Schedule Error", "Youth " + s_first + " " + s_last + " board is already seated.");
+      ebAlert("Schedule Error", "Youth " + s_first + " " + s_last + " board is already seated.", "scout");
       return;
    } else if (s_status == "InProgress") {
-      ebAlert("Schedule Error", "Youth is currently in a board see room " + s_room);
+      ebAlert("Schedule Error", "Youth is currently in a board see room " + s_room, "scout");
       return;
    } else if (s_status == "Completed") {
-      ebAlert("Schedule Error", "Youth has already completed their " + s_btype + " board");
+      ebAlert("Schedule Error", "Youth has already completed their " + s_btype + " board", "scout");
       return;
    } else if (s_status == "Postponed") {
-      ebAlert("Schedule Error", "Youth has already postponed their " + s_btype + " board");
+      ebAlert("Schedule Error", "Youth has already postponed their " + s_btype + " board", "scout");
       return;
    } else if (s_status != "Registered" && s_status != "Verified") {
       // "Verified" is accepted for legacy records only; Verify was removed and
       // nothing sets that status anymore.
-      ebAlert("Schedule Error", "Unknown Status: " + s_status);
+      ebAlert("Schedule Error", "Unknown Status: " + s_status, "scout");
       return;
    }
 
    var selected_leader_str = schedulerLeaderGrid.getCheckedRowIds();
 
    if (!selected_leader_str) {
-      ebAlert("Schedule Error", "No Leaders Selected");
+      ebAlert("Schedule Error", "No Leaders Selected", "scout");
       return;
    }
 
@@ -481,13 +481,13 @@ function ProcessSeatBoard(s_id) {
          // operator looking for a room that does not exist.
          ebAlert("Schedule Error",
             "Member '" + l_last + ", " + l_first + "' has been disabled for this event."
-            + "<br/>Use Enable on the Adult Board Members panel if they are back.");
+            + "<br/>Use Enable on the Adult Board Members panel if they are back.", "scout");
          return;
       }
 
       if (l_room.length > 0) {
          ebAlert("Schedule Error",
-            "Member '" + l_last + ", " + l_first + "' is already assigned to a board in room " + l_room + ".");
+            "Member '" + l_last + ", " + l_first + "' is already assigned to a board in room " + l_room + ".", "scout");
          return;
       }
 
@@ -509,7 +509,7 @@ function ProcessSeatBoard(s_id) {
                || ((s_btype == "Final") && (l_final == "Unavailable")))) {
          ebAlert("Schedule Error",
             "Member '" + l_last + ", " + l_first + "' is currently Unavailable for " + s_btype + " Boards."
-            + "'. Please select another leader.");
+            + "'. Please select another leader.", "scout");
          return;
       }
 
@@ -534,7 +534,7 @@ function ProcessSeatBoard(s_id) {
       // Check Room
       var rm_id = roomView.getSelected();
       if (!rm_id) {
-         ebAlert("Schedule Error", "No room selected, please select a room and retry.");
+         ebAlert("Schedule Error", "No room selected, please select a room and retry.", "scout");
          return;
       }
 
@@ -550,7 +550,7 @@ function ProcessSeatBoard(s_id) {
          return;
       } else if (rm_data.Scout.length > 2) {
          ebAlert("Schedule Error",
-            "Room " + rm_data.Room + " already occupied. Please select a different room.");
+            "Room " + rm_data.Room + " already occupied. Please select a different room.", "scout");
          return;
       }
       showChairDialog(rm_id);
@@ -592,7 +592,7 @@ function ProcessSeatBoard(s_id) {
          + "<br/><br/>Select a member whose <b>" + role_col
          + "</b> role is <b>Chair</b>, or, if someone here should be chairing,"
          + " promote them on the Admin page (Adults tab) by setting their <b>"
-         + role_col + "</b> role to <b>Chair</b> first.</p>");
+         + role_col + "</b> role to <b>Chair</b> first.</p>", "scout");
       return false;
    };
 
@@ -610,7 +610,7 @@ function ProcessSeatBoard(s_id) {
                + " board member(s) selected:<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;" + leader_names + "<br/>"
                + "Three (3) required for Final Boards."
                + "<br/>Please select " + (BOARD_MIN_MEMBERS - selected_leaders.length) + " more leaders."
-               + "</p>");
+               + "</p>", "scout");
             return;
          } else if (size_verdict === "too-many") {
             // Not overridable: six is a national ceiling, not a local
@@ -621,7 +621,7 @@ function ProcessSeatBoard(s_id) {
                + "<br/><br/>A board of review may have no more than six (6) members"
                + " (Guide to Advancement 8.0.0.3)."
                + "<br/>Please remove " + (selected_leaders.length - BOARD_MAX_MEMBERS)
-               + " member(s).</p>");
+               + " member(s).</p>", "scout");
             return;
          } else if (size_verdict === "over-preferred") {
             ebConfirm("Schedule",
@@ -642,7 +642,7 @@ function ProcessSeatBoard(s_id) {
             ebAlert("Schedule Error",
                "Only " + selected_leaders.length + " board members selected:<br/><br/>&nbsp;&nbsp;&nbsp;" + leader_names
                + "<br/><br/>Two (2) required for Project Reviews."
-               + "<br/>Please select " + (PROJECT_MIN_MEMBERS - selected_leaders.length) + " more leaders.");
+               + "<br/>Please select " + (PROJECT_MIN_MEMBERS - selected_leaders.length) + " more leaders.", "scout");
             return;
          } else if (project_verdict === "too-many") {
             // Same ceiling as a board of review, and refused the same way:
@@ -652,7 +652,7 @@ function ProcessSeatBoard(s_id) {
                + " board members:<br/><br/>&nbsp;&nbsp;&nbsp;" + leader_names
                + "<br/><br/>A project review may have no more than six (6) members."
                + "<br/>Please remove " + (selected_leaders.length - BOARD_MAX_MEMBERS)
-               + " member(s).</p>");
+               + " member(s).</p>", "scout");
             return;
          } else if (project_verdict === "over-preferred") {
             ebConfirm("Schedule",
@@ -667,7 +667,7 @@ function ProcessSeatBoard(s_id) {
             return;
          }
       } else {
-         ebAlert("Schedule Error", "No BoardType selected for youth " + s_last);
+         ebAlert("Schedule Error", "No BoardType selected for youth " + s_last, "scout");
          return;
       }
 
@@ -698,7 +698,7 @@ function ProcessSeatBoard(s_id) {
             + " at least one district or council representative who is not"
             + " affiliated with the unit (Guide to Advancement 8.0.3.0)."
             + "<br/><br/>Please add a board member from outside "
-            + s_uname + ".</p>");
+            + s_uname + ".</p>", "scout");
          return;
       }
 
@@ -738,7 +738,8 @@ function SendSeatRequest(room_id, s_id, chair_id, member_ids) {
    })
       .then(function (res) {
          if (res.ok) {
-            ebMessage("Seated Successful", "Success: " + s_first + " " + s_last + " Seated OK");
+            // The row's own Status/room columns already show the result
+            // (D-14): no separate success message.
             // Mark these adults occupied and unchecked in the local grid right
             // away, rather than waiting on refresh_all() below. Without this, a
             // fast click to the next Registered scout re-runs auto-select
@@ -750,11 +751,11 @@ function SendSeatRequest(room_id, s_id, chair_id, member_ids) {
             var rm_data = roomView.get(room_id);
             schedulerLeaderGrid.markSeated(member_ids.split(","), rm_data ? rm_data.Room : "");
          } else {
-            ebAlert("Seat Error", s_first + " " + s_last + " Seat Failed.<br/> " + res.text);
+            ebAlert("Seat Error", s_first + " " + s_last + " Seat Failed.<br/> " + res.text, "scout");
          }
       })
       .catch(function () {
-         ebAlert("Seat Error", s_first + " " + s_last + " Seat Failed.");
+         ebAlert("Seat Error", s_first + " " + s_last + " Seat Failed.", "scout");
       })
       .then(function () {
          setTimeout(function () {

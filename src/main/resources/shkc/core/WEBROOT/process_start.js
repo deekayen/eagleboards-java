@@ -17,7 +17,7 @@ function ProcessStartReview(s_id) {
    if (s_status === "InProgress") {
       ebAlert("Start Error",
          "The review for " + s_first + " " + s_last + " has already started"
-         + (s_room ? " in room " + s_room : "") + ".");
+         + (s_room ? " in room " + s_room : "") + ".", "scout");
       return;
    }
 
@@ -27,7 +27,7 @@ function ProcessStartReview(s_id) {
       ebAlert("Start Error",
          "The board for " + s_first + " " + s_last + " has not been seated yet."
          + "<br/>Use <b>Seat Board</b> first, then start the review."
-         + "<br/><br/>Current status: '" + s_status + "'");
+         + "<br/><br/>Current status: '" + s_status + "'", "scout");
       return;
    }
 
@@ -66,14 +66,14 @@ function SendStartReviewRequest(s_id) {
    ebAction("/inprogress-board", { ScoutID: s_id })
       .then(function (res) {
          if (res.ok) {
-            ebMessage("Review Started", s_first + " " + s_last + " review started OK");
+            // Status shows InProgress already (D-14): no separate message.
          } else {
             ebAlert("Start Error",
-               s_first + " " + s_last + " could not be started.<br/> " + res.text);
+               s_first + " " + s_last + " could not be started.<br/> " + res.text, "scout");
          }
       })
       .catch(function () {
-         ebAlert("Start Error", s_first + " " + s_last + " could not be started.");
+         ebAlert("Start Error", s_first + " " + s_last + " could not be started.", "scout");
       })
       .then(function () {
          setTimeout(function () {

@@ -18,7 +18,7 @@ function ProcessResetBoard(s_id) {
          });
    } else {
       ebAlert("Reset Error",
-         "Reset Error<br/>Invalid Status: '" + s_status + "'<br/>Expected: 'Verified' | 'Seated' | 'InProgress'");
+         "Reset Error<br/>Invalid Status: '" + s_status + "'<br/>Expected: 'Verified' | 'Seated' | 'InProgress'", "scout");
    }
 }
 
@@ -29,14 +29,14 @@ function SendResetRequest(s_id) {
    ebAction("/reset-board", { ScoutID: s_id })
       .then(function (res) {
          if (res.ok) {
-            ebMessage("Reset", s_first + " " + s_last + " Reset OK");
+            // Status shows Registered already (D-14): no separate message.
          } else {
             ebAlert("Reset Error",
-               s_first + " " + s_last + " Reset failed.<br/> " + res.text);
+               s_first + " " + s_last + " Reset failed.<br/> " + res.text, "scout");
          }
       })
       .catch(function () {
-         ebAlert("Reset Error", s_first + " " + s_last + " Reset Failed.");
+         ebAlert("Reset Error", s_first + " " + s_last + " Reset Failed.", "scout");
       })
       .then(function () {
          setTimeout(function () {

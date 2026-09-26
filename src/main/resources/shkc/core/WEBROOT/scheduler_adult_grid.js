@@ -115,9 +115,9 @@ function SchedulerAdultGrid(container_id, toolbar_id, title) {
          var fname = this_obj.getColumnValue(r_id, "First");
 
          if (room === "N/A") {
-            ebAlert("Disable Error", fname + " " + lname + " already disabled.");
+            ebAlert("Disable Error", fname + " " + lname + " already disabled.", "adult");
          } else if (room && (room.length > 0)) {
-            ebAlert("Disable Error", fname + " " + lname + " is currently assigned to room " + room + ".");
+            ebAlert("Disable Error", fname + " " + lname + " is currently assigned to room " + room + ".", "adult");
          } else {
             ebConfirm("Confirm Disable", "Do you want to disable " + fname + " " + lname + "  ?", function (result) {
                if (result == true) {
@@ -135,7 +135,7 @@ function SchedulerAdultGrid(container_id, toolbar_id, title) {
             var e_fname = this_obj.getColumnValue(e_id, "First");
 
             if (e_room !== "N/A") {
-               ebAlert("Enable Error", e_fname + " " + e_lname + " is not disabled.");
+               ebAlert("Enable Error", e_fname + " " + e_lname + " is not disabled.", "adult");
             } else {
                ebConfirm("Confirm Enable", "Do you want to enable " + e_fname + " " + e_lname + "  ?", function (result) {
                   if (result == true) {
@@ -409,11 +409,11 @@ SchedulerAdultGrid.prototype.updateRoom = function (l_id, room_value) {
    ebSaveRow("/adult-update", "updated", l_id, { Room: room_value })
       .then(function (ok) {
          if (!ok) {
-            ebAlert("Update Error", l_first + " " + l_last + " update failed.");
+            ebAlert("Update Error", l_first + " " + l_last + " update failed.", "adult");
          }
       })
       .catch(function () {
-         ebAlert("Update Error", l_first + " " + l_last + " update failed.");
+         ebAlert("Update Error", l_first + " " + l_last + " update failed.", "adult");
       })
       .then(function () {
          setTimeout(function () {
@@ -435,7 +435,7 @@ SchedulerAdultGrid.prototype.toggleSupportLink = function () {
       return;
    }
    if (!s_id) {
-      ebAlert("Link", "Select the youth in the Youth list first, then highlight the adult here and press Link.");
+      ebAlert("Link", "Select the youth in the Youth list first, then highlight the adult here and press Link.", "adult");
       return;
    }
 
@@ -457,15 +457,15 @@ SchedulerAdultGrid.prototype.toggleSupportLink = function () {
       ebSaveRow("/adult-update", "updated", l_id, { Supporting: updated })
          .then(function (ok) {
             if (!ok) {
-               ebAlert("Link Error", "The change was not saved.");
+               ebAlert("Link Error", "The change was not saved.", "adult");
                return;
             }
             this_obj.table.updateData([{ id: l_id, Supporting: updated }]);
             ebMessage(linked ? "Unlinked" : "Linked",
-               adult + (linked ? " is no longer linked to " : " is linked to ") + scout);
+               adult + (linked ? " is no longer linked to " : " is linked to ") + scout, "adult");
          })
          .catch(function () {
-            ebAlert("Link Error", "The change was not saved.");
+            ebAlert("Link Error", "The change was not saved.", "adult");
          });
    });
 };

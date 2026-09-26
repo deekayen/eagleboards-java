@@ -202,39 +202,39 @@ function SCHEDULER_styleRowByStatus(row, selected) {
 // modal-form dialog helpers).
 // ------------------------------------------------------------------------
 
-function ebToastContainer() {
-   var c = document.getElementById("eb-toasts");
-   if (!c) {
-      c = document.createElement("div");
-      c.id = "eb-toasts";
-      document.body.appendChild(c);
-   }
-   return c;
+// D-14: a problem stays on screen next to what it's about until it's fixed
+// or dismissed -- no self-dismissing toast. region is "main" | "scout" |
+// "adult", matching the #<region>-messages slot under that toolbar; omit
+// it for a page-wide message. A new message in a region replaces that
+// region's old one rather than stacking.
+function ebMessageSlot(region) {
+   return document.getElementById((region || "main") + "-messages");
 }
 
-// kind: "error" | "ok" | "warn" | "info"
-function ebToast(title, html, kind, expireMs) {
-   var t = document.createElement("div");
-   t.className = "eb-toast eb-toast-" + (kind || "info");
-   t.innerHTML = "<div class='eb-toast-title'>" + title + "</div><div class='eb-toast-body'>" + html + "</div>";
-   t.addEventListener("click", function () {
-      if (t.parentNode) { t.parentNode.removeChild(t); }
+function ebShowMessage(region, kind, title, html) {
+   var slot = ebMessageSlot(region);
+   if (!slot) {
+      return;
+   }
+   slot.innerHTML = "";
+   var m = document.createElement("div");
+   m.className = "eb-message eb-message-" + kind;
+   m.innerHTML = "<span class='eb-message-body'><b>" + title + ":</b> " + html + "</span>"
+      + "<button type='button' class='eb-message-dismiss' aria-label='Dismiss'>&times;</button>";
+   m.querySelector(".eb-message-dismiss").addEventListener("click", function () {
+      if (m.parentNode) {
+         m.parentNode.removeChild(m);
+      }
    });
-   ebToastContainer().appendChild(t);
-   if (expireMs !== -1) {
-      setTimeout(function () {
-         if (t.parentNode) { t.parentNode.removeChild(t); }
-      }, expireMs || 6000);
-   }
-   return t;
+   slot.appendChild(m);
 }
 
-function ebAlert(title, html) {
-   ebToast(title, html, "error", 8000);
+function ebAlert(title, html, region) {
+   ebShowMessage(region, "error", title, html);
 }
 
-function ebMessage(title, html) {
-   ebToast(title, html, "ok", 6000);
+function ebMessage(title, html, region) {
+   ebShowMessage(region, "ok", title, html);
 }
 
 function ebModalOverlay() {

@@ -18,7 +18,7 @@ function ProcessPostponeBoard(s_id) {
          });
    } else {
       ebAlert("Postpone Error",
-         "Postpone Error<br/>Invalid Status: '" + s_status + "'<br/>Expected: 'Registered' | 'Verified'");
+         "Postpone Error<br/>Invalid Status: '" + s_status + "'<br/>Expected: 'Registered' | 'Verified'", "scout");
    }
 }
 
@@ -29,14 +29,14 @@ function SendPostponeRequest(s_id) {
    ebAction("/postpone-board", { ScoutID: s_id })
       .then(function (res) {
          if (res.ok) {
-            ebMessage("Postpone", s_first + " " + s_last + " Postpone OK");
+            // Status shows Postponed already (D-14): no separate message.
          } else {
             ebAlert("Postpone Error",
-               s_first + " " + s_last + " Postpone failed.<br/> " + res.text);
+               s_first + " " + s_last + " Postpone failed.<br/> " + res.text, "scout");
          }
       })
       .catch(function () {
-         ebAlert("Postpone Error", s_first + " " + s_last + " Postpone Failed.");
+         ebAlert("Postpone Error", s_first + " " + s_last + " Postpone Failed.", "scout");
       })
       .then(function () {
          setTimeout(function () {

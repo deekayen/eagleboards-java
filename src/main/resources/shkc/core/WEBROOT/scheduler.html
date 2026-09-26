@@ -144,31 +144,33 @@
             overflow: hidden;
          }
 
-         /* toast notices */
-         #eb-toasts {
-            position: fixed;
-            top: 12px;
-            right: 12px;
-            z-index: 1000;
-            width: 320px;
-         }
-         .eb-toast {
-            border: 1px solid #999;
-            border-radius: 4px;
-            padding: 8px 12px;
-            margin-bottom: 8px;
-            cursor: pointer;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+         /* persistent messages (D-14): stay until fixed or dismissed, next
+            to the toolbar/panel they're about -- see #main-messages,
+            #scout-messages, #adult-messages and ebShowMessage in
+            scheduler_config.js. */
+         .eb-messages:empty { display: none; }
+         .eb-message {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 8px;
+            padding: 6px 10px;
+            margin: 2px 0 6px;
+            border-radius: 3px;
             font-size: 13px;
             text-align: left;
-            background: #ffffff;
-            color: #000;
          }
-         .eb-toast-title { font-weight: bold; margin-bottom: 2px; }
-         .eb-toast-error { background: #f3b50c; }
-         .eb-toast-ok { background: #eeffee; }
-         .eb-toast-warn { background: #ffff99; }
-         .eb-toast-info { background: #eef4ff; }
+         .eb-message-body { flex: 1 1 auto; }
+         .eb-message-dismiss {
+            flex: 0 0 auto;
+            border: none;
+            background: none;
+            color: inherit;
+            font-size: 16px;
+            line-height: 1;
+            cursor: pointer;
+            padding: 0 2px;
+         }
 
          /* modal dialogs */
          .eb-modal-overlay {
@@ -236,6 +238,7 @@
          <button data-action="ChangeRoom" title="Change/Swap Rooms">Change Room</button>
          <span class="eb-title">Eagle Board Scheduler</span>
       </div>
+      <div class="eb-messages" id="main-messages"></div>
 
       <div class="eb-layout">
       <div class="eb-row eb-row-top">
@@ -251,6 +254,7 @@
             <button data-action="Reset" title="Reset Board">Reset</button>
             <button data-action="Postpone" title="Postpone Board">Postpone</button>
          </div>
+         <div class="eb-messages" id="scout-messages"></div>
          <div class="eb-grid-scouts" id="grid-scouts"></div>
       </div>
 
@@ -265,6 +269,7 @@
             <span class="eb-sep"></span>
             <button data-action="Link" title="Link the highlighted adult to the selected youth as someone who came to support them, or unlink them">Link</button>
          </div>
+         <div class="eb-messages" id="adult-messages"></div>
          <div class="eb-grid-adults" id="grid-adults"></div>
       </div>
       </div>
@@ -275,6 +280,7 @@
             <label>Filter <input type="text" id="room-filter" size="18"/></label>
             <button id="room-filter-clear">Clear</button>
          </div>
+         <div class="eb-messages" id="room-messages"></div>
          <div id="roomview"></div>
       </div>
 
@@ -546,20 +552,16 @@
                // proposeBoard (process_seat.js) weighs the whole waiting line:
                // it keeps chairs free for the boards still to come and spends
                // adults whose troop rules them out for scouts still waiting.
-               var errors = [];
                var proposal = proposeBoard(
                   SCHEDULER_scoutForProposal(s_id),
                   SCHEDULER_adultsForProposal(),
                   SCHEDULER_waitingForProposal(s_id));
+               var errors = proposal.problems.slice();
                if (proposal.chairId) {
                   schedulerLeaderGrid.checkRow(proposal.chairId);
                }
                proposal.memberIds.forEach(function (l_id) {
                   schedulerLeaderGrid.checkRow(l_id);
-               });
-               proposal.problems.forEach(function (problem) {
-                  errors.push(problem);
-                  ebToast("Auto Select Error", "<span style='font-size: small'>" + problem + "</span>", "error");
                });
 
                var rm_found = null;
@@ -574,14 +576,13 @@
                }
 
                if (!rm_found) {
-                  errors.push("No " + s_btype + " rooms available...");
-                  ebToast("Auto Select Error",
-                     "<span style='font-size: small'>No " + s_btype + " Rooms Available</span>", "error");
+                  errors.push("No " + s_btype + " rooms available.");
                }
 
-               if (errors.length === 0) {
-                  ebToast("Auto Select OK",
-                     "<span style='font-size: medium'>Ready to Seat: </span><br/> <b>" + s_last + ", " + s_first + "</b>", "ok");
+               if (errors.length > 0) {
+                  ebAlert("Auto Select Error", errors.join("<br/>"), "scout");
+               } else {
+                  ebMessage("Auto Select OK", "Ready to seat <b>" + s_last + ", " + s_first + "</b>.", "scout");
                }
             } else {
                if ((s_room.length > 0) && (s_room !== "N/A")) {
@@ -750,9 +751,9 @@
             var adult_list = leader_match.concat(parent_match);
 
             if (adult_list.length == 0 && supporting.length == 0) {
-               ebToast("Cannot Locate",
+               ebAlert("Cannot Locate",
                   "Youth : <b>" + s_first.charAt(0) + " " + s_last + "</b><br/>Leader(s): '" + s_leader + "' <b>not registered.</b>",
-                  "warn", 3000);
+                  "scout");
                return;
             }
 
@@ -776,7 +777,7 @@
                }
             }
 
-            ebToast("Located", text, "info", 60000);
+            ebMessage("Located", text, "scout");
          }
 
          // ------------------------------------------------------------
@@ -826,12 +827,12 @@
                   var room = body.querySelector("input[name='Room']").value.trim();
                   var type = body.querySelector("select[name='BoardType']").value;
                   if (room == "") {
-                     ebAlert("Add Room Error", "Room # is required.");
+                     ebAlert("Add Room Error", "Room # is required.", "room");
                      return false; // keep dialog open
                   }
                   var id = "ROOM:" + room;
                   if (roomView.get(id)) {
-                     ebAlert("Add Room Error", "Room '" + room + "' Already Exists.");
+                     ebAlert("Add Room Error", "Room '" + room + "' Already Exists.", "room");
                      return false;
                   }
                   ProcessAddRoom(room, type);
@@ -846,7 +847,7 @@
                var scout = rm_data.Scout;
 
                if (scout && scout !== "") {
-                  ebAlert("Remove Room Error", "Room '" + room + "' is currently in use, cannot remove.");
+                  ebAlert("Remove Room Error", "Room '" + room + "' is currently in use, cannot remove.", "room");
                   return;
                } else {
                   ebConfirm("Confirm Remove Room", "Remove Room '" + room + "' ?", function (result) {
@@ -856,7 +857,7 @@
                   });
                }
             } else {
-               ebAlert("Remove Room Error", "No Room Selected");
+               ebAlert("Remove Room Error", "No Room Selected", "room");
                return;
             }
          }
@@ -864,7 +865,7 @@
          function PerformChangeRoomAction() {
             var selected_id = roomView.getSelected();
             if (!selected_id) {
-               ebAlert("Change Room Error", "No Room Selected");
+               ebAlert("Change Room Error", "No Room Selected", "room");
                return;
             }
             var selected = roomView.get(selected_id);
@@ -890,18 +891,18 @@
                   var rmid1 = selected_id;
                   var rmid2 = body.querySelector("select[name='RmID2']").value;
                   if (rmid2 == "") {
-                     ebAlert("Change Room Error", "Please select the 2nd room.");
+                     ebAlert("Change Room Error", "Please select the 2nd room.", "room");
                      return false;
                   }
                   var rm1 = roomView.get(rmid1);
                   var rm2 = roomView.get(rmid2);
 
                   if (!rm1) {
-                     ebAlert("Change Room Error", "No Such Room: " + rmid1);
+                     ebAlert("Change Room Error", "No Such Room: " + rmid1, "room");
                      return;
                   }
                   if (!rm2) {
-                     ebAlert("Change Room Error", "No Such Room: " + rmid2);
+                     ebAlert("Change Room Error", "No Such Room: " + rmid2, "room");
                      return;
                   }
 
@@ -924,11 +925,11 @@
             ebSaveRow("/room-update", "inserted", "ROOM:" + room, { Room: room, BoardType: board_type })
                .then(function (ok) {
                   if (!ok) {
-                     ebAlert("Add Room Error", " Add Room '" + room + "' Failed.");
+                     ebAlert("Add Room Error", " Add Room '" + room + "' Failed.", "room");
                   }
                })
                .catch(function () {
-                  ebAlert("Add Room Error", " Add Room '" + room + "' Failed.");
+                  ebAlert("Add Room Error", " Add Room '" + room + "' Failed.", "room");
                })
                .then(function () {
                   setTimeout(function () {
@@ -943,11 +944,11 @@
                   if (ok) {
                      roomView.remove("ROOM:" + room);
                   } else {
-                     ebAlert("Remove Room Error", " Remove Room '" + room + "' Failed.");
+                     ebAlert("Remove Room Error", " Remove Room '" + room + "' Failed.", "room");
                   }
                })
                .catch(function () {
-                  ebAlert("Remove Room Error", " Remove Room '" + room + "' Failed.");
+                  ebAlert("Remove Room Error", " Remove Room '" + room + "' Failed.", "room");
                })
                .then(function () {
                   setTimeout(function () {
@@ -960,11 +961,11 @@
             ebAction("/room-change", { RmID1: rmid1, RmID2: rmid2 })
                .then(function (res) {
                   if (!res.ok) {
-                     ebAlert("Change Room Error", " Change Room '" + rmid1 + " <==> " + rmid2 + "' Failed.<br/>" + res.text);
+                     ebAlert("Change Room Error", " Change Room '" + rmid1 + " <==> " + rmid2 + "' Failed.<br/>" + res.text, "room");
                   }
                })
                .catch(function () {
-                  ebAlert("Change Room Error", " Change Room '" + rmid1 + " <==> " + rmid2 + "' Failed.");
+                  ebAlert("Change Room Error", " Change Room '" + rmid1 + " <==> " + rmid2 + "' Failed.", "room");
                })
                .then(function () {
                   setTimeout(function () {

@@ -132,7 +132,7 @@ function SchedulerScoutGrid(container_id, toolbar_id, title) {
 
       var s_id = this_obj.getSelectedRowId();
       if (!s_id) {
-         ebAlert("Error", "No Youth Selected !!");
+         ebAlert("Error", "No Youth Selected !!", "scout");
          return;
       }
 

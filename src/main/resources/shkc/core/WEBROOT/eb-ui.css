@@ -463,9 +463,11 @@ body.eb-operator .eb-modal-buttons button {
    border: 1px solid var(--eb-olive);
    border-radius: 3px;
 }
-body.eb-operator .eb-toast { color: var(--eb-dark-gray); }
-/* White on Scouting Red = 5.63:1. Red is the action/alert colour (p.54). */
-body.eb-operator .eb-toast-error { background: var(--eb-red); color: #ffffff; }
+/* Persistent messages (D-14): white on Scouting Red = 5.63:1, light tan on
+   olive = 9.58:1 -- both fixed pairings, unaffected by theme (see the
+   --eb-heading comment at the top of this file for why). */
+body.eb-operator .eb-message-error { background: var(--eb-red); color: #ffffff; }
+body.eb-operator .eb-message-ok { background: var(--eb-olive); color: var(--eb-light-tan); }
 
 /* ========================= PUBLIC SIGN-IN PAGES ========================
  * index, scout_register, adult_register, help. Touched once per person, by
