@@ -586,6 +586,11 @@ dialog.eb-dialog::backdrop { background: rgba(0, 0, 0, 0.35); }
 }
 .eb-support-links a:hover { background: var(--eb-surface-alt); }
 .eb-support-links a::after { content: "\2197"; margin-left: 6px; color: var(--eb-text-2); }
+/* The Venmo QR code (Settings): the SVG brings its own white ground, so it
+   scans the right way round in dark mode too. */
+.eb-support-qr { display: flex; align-items: center; gap: 16px; margin: 16px 0 0; }
+.eb-support-qr img { width: 132px; height: 132px; border-radius: var(--eb-radius-sm); }
+.eb-support-qr figcaption { color: var(--eb-text-2); }
 
 /* Forms (Settings) */
 .eb-field {
