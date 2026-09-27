@@ -63,16 +63,27 @@ REM every interface and pops one dialog per adapter, including Hyper-V/WSL.
 REM Override for a different network, e.g. set EB_BIND=10.0.
 if "%EB_BIND%"=="" set "EB_BIND=192.168."
 
+REM Quiet by default, as in run.sh: -verbose logs every request, and with it
+REM the SignUpGenius import prints each registrant and the API key. Set
+REM EB_VERBOSE=1 to turn it on for chasing a problem.
+set "VFLAG="
+if not "%EB_VERBOSE%"=="" (
+    set "VFLAG=-verbose"
+    echo EB_VERBOSE is set: logging every request, and the API key.
+)
+
 REM EB_DRYRUN=1 stops here without launching anything. It exists so the
-REM Windows CI leg can prove this script picks the newest jar and prints
-REM the shadowed-WEBROOT warning. Neither is checkable from Linux or
-REM macOS, and this launcher has drifted behind run.sh once already.
+REM Windows CI leg can prove this script picks the newest jar, prints the
+REM shadowed-WEBROOT warning, and starts quiet. None of that is checkable
+REM from Linux or macOS, and this launcher has drifted behind run.sh once
+REM already.
 if not "%EB_DRYRUN%"=="" (
     echo DRYRUN: would start !JAR!
+    echo DRYRUN: options [!VFLAG!] -w -a Master_AdultHistory.csv -c config.properties -port 8080 -bind %EB_BIND%
     exit /b 0
 )
 
-java -jar "!JAR!" -verbose -w -a Master_AdultHistory.csv -c config.properties -port 8080 -bind %EB_BIND% %SUGARG%
+java -jar "!JAR!" !VFLAG! -w -a Master_AdultHistory.csv -c config.properties -port 8080 -bind %EB_BIND% %SUGARG%
 pause
 exit /b
 

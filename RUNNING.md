@@ -41,11 +41,16 @@ scripts/run.sh        # Linux / macOS / Raspberry Pi
 scripts\run.bat       # Windows
 ```
 
+Both start quiet. To log every request while chasing a problem, set
+`EB_VERBOSE=1` first (`EB_VERBOSE=1 scripts/run.sh`, or `set EB_VERBOSE=1` on
+Windows). That also prints the API key and each SignUpGenius registrant, so turn
+it off again before an event.
+
 Or invoke it directly:
 
 ```sh
 java -jar target/eagleboardscheduler-*.jar \
-  -verbose -w -a Master_AdultHistory.csv -c config.properties \
+  -w -a Master_AdultHistory.csv -c config.properties \
   -port 8080 -bind 192.168. -sugkey "$SUG_KEY"
 ```
 

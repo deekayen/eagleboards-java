@@ -159,7 +159,7 @@ jobs:
         # the room and the members back. Synthetic names, spare port, throwaway
         # data dir -- never the real Master_AdultHistory.csv.
         run: bash scripts/test-board-evening.sh
-      - name: Windows launcher (run.bat picks the newest jar, warns on shadowed WEBROOT)
+      - name: Windows launcher (run.bat picks the newest jar, warns on shadowed WEBROOT, starts quiet)
         if: matrix.os == 'windows-latest'
         shell: cmd
         # run.bat is what the app is actually launched with at an event, and it
@@ -186,6 +186,8 @@ jobs:
           rem present. Backslash before a letter, as in the DRYRUN line above,
           rem is fine. Match the part of the warning that has neither.
           findstr /c:"WARNING: a WEBROOT" runbat.out >nul || (echo FAIL: run.bat did not warn about the shadowing WEBROOT folder & exit /b 1)
+          rem Quiet by default: -verbose prints registrants and the API key.
+          findstr /l /c:"DRYRUN: options []" runbat.out >nul || (echo FAIL: run.bat starts with -verbose unless EB_VERBOSE is set & exit /b 1)
           echo run.bat launcher checks passed
 
       - name: SignUpGenius live API check

@@ -64,6 +64,16 @@ if [ "$(uname)" != "Darwin" ] && [ -z "${DISPLAY:-}" ] && [ -z "${WAYLAND_DISPLA
     echo "No display detected — skipping the URL popup window (-w)."
 fi
 
-exec java -jar "$JAR" -verbose $W_FLAG \
+# Quiet by default. -verbose logs every request, and with it the SignUpGenius
+# import prints each registrant and the API key -- not something to leave
+# scrolling on a laptop at the check-in table. EB_VERBOSE=1 turns it on for
+# chasing a problem.
+V_FLAG=""
+if [ -n "${EB_VERBOSE:-}" ]; then
+    V_FLAG="-verbose"
+    echo "EB_VERBOSE is set: logging every request (and the API key)."
+fi
+
+exec java -jar "$JAR" $V_FLAG $W_FLAG \
     -a Master_AdultHistory.csv -c config.properties -port 8080 \
     ${SUG_KEY:+-sugkey "$SUG_KEY"}
