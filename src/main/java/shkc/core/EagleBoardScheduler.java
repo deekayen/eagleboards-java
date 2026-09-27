@@ -310,6 +310,7 @@ public class EagleBoardScheduler {
       this._server.addHandler("/reset-board", new EagleBoardScheduler.ResetBoardHandler());
       this._server.addHandler("/restore-board", new EagleBoardScheduler.RestoreBoardHandler());
       this._server.addHandler("/change-board-members", new EagleBoardScheduler.ChangeBoardMembersHandler());
+      this._server.addHandler("/rename-room", new EagleBoardScheduler.RenameRoomHandler());
       this._server.addHandler("/checkin-address", new CheckInAddress.AddressHandler());
       this._server.addHandler("/checkin-qr", new CheckInAddress.QrHandler());
       // Every POST above may change what a page shows; /events tells the
@@ -1299,6 +1300,79 @@ public class EagleBoardScheduler {
             } else {
                this.sendError("ERROR: Invalid Room ID" + roomId2, response);
             }
+         }
+      }
+   }
+
+   // /rename-room: rename a room from its card on the Event page, not only in
+   // the Admin tables. The room keeps its ID; the youth and adults in it move
+   // to the new name with it, so a board in progress is not stranded looking
+   // for a room that no longer matches -- which is what an Admin-table edit of
+   // the Room column does (section 13 of the evening test). The Windows and
+   // Mac versions rename the same way.
+   public class RenameRoomHandler extends EagleBoardScheduler.CoreBoardHandler {
+      @Override
+      public synchronized void handle(String target, HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException {
+         synchronized (EagleBoardScheduler.this.LOCK) {
+            EagleBoardScheduler.verbose(request.getParameterMap());
+            String roomId = request.getParameter("RoomID");
+            String newName = request.getParameter("Room");
+            RoomRecord room = EagleBoardScheduler.this._roomRecords.get(roomId);
+            if (room == null) {
+               this.sendError("ERROR: No Such Room " + roomId, response);
+               return;
+            }
+
+            newName = newName == null ? "" : newName.trim();
+            if (newName.length() == 0) {
+               this.sendError("ERROR: Give the room a name or number", response);
+               return;
+            }
+
+            // "N/A" is the Disable marker for an adult who has gone home (and what
+            // Complete leaves in a youth's Room): a room by that name would
+            // make everyone in it look gone. A comma would be written to the CSV
+            // as "~" and read back as a different name. The Mac and Windows
+            // versions refuse both too.
+            if ("N/A".equalsIgnoreCase(newName)) {
+               this.sendError("ERROR: N/A marks adults who have gone home; choose another name", response);
+               return;
+            }
+            if (newName.contains(",")) {
+               this.sendError("ERROR: A room name cannot contain a comma", response);
+               return;
+            }
+
+            String oldName = room.getRoom();
+            if (newName.equals(oldName)) {
+               this.sendSuccess(response);
+               return;
+            }
+
+            for (RoomRecord other : EagleBoardScheduler.this._roomRecords.getRecords()) {
+               if (other != room && newName.equals(other.getRoom())) {
+                  this.sendError("ERROR: Room " + newName + " already exists", response);
+                  return;
+               }
+            }
+
+            UndoBuilder undo = new UndoBuilder();
+            room.setValue("Room", newName);
+            undo.field("Room", room, "Room", oldName);
+            for (ScoutRecord scout : EagleBoardScheduler.this._scoutRecords.get("Room", oldName)) {
+               scout.setRoom(newName);
+               undo.field("Scout", scout, "Room", oldName);
+            }
+            for (AdultRecord adult : EagleBoardScheduler.this._adultRecords.get("Room", oldName)) {
+               adult.setRoom(newName);
+               undo.field("Adult", adult, "Room", oldName);
+            }
+
+            EagleBoardScheduler.this._roomRecords.store();
+            EagleBoardScheduler.this._scoutRecords.store();
+            EagleBoardScheduler.this._adultRecords.store();
+            undo.commit("Rename room " + oldName + " to " + newName);
+            this.sendSuccess(response);
          }
       }
    }

@@ -168,6 +168,11 @@ push be the verification.
   same composition check as seating (`checkComposition`), except that adults
   already in the room may stay. It does not touch `LastUpdateTime`, so the
   room timer keeps running: it is the same board.
+- **Renaming a room** from the Event page goes through `/rename-room`, which
+  moves the youth and adults in it to the new name (the room keeps its ID).
+  Editing the Room column on the Admin page does not, and strands a board in
+  progress (evening test section 13). A name of `N/A` or with a comma is
+  refused, as in the Windows and Mac versions.
 - **Board composition rules** live in `process_seat.js` for the operator's sake
   (it explains and, where allowed, offers an override) **and again in
   `SeatBoardHandler` as a hard backstop**. The UI is the normal way in, not the

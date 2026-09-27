@@ -519,6 +519,7 @@ function renderRooms() {
    el("room-grid").innerHTML = html;
    var room = selection.roomId && roomStore.get(selection.roomId);
    el("room-move").disabled = !room;
+   el("room-rename").disabled = !room;
    el("room-remove").disabled = !room || !roomIsFree(room);
    el("room-remove").title = !room ? "Select a room to remove"
       : (roomIsFree(room) ? "Remove room " + room.Room : "Room " + room.Room + " has a board in it");
@@ -1040,11 +1041,17 @@ function addRoomDialog() {
             ebAlert("Add room", "Give the room a name or number.", "room");
             return false;
          }
-         if (roomStore.get("ROOM:" + room)) {
+         if (roomStore.rows.some(function (r) { return r.Room === room; })) {
             ebAlert("Add room", "Room " + h(room) + " already exists.", "room");
             return false;
          }
-         ebSaveRow("/room-update", "inserted", "ROOM:" + room, { Room: room, BoardType: type })
+         // A renamed room keeps its old ID, so "ROOM:101" may belong to a room
+         // now called something else; take the next free ID if so.
+         var id = "ROOM:" + room;
+         for (var n = 2; roomStore.get(id); n++) {
+            id = "ROOM:" + room + "-" + n;
+         }
+         ebSaveRow("/room-update", "inserted", id, { Room: room, BoardType: type })
             .then(function (ok) {
                if (!ok) {
                   ebAlert("Add room error", "Room " + h(room) + " was not added.", "room");
@@ -1055,6 +1062,66 @@ function addRoomDialog() {
             })
             .then(refresh_all);
       });
+}
+
+// Rename from the card. The server moves anyone on the room's board to the
+// new name with it (/rename-room); an Admin-table edit would strand them.
+function renameRoomDialog() {
+   var room = selection.roomId && roomStore.get(selection.roomId);
+   if (!room) {
+      return;
+   }
+   ebModalForm("Rename room " + h(room.Room) + "?",
+      "<label>New name<br/><input type='text' name='Room' size='12' autocomplete='off' value='" + h(room.Room) + "'/></label>"
+      + (roomIsFree(room) ? "" : "<p class='eb-hint'>The board in it moves to the new name with it.</p>"),
+      [{ name: "Cancel", label: "Cancel" }, { name: "Rename", label: "Rename" }],
+      function (name, body) {
+         if (name !== "Rename") {
+            return;
+         }
+         var newName = body.querySelector("input[name='Room']").value.trim();
+         if (newName === "") {
+            ebAlert("Rename room", "Give the room a name or number.", "room");
+            return false;
+         }
+         if (newName === room.Room) {
+            return;
+         }
+         if (roomStore.rows.some(function (r) { return r.id !== room.id && r.Room === newName; })) {
+            ebAlert("Rename room", "Room " + h(newName) + " already exists.", "room");
+            return false;
+         }
+         ebAction("/rename-room", { RoomID: room.id, Room: newName })
+            .then(function (res) {
+               if (res.ok) {
+                  ebMessage("Renamed", "Room " + h(room.Room) + " is now room " + h(newName) + ".", "room", "Undo");
+               } else {
+                  ebAlert("Rename error", "Room " + h(room.Room) + " was not renamed.<br/>" + h(res.text), "room");
+               }
+            })
+            .catch(function () {
+               ebAlert("Rename error", "Room " + h(room.Room) + " was not renamed.", "room");
+            })
+            .then(refresh_all);
+      });
+}
+
+// Switch a room between final boards and project reviews. A board already
+// in it is not disturbed (evening test section 17).
+function switchRoomType(room) {
+   var type = room.BoardType === "Project" ? "Final" : "Project";
+   ebSaveRow("/room-update", "updated", room.id, { BoardType: type })
+      .then(function (ok) {
+         if (ok) {
+            ebMessage("Room type", "Room " + h(room.Room) + " is now for " + h(ebBoardTypeLabel(type).toLowerCase()) + "s.", "room", "Undo");
+         } else {
+            ebAlert("Room error", "Room " + h(room.Room) + " was not changed.", "room");
+         }
+      })
+      .catch(function () {
+         ebAlert("Room error", "Room " + h(room.Room) + " was not changed.", "room");
+      })
+      .then(refresh_all);
 }
 
 function removeRoom() {
@@ -1358,11 +1425,15 @@ el("room-grid").addEventListener("contextmenu", function (ev) {
    var room = roomStore.get(card.getAttribute("data-id"));
    ebContextMenu([
       { label: "Move or swap board…", run: moveRoomDialog },
+      { label: "Rename…", run: renameRoomDialog },
+      { label: room.BoardType === "Project" ? "Use for final boards" : "Use for project reviews",
+        run: function () { switchRoomType(room); } },
       { label: "Remove room", disabled: !roomIsFree(room), run: removeRoom }
    ], ev.clientX, ev.clientY);
 });
 el("room-add").addEventListener("click", addRoomDialog);
 el("room-move").addEventListener("click", moveRoomDialog);
+el("room-rename").addEventListener("click", renameRoomDialog);
 el("room-remove").addEventListener("click", removeRoom);
 
 el("d-room").addEventListener("change", function () {
