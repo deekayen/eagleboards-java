@@ -182,7 +182,7 @@ Then open `http://127.0.0.1:18080/` (check-in), `/admin`, or `/scheduler`.
 Omit `-sugkey` unless you are specifically testing the SignUpGenius import —
 with it, the app pulls **real registrant names and emails** from the live API.
 
-See the [README](README.md#command-line-options) for the full option list.
+See [RUNNING.md](RUNNING.md#command-line-options) for the full option list.
 
 ## Verifying a change
 
