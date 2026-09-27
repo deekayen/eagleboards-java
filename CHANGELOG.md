@@ -302,6 +302,11 @@ tested on 64-bit Linux, Windows, and ARM Linux.
 - **Fixed a crash when seating a board with no members selected** — a
   null-handling bug present in the original binary. It now rejects the request
   with a clear message.
+- **The SignUpGenius import finds a sign-up on its first day.** The original
+  compared today's date with the sign-up's start date and time, so on the
+  day a sign-up began, today counted as before it and the import found
+  nothing: January's board night, for a sign-up that runs the year. Only the
+  dates are compared now.
 
 ### Readable code
 

@@ -142,7 +142,7 @@ public class SignUpGeniusPlugin {
          String endDate = entry.get("enddatestring").asText();
          String title = entry.get("title").asText();
          String startDate = entry.get("startdatestring").asText();
-         if (today.compareTo(endDate) <= 0 && today.compareTo(startDate) >= 0 && title.toLowerCase().contains("board") && title.toLowerCase().contains("eagle")) {
+         if (coversDay(today, startDate, endDate) && title.toLowerCase().contains("board") && title.toLowerCase().contains("eagle")) {
             System.out
                .println(
                   "Using SignUp {\n   id         : "
@@ -162,5 +162,18 @@ public class SignUpGeniusPlugin {
       }
 
       throw new Exception("no valid )in range SignUpIds found.");
+   }
+
+   /**
+    * Whether a sign-up's dates cover {@code day} (yyyy-MM-dd). Compared on the
+    * date alone: the API's strings carry a time too, and "2026-09-22" sorts
+    * before "2026-09-22 18:30:00", which missed a sign-up on its first day.
+    */
+   public static boolean coversDay(String day, String startDate, String endDate) {
+      return day.compareTo(dateOnly(startDate)) >= 0 && day.compareTo(dateOnly(endDate)) <= 0;
+   }
+
+   private static String dateOnly(String stamp) {
+      return stamp.length() > 10 ? stamp.substring(0, 10) : stamp;
    }
 }

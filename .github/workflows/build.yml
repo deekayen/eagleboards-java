@@ -77,6 +77,14 @@ jobs:
         # the runtime smoke test below cannot see it. Node is preinstalled on
         # all three runners; no packages are installed and no network is used.
         run: node scripts/test-seat-conflicts.js
+      - name: SignUpGenius sign-up dates (a sign-up counts on its first day)
+        shell: bash
+        # The live API check below runs on one leg only, and would only see
+        # this on a day some sign-up starts. coversDay is pure, so this runs
+        # it straight from the jar with no network and no key.
+        run: |
+          NEW_JAR=$(ls target/eagleboardscheduler-*.jar | grep -v original- | head -1)
+          java -cp "$NEW_JAR" scripts/test-signup-dates.java
       - name: Runtime smoke test (start server, exercise endpoints)
         shell: bash
         run: |
