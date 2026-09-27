@@ -267,3 +267,5 @@ push be the verification.
   PR was merged on GitHub.
 - Follow-up work and decisions are tracked as GitHub issues on
   `deekayen/eagleboards-java`.
+- **No AI attribution** in commits, issues, PR text, or anywhere in history,
+  as in every Eagle Boards repository.
