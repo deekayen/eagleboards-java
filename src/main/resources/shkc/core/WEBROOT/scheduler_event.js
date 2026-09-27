@@ -346,11 +346,28 @@ function icon(path, cls) {
 }
 
 var ICON_CHAIR = "<path d='M6 1.2 7.5 4.4 11 4.9 8.5 7.3 9.1 10.8 6 9.1 2.9 10.8 3.5 7.3 1 4.9 4.5 4.4Z' fill='currentColor'/>";
-var ICON_CLOCK = "<circle cx='6' cy='6' r='4.6' fill='none' stroke='currentColor' stroke-width='1.3'/><path d='M6 3.4V6l1.8 1.2' fill='none' stroke='currentColor' stroke-width='1.3' stroke-linecap='round'/>";
+// The room timer's clocks (SPEC.md D-13), one per state and each a different
+// outline, so the state reads without color: a stopwatch (crown and button)
+// on time, a timer dial with its elapsed wedge running long, an alarm clock
+// (bells and feet) overdue.
+var ICON_STOPWATCH = "<circle cx='6' cy='6.8' r='4.2' fill='none' stroke='currentColor' stroke-width='1.3'/><path d='M4.7 1.2h2.6M6 1.2v1.4M9.3 3.5l.8-.8M6 6.8V4.6' fill='none' stroke='currentColor' stroke-width='1.3' stroke-linecap='round'/>";
+var ICON_TIMER = "<circle cx='6' cy='6' r='4.6' fill='none' stroke='currentColor' stroke-width='1.3'/><path d='M6 6V2.8A3.2 3.2 0 0 1 9.2 6Z' fill='currentColor'/>";
+var ICON_ALARM = "<circle cx='6' cy='6.6' r='3.9' fill='none' stroke='currentColor' stroke-width='1.3'/><path d='M1.4 3.2 3.2 1.4M10.6 3.2 8.8 1.4M3.7 9.8l-.8 1M8.3 9.8l.8 1M6 4.6v2l1.3.9' fill='none' stroke='currentColor' stroke-width='1.3' stroke-linecap='round' stroke-linejoin='round'/>";
 var ICON_WARN = "<path d='M6 1.2 11.2 10.5H.8Z' fill='none' stroke='currentColor' stroke-width='1.3' stroke-linejoin='round'/><path d='M6 4.6v2.8' stroke='currentColor' stroke-width='1.3' stroke-linecap='round'/><circle cx='6' cy='9' r='.75' fill='currentColor'/>";
 var ICON_ERROR = "<circle cx='6' cy='6' r='4.8' fill='none' stroke='currentColor' stroke-width='1.3'/><path d='M4 4l4 4M8 4 4 8' stroke='currentColor' stroke-width='1.3' stroke-linecap='round'/>";
 var ICON_OK = "<path d='M2.2 6.3l2.4 2.4 5.2-5.6' fill='none' stroke='currentColor' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/>";
 var ICON_REMOVE = "<path d='M3 3l6 6M9 3 3 9' stroke='currentColor' stroke-width='1.4' stroke-linecap='round'/>";
+
+function timerIcon(state) {
+   return icon(state === "over" ? ICON_ALARM : state === "warn" ? ICON_TIMER : ICON_STOPWATCH);
+}
+
+// The late states in words, for a screen reader: the card's name is its text,
+// and the timer's tooltip is not part of it.
+function timerWords(state) {
+   return state === "over" ? "<span class='eb-visually-hidden'>, overdue</span>"
+      : state === "warn" ? "<span class='eb-visually-hidden'>, running long</span>" : "";
+}
 
 function minsText(mins) {
    return (mins === "" || mins == null) ? "" : mins + " min";
@@ -507,7 +524,7 @@ function renderRooms() {
          state = SCHEDULER_timerState(s.Status, s.BoardType, mins);
          phase = s.Status === "Seated" ? "Convening" : "In review";
          timer = "<span class='eb-timer eb-timer-" + state + "' title='" + h(SCHEDULER_timerMeaning(s.Status, s.BoardType, state)) + "'>"
-            + icon(state === "ok" ? ICON_CLOCK : ICON_WARN) + h(minsText(mins)) + "</span>";
+            + timerIcon(state) + h(minsText(mins)) + timerWords(state) + "</span>";
       }
       var body;
       if (s) {
@@ -775,7 +792,7 @@ function renderActive(s) {
    var state = SCHEDULER_timerState(s.Status, s.BoardType, mins);
    el("d-active-room").innerHTML = "Room " + h(s.Room) + " · " + h(ebBoardTypeLabel(s.BoardType)) + " · "
       + "<span class='eb-timer eb-timer-" + state + "' title='" + h(SCHEDULER_timerMeaning(s.Status, s.BoardType, state)) + "'>"
-      + icon(state === "ok" ? ICON_CLOCK : ICON_WARN) + (s.Status === "Seated" ? "convening " : "in review ") + h(minsText(mins)) + "</span>";
+      + timerIcon(state) + (s.Status === "Seated" ? "convening " : "in review ") + h(minsText(mins)) + timerWords(state) + "</span>";
 
    var members = adultStore.rows.filter(function (a) { return a.Room === s.Room; });
    members.sort(function (a, b) { return (a.id === s.BoardChairID ? -1 : b.id === s.BoardChairID ? 1 : byName(a, b)); });

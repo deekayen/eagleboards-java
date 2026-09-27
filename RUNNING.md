@@ -64,7 +64,7 @@ the check-in station.
 | Check-in | `http://<ip>:8080/` | Scouts and adults, at the registration station |
 | Scheduler | `http://<ip>:8080/scheduler` | The operator assigning boards to rooms |
 | Admin | `http://<ip>:8080/admin` | Managing records directly |
-| Settings | `http://<ip>:8080/configure` | Colors and warning timings |
+| Settings | `http://<ip>:8080/configure` | Room timer warnings |
 | Help | `http://<ip>:8080/help` | Operator instructions |
 
 The board lifecycle is **Registered → Verified → Seated → InProgress →
@@ -94,15 +94,18 @@ has signed in each time it opens.
 
 ## Configuration
 
-`config.properties` (committed; colors and timings only, no personal data):
+`config.properties` (committed; timings only, no personal data):
 
 | Key | Meaning |
 | --- | --- |
 | `RefreshTimeSecs` | No longer used: nothing polls. Kept so older builds can read the file |
-| `ConveneRedMins` | Minutes since **Seat Board** before the room card turns red. Red only, no yellow: it caps the convening phase rather than pacing it |
-| `ProjectYellowMins`, `ProjectRedMins` | Minutes since **Start Review** before a project review's room card turns yellow, then red |
+| `ConveneRedMins` | Minutes since **Seat Board** before the room card's timer shows overdue. No running-long stage: it caps the convening phase rather than pacing it |
+| `ProjectYellowMins`, `ProjectRedMins` | Minutes since **Start Review** before a project review's timer shows running long, then overdue |
 | `FinalYellowMins`, `FinalRedMins` | The same, for final boards |
-| `*Color`, `*HiColor` | Row and highlight colors per status |
+
+Status colors are not settings (shared SPEC.md D-19): the `*Color` and
+`*HiColor` keys an older file may still have are ignored and dropped on the
+next save.
 
 All of it is editable from the Settings page. Note that saving there rewrites the
 file and does not preserve `#` comments.

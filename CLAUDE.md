@@ -136,7 +136,7 @@ push be the verification.
    inherited jar are gitignored and blocked by `scripts/hooks/pre-commit`.
    Install the hook once per clone: `git config core.hooksPath scripts/hooks`.
    No CSV is committed; the only committed config is `config.properties`
-   (colors/timings, no PII). The rebuilt jar contains no API key — it takes one
+   (timings, no PII). The rebuilt jar contains no API key — it takes one
    from `-sugkey`, sourced from `SUG_KEY` or an untracked `.env`. The inherited
    2019 binary is the exception: it hardcoded a key in a bundled
    `signup_genius_api.js`, which is why that file was dropped rather than

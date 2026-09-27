@@ -12,19 +12,10 @@ public class ConfigRecord extends DataRecord {
       "ProjectYellowMins",
       "ProjectRedMins",
       "FinalYellowMins",
-      "FinalRedMins",
-      "RegisteredColor",
-      "VerifiedColor",
-      "SeatedColor",
-      "InProgressColor",
-      "CompletedColor",
-      "PostponedColor",
-      "RegisteredHiColor",
-      "VerifiedHiColor",
-      "SeatedHiColor",
-      "InProgressHiColor",
-      "CompletedHiColor",
-      "PostponedHiColor"
+      "FinalRedMins"
+      // RegisteredColor..PostponedHiColor followed here once. They are retired
+      // (SPEC.md D-19): an older config.properties that still sets them loads,
+      // since only these columns are read, and saving it leaves them out.
    };
 
    public ConfigRecord() {
@@ -44,16 +35,12 @@ public class ConfigRecord extends DataRecord {
       // There is no yellow stage: this window is a cap, not a target, and a
       // board still previewing past it is keeping the candidate waiting.
       this.setIfNotSet("ConveneRedMins", "30");
-      // Minutes since the scout was brought in at which the room card turns
-      // yellow (warning) then red (overdue), per board type.
+      // Minutes since the scout was brought in at which the room card's timer
+      // shows running long ("Yellow") then overdue ("Red"), per board type.
       this.setIfNotSet("ProjectYellowMins", "25");
       this.setIfNotSet("ProjectRedMins", "40");
       this.setIfNotSet("FinalYellowMins", "30");
       this.setIfNotSet("FinalRedMins", "45");
-      // RegisteredColor..PostponedHiColor (see COLUMNS) are read but no longer
-      // defaulted here: colors now come from the theme (D-13), and these keys
-      // exist only so an older config.properties that still sets them keeps
-      // loading and saving correctly rather than losing the columns.
    }
 
    private void setIfNotSet(String column, String defaultValue) {

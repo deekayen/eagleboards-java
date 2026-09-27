@@ -116,11 +116,16 @@ run in CI on all three platforms.
 - **Room warning timers are per board type, and each phase is timed on its
   own.** The clock runs on the record's last update, so it restarts by itself at
   every transition. Convening is capped by `ConveneRedMins`, 30 minutes, which
-  goes straight to red with no yellow stage because it is a limit rather than a
-  target. From **Start Review** the interview is paced by its own pair: Project
-  turns yellow at 25 minutes and red at 40; Final turns yellow at 30 and red at
-  45. All five are editable in Settings. The original had a single pair of
-  alert/reminder values shared by every board.
+  goes straight to overdue with no running-long stage because it is a limit
+  rather than a target. From **Start Review** the interview is paced by its own
+  pair: Project runs long at 25 minutes and is overdue at 40; Final runs long
+  at 30 and is overdue at 45. All five are editable in Settings. The original
+  had a single pair of alert/reminder values shared by every board.
+- **The timers read with color blindness.** Each state has its own clock: a
+  stopwatch on time, a timer clock on an orange tint running long, an alarm
+  clock on a solid pink-red fill overdue. The original told statuses apart by
+  row color alone, and its pink (registered) and green (in progress) rows lose
+  most of their difference to the most common color blindness.
 
 ---
 
@@ -244,6 +249,11 @@ silent on the check-in screen, which faces the youth signing in.
   the file and does not preserve comments.
 - The old shared alert/reminder fields were replaced by the four board-type
   timers described above.
+- **Status colors are no longer settings.** The original's twelve row colors
+  (`RegisteredColor` through `PostponedHiColor`) are gone from the file; every
+  version of Eagle Boards now draws status from one shared palette, checked for
+  contrast and color blindness in light and dark. An older file that still has
+  them loads, and saving drops them.
 - **Fixed:** saving settings appended a duplicate record each time instead of
   updating the existing one.
 
@@ -348,7 +358,7 @@ still compared against the original.
 - **Participant data cannot be committed by accident.** All CSV/XLS files, dated
   folders, and adult-history files are ignored by git and blocked by a
   pre-commit hook. The only configuration committed is `config.properties`,
-  which holds colours and timings and no personal data.
+  which holds timings and no personal data.
 
 ### Licensing
 

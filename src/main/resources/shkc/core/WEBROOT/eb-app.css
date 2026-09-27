@@ -1,9 +1,9 @@
 /* ========================================================================
    eb-app.css — the operator pages' look, built from the system's own:
    system font, light/dark appearance and accent color (SPEC.md D-16).
-   Status colors come from here, never from config.properties (D-13), and
-   every status also carries text and an icon, so color is never the only
-   cue. The Event page (scheduler.html) uses it; the other operator pages
+   Status colors are the shared status palette (--eb-st-*, D-13), never
+   settings (D-19), and every status also carries text and an icon, so color
+   is never the only cue. The Event page (scheduler.html) uses it; the other operator pages
    are to follow.
    ======================================================================== */
 
@@ -36,6 +36,22 @@
    --eb-neutral-bg: #ececec;
    --eb-neutral-fg: #4a4a4a;
 
+   /* The status palette all three versions share (SPEC.md D-13 in
+      eagleboards-shared, measured there by check-palette.js for contrast and
+      color blindness). Change it there first. Pills are -fg on -bg. */
+   --eb-st-neutral-bg: #dddddd;
+   --eb-st-neutral-fg: #5b5a5b;
+   --eb-st-seated-bg: #f3dfc4;
+   --eb-st-seated-fg: #875107;
+   --eb-st-review-bg: #c9e3ea;
+   --eb-st-review-fg: #146377;
+   --eb-st-completed-bg: #ddd7ef;
+   --eb-st-completed-fg: #5e4aa0;
+   --eb-st-long-bg: #f8d9ce;
+   --eb-st-long-fg: #994122;
+   --eb-st-overdue-bg: #c23d65;
+   --eb-st-overdue-fg: #ffffff;
+
    --eb-radius: 8px;
    --eb-radius-sm: 4px;
    --eb-shadow: 0 8px 24px rgba(0, 0, 0, 0.18), 0 1px 3px rgba(0, 0, 0, 0.12);
@@ -66,6 +82,19 @@
       --eb-ok-fg: #9fe0a4;
       --eb-neutral-bg: #3a3a3a;
       --eb-neutral-fg: #d6d6d6;
+
+      --eb-st-neutral-bg: #565457;
+      --eb-st-neutral-fg: #d4d3d3;
+      --eb-st-seated-bg: #685b3e;
+      --eb-st-seated-fg: #ffdd78;
+      --eb-st-review-bg: #425c62;
+      --eb-st-review-fg: #9ae5ee;
+      --eb-st-completed-bg: #504a65;
+      --eb-st-completed-fg: #cbc2f7;
+      --eb-st-long-bg: #67493e;
+      --eb-st-long-fg: #fdbe9f;
+      --eb-st-overdue-bg: #ff6188;
+      --eb-st-overdue-fg: #221f22;
       --eb-shadow: 0 8px 24px rgba(0, 0, 0, 0.5), 0 1px 3px rgba(0, 0, 0, 0.4);
    }
 }
@@ -334,12 +363,12 @@ input[type=search], #d-room { width: 100%; }
    font-size: 12.5px;
    font-weight: 500;
    white-space: nowrap;
-   background: var(--eb-neutral-bg);
-   color: var(--eb-neutral-fg);
+   background: var(--eb-st-neutral-bg);
+   color: var(--eb-st-neutral-fg);
 }
-.eb-pill-seated { background: var(--eb-warn-bg); color: var(--eb-warn-fg); }
-.eb-pill-inprogress { background: var(--eb-accent-soft); color: var(--eb-accent-fg); }
-.eb-pill-completed { background: var(--eb-ok-bg); color: var(--eb-ok-fg); }
+.eb-pill-seated { background: var(--eb-st-seated-bg); color: var(--eb-st-seated-fg); }
+.eb-pill-inprogress { background: var(--eb-st-review-bg); color: var(--eb-st-review-fg); }
+.eb-pill-completed { background: var(--eb-st-completed-bg); color: var(--eb-st-completed-fg); }
 
 /* -------------------------------------------------------------- room cards */
 .eb-room-grid {
@@ -363,8 +392,8 @@ input[type=search], #d-room { width: 100%; }
 .eb-room:hover { background: var(--eb-hover); }
 .eb-room.selected { border-color: var(--eb-accent); box-shadow: inset 0 0 0 1px var(--eb-accent); }
 .eb-room.target { border-style: dashed; border-color: var(--eb-accent); }
-.eb-room-warn { border-left: 4px solid var(--eb-warn-fg); }
-.eb-room-over { border-left: 4px solid var(--eb-error-fg); }
+.eb-room-warn { border-left: 4px solid var(--eb-st-long-fg); }
+.eb-room-over { border-left: 4px solid var(--eb-st-overdue-bg); }
 .eb-room-head { display: flex; align-items: baseline; gap: 8px; }
 .eb-room-name { font-weight: 600; flex: 1 1 auto; }
 .eb-room-youth { margin-top: 6px; font-weight: 500; }
@@ -382,8 +411,12 @@ input[type=search], #d-room { width: 100%; }
    font-size: 12.5px;
    white-space: nowrap;
 }
-.eb-timer-warn { color: var(--eb-warn-fg); background: var(--eb-warn-bg); padding: 0 6px; border-radius: 999px; }
-.eb-timer-over { color: var(--eb-error-fg); background: var(--eb-error-bg); padding: 0 6px; border-radius: 999px; }
+/* A clock per state (D-13): a stopwatch on time, a timer clock on the orange
+   tint running long, an alarm clock on the solid fill overdue. */
+.eb-timer-ok { color: var(--eb-text-2); }
+.eb-timer-warn { color: var(--eb-st-long-fg); background: var(--eb-st-long-bg); padding: 0 6px; border-radius: 999px; }
+.eb-timer-over { color: var(--eb-st-overdue-fg); background: var(--eb-st-overdue-bg); padding: 0 6px; border-radius: 999px; }
+.eb-timer .eb-icon { width: 13px; height: 13px; }
 
 /* ----------------------------------------------------------- details pane */
 .eb-details { padding-top: 16px; }
@@ -705,6 +738,7 @@ button.eb-danger { color: var(--eb-error-fg); }
 /* ---------------------------------------------- high contrast (D-13, D-16) */
 @media (forced-colors: active) {
    .eb-pill, .eb-timer-warn, .eb-timer-over, .eb-room, .eb-member { border: 1px solid CanvasText; }
+   .eb-timer-over { forced-color-adjust: none; background: Highlight; color: HighlightText; border-color: HighlightText; }
    .eb-queue-item.selected, .eb-room.selected { outline: 2px solid Highlight; }
    .eb-queue-item.selected::before { background: Highlight; }
 }

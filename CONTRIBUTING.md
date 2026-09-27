@@ -277,7 +277,12 @@ looks like a pass**, because a tool that quietly produces nothing empties out
 The operator pages (Event, Admin, Settings, Help) use `eb-app.css`, which takes
 its colors from the system: light or dark, the system accent for the one
 action a panel is for, red text for what deletes. Status is a pill with an icon
-and a word, never a color alone (shared SPEC.md D-13, D-16).
+and a word, never a color alone (shared SPEC.md D-13, D-16). The one exception
+to the system's colors is the status palette (the `--eb-st-*` tokens): the
+status pills and room timers are colored the same in all three versions, from
+the table in SPEC.md, which that repository's `check-palette.js` measures for
+contrast and color blindness. Change it there first. Status colors are never a
+setting (D-19).
 
 The check-in pages are not designed here. They are the shared pages in
 `eagleboards-shared/checkin` (SPEC.md D-18), copied into `WEBROOT/` and pinned

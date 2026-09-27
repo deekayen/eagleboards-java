@@ -28,8 +28,8 @@ git config core.hooksPath scripts/hooks
 **Do not bypass it with `--no-verify`.** If the hook fires it is right, and the
 thing it stopped cannot be unpublished once pushed.
 
-The only committed configuration is `config.properties` — display colors and
-warning timings, no personal information.
+The only committed configuration is `config.properties` — warning timings, no
+personal information.
 
 ## Handling the API key
 

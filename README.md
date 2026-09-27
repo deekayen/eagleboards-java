@@ -212,12 +212,14 @@ Each youth shows their status as a word with an icon:
 | **Completed** | The board is over and its result is recorded |
 | **Postponed** | Sent away before a board, usually because the paperwork wasn't in order |
 
-Each room card shows how long its board has been in its current step. The card
-turns yellow, then red, with a warning icon, when a board is taking a long time.
-They are a nudge to go and check, not an alarm, and nothing stops a board that
-needs longer.
+Each room card shows how long its board has been in its current step, with a
+stopwatch. When a board is taking a long time the timer shows **running long**
+(a timer clock on an orange tint), then **overdue** (an alarm clock on a solid
+pink-red fill), so the two differ in shape and lightness as well as color and
+read with color blindness. They are a nudge to go and check, not an alarm, and
+nothing stops a board that needs longer.
 
-| Step | Turns yellow | Turns red |
+| Step | Running long | Overdue |
 | --- | --- | --- |
 | Board reading the paperwork (Seated) | — | 30 minutes |
 | Final board with the youth | 30 minutes | 45 minutes |

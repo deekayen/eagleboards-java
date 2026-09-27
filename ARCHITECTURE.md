@@ -160,10 +160,12 @@ scout is seated directly. There is no `/verify-board` endpoint. `Verified` is
 still *accepted* wherever it appeared, so a record carried over from an older
 run stays usable instead of stuck.
 
-Room cards show minutes since the last step. While Seated, the card turns red
-past `ConveneRedMins`; once in review it turns yellow then red at thresholds
-specific to the board type: `ProjectYellowMins`, `ProjectRedMins`,
-`FinalYellowMins`, `FinalRedMins`.
+Room cards show minutes since the last step. While Seated, the timer turns
+overdue past `ConveneRedMins`; once in review it shows running long then
+overdue at thresholds specific to the board type: `ProjectYellowMins`,
+`ProjectRedMins`, `FinalYellowMins`, `FinalRedMins`. Each state has its own
+clock and its colors are the shared status palette (SPEC.md D-13), in
+`eb-app.css`; status colors are not settings (D-19).
 
 ## SignUpGenius import
 

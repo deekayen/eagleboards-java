@@ -17,7 +17,8 @@
 var SCHEDULER_ConveneRedTime = 30;
 
 // Board-type room-card warning thresholds, in minutes since the scout was
-// brought in (status "InProgress"). Yellow = warning, Red = overdue. Defaults
+// brought in (status "InProgress"). Yellow = running long, Red = overdue
+// (the keys keep their old color names; the colors are SPEC.md D-13's). Defaults
 // below; override in config.properties with keys ProjectYellowMins /
 // ProjectRedMins / FinalYellowMins / FinalRedMins.
 var SCHEDULER_ProjectYellowTime = 25;
@@ -47,9 +48,10 @@ function ebParseLooseJSON(text) {
 // RefreshTimeSecs is not read: the Event page listens on /events instead of
 // polling (D-15), and the check-in pages load their lists when they open.
 //
-// The status colors (RegisteredColor..PostponedHiColor) are no longer read:
-// status colors come from the theme (SPEC.md D-13), and an older file that
-// still sets them loads fine with the keys ignored.
+// The status colors (RegisteredColor..PostponedHiColor) are retired (SPEC.md
+// D-19): the server no longer serves them, status colors are the shared
+// palette in eb-app.css (D-13), and an older file that still sets them loads
+// fine with the keys ignored.
 var SCHEDULER_configReady = fetch("/config-autofill?Name=DEFAULT&fmt=json")
    .then(function (r) { return r.text(); })
    .then(function (text) {
@@ -68,7 +70,8 @@ var SCHEDULER_configReady = fetch("/config-autofill?Name=DEFAULT&fmt=json")
       return null;
    });
 
-// Room timer state for a board: "ok", "warn" (yellow) or "over" (red). The
+// Room timer state for a board: "ok", "warn" (running long) or "over"
+// (overdue), each drawn with its own clock (scheduler_event.js). The
 // clock runs on MinsSinceLastUpdate, so it restarts by itself when the status
 // changes -- which is what keeps the two phases timed apart:
 //
