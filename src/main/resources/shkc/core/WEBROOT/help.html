@@ -1,179 +1,162 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
    <head>
-      <title>Help</title>
-      <link rel="stylesheet" type="text/css" href="scheduler.css"/>
-      <meta charset="UTF-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <link rel="stylesheet" type="text/css" href="eb-ui.css"/>
+      <meta charset="UTF-8"/>
+      <meta name="viewport" content="width=device-width, initial-scale=1"/>
+      <meta name="color-scheme" content="light dark"/>
+      <title>Help: Eagle Boards</title>
+      <link rel="stylesheet" href="eb-app.css"/>
    </head>
-   <body class="eb-public">
-      <div>
-         <h1>Scheduler Help</h1>
-         <table width="100%" style="background-color: #ffc">
-            <tr>
-               <td style="text-align: left; background-color: #ffc'>
-                   <a href="#Running">Running</a> | <a href="#Pages">Pages</a> | <a href="#Rooms">Room Setup</a> | <a href="#Status">Status Values</a> | <a href="#Operation">Process</a> | <a href="#Timers">Board Timers</a> | <a href="#Admin">Administration</a> | <a href="#Settings">Settings</a> 
-               </td>
-               <td style="text-align: right; background-color: #ffc"><a href="/scheduler">Scheduler</a> | <a href="/admin">Admin Page</a> | <a href="/configure">Settings Page</a> </td>
-            </tr></table>
+   <body class="eb-app">
+      <header class="eb-appbar">
+         <span class="eb-brand">Eagle Boards</span>
+         <nav class="eb-nav" aria-label="Pages">
+            <a href="/scheduler">Event</a>
+            <a href="/admin#boards" title="Every board and its result; correct a result here">Results</a>
+            <a href="/admin#adults" title="The adults signed in at this event">People</a>
+            <a href="/configure" title="Room timers and other settings">Settings</a>
+            <a href="/help" aria-current="page">Help</a>
+         </nav>
+      </header>
 
-         <a id="Running"></a>
+      <main class="eb-page">
+      <div class="eb-page-inner">
+         <h1>Running an event</h1>
+         <ul class="eb-toc">
+            <li><a href="#Running">Starting the scheduler</a></li>
+            <li><a href="#Pages">Pages</a></li>
+            <li><a href="#Rooms">Rooms</a></li>
+            <li><a href="#Status">Status</a></li>
+            <li><a href="#Process">A board, step by step</a></li>
+            <li><a href="#Timers">Room timers</a></li>
+            <li><a href="#Admin">Results and People</a></li>
+            <li><a href="#Settings">Settings</a></li>
+         </ul>
 
-         <p style="font-size: large; "><b>Running</b></p>
-         <code>
+         <h2 id="Running">Starting the scheduler</h2>
+         <pre>java -jar EagleBoardScheduler.jar -p prereg_file -a adult_history_file</pre>
+         <ul>
+            <li><b>Pre-registration auto-fill</b>: start with <code>-p file</code> to load the pre-registration
+               (auto-fill) file.</li>
+            <li><b>Adult history auto-fill</b>: start with <code>-a file</code> to load the adult history
+               (auto-fill) file.</li>
+            <li><b>Data directory</b>: <code>-d dir</code> names the directory holding the data files. By default
+               it is a directory named for today's date, <code>yyyy-MM-dd</code>.</li>
+         </ul>
 
-            java -jar EagleBoardScheduler.jar -p prereg_file -a adult_history_file
+         <h2 id="Pages">Pages</h2>
+         <ul>
+            <li><code>/</code>: the check-in page for the tablets at the door</li>
+            <li><code>/youth_register</code> and <code>/adult_register</code>: youth and adult sign-in</li>
+            <li><code>/scheduler</code>: the Event page, where boards are built and run</li>
+            <li><code>/admin</code>: Results and People, every record as an editable table</li>
+            <li><code>/configure</code>: Settings</li>
+         </ul>
+         <p>The Event page's footer shows the address the tablets use, and <b>QR code</b> shows it large enough
+            for a tablet's camera. The Event, Results and People pages update the moment something changes;
+            there is nothing to refresh.</p>
 
-         </code>
-         <blockquote>
-            <ol>
-               <li><b>Pre-registration auto-fill</b>:  start with the '-p file' option to load pre-registration (auto-fill) file
-               <li><b>Adult History auto-fill</b>: start with the '-a file' option to load adult history (auto-fill) file
-               <li><b>Data Directory</b>: use the '-d dir' option to specify the directory 
-                  containing the data files, by default the data directory is a directory with the current date in the format of 'yyy-MM-dd'
-            </ol>
-         </blockquote>
+         <h2 id="Rooms">Rooms</h2>
+         <ol>
+            <li>On the Event page, press <b>Add room</b>, or use the Rooms tab on the Admin page.</li>
+            <li>Rooms are for final boards or for project reviews.</li>
+            <li>To hold several project reviews in one room, add a room entry for each, such as 200A and
+               200B, both for project reviews.</li>
+            <li><b>Move</b> moves the selected room's board to another room, or swaps two boards. Its members
+               go with it.</li>
+         </ol>
 
+         <h2 id="Status">Status</h2>
+         <ul>
+            <li><b>Waiting</b> (stored as Registered): signed in and ready to be seated.</li>
+            <li><b>Seated</b>: the adults are in the room with the application, references and project
+               workbook. The youth is still outside.</li>
+            <li><b>In review</b> (stored as InProgress): the youth is in the board room.</li>
+            <li><b>Completed</b>: the board is over and its decision is recorded as the result.</li>
+            <li><b>Postponed</b>: the youth arrived unprepared and was sent away without seeing a board. This is
+               decided before a board is seated; once the board has met the youth, its decision is the result.</li>
+         </ul>
 
-         <a id="Pages"></a>
-         <p style="font-size: large; "><b>Pages</b></p>
-         <blockquote>
-            <ul>
-               <li>/ : Main Page
-               <li>/youth_register : Youth Sign-in page
-               <li>/adult_register : Adult Sign-in page
-               <li>/scheduler : Scheduler page
-               <li>/admin : Administration page
-               <li>/configure : Settings/Colors configuration page
-            </ul>
-         </blockquote>
+         <h2 id="Process">A board, step by step</h2>
+         <ol>
+            <li><b>Sign-in.</b> Youth and adults sign in on the check-in page.</li>
+            <li><b>Paperwork check.</b> As youth sign in, check their write-ups and paperwork. This happens off
+               screen. If the paperwork is not in order, select the youth and press <b>Postpone</b>; they can
+               come back another month.</li>
+            <li><b>Seating.</b> Once the paperwork is in order:
+               <ol>
+                  <li>Select the youth in the Youth list. Their board is built in the details pane on the right.</li>
+                  <li>The scheduler proposes a board: a room, a chair and the right number of members.
+                     It picks with the whole waiting line in mind: it keeps adults who can chair free for
+                     the boards still to come, and uses adults whose troop rules them out for youth still
+                     waiting. If there aren't enough adults to do that it still proposes the best board it can.</li>
+                  <li>Under Board members, the rules are checked as you go: too few or too many members,
+                     nobody who may chair, someone from the youth's own unit, or no free room.</li>
+                  <li>To choose someone yourself, remove who you don't want (&times;) and press <b>Add</b> beside
+                     an adult under Add members. <b>Fill the rest</b> then completes the board around the people you
+                     chose; <b>Start over</b> proposes a whole new board. Tick <b>Show everyone</b> to see adults on
+                     another board, gone home, or not serving on this kind of board.</li>
+                  <li>The chair is the member with <b>Chair</b> marked. Only adults who may chair this kind of board
+                     can be marked.</li>
+                  <li>To use a different room, choose it under Room, or click a free room card.</li>
+                  <li>Press <b>Seat board</b> (or Ctrl+Enter). The youth is now Seated.</li>
+               </ol>
+            </li>
+            <li><b>Starting the review.</b> When the members have finished reading:
+               <ol>
+                  <li>Select the youth, or click their room card.</li>
+                  <li>Under Leaders and parents, the details pane lists anyone who came to support the youth and
+                     where they are. <b>Locate</b> also looks for their leaders and parents by name and unit, and
+                     <b>Link an adult</b> records someone who didn't say so at sign-in.</li>
+                  <li>Fetch the youth and their Scoutmaster (or Life to Eagle coach), who will introduce them.</li>
+                  <li>Once they have gone in, press <b>Start review</b> (or Ctrl+Enter).</li>
+               </ol>
+            </li>
+            <li><b>Someone has to leave a board</b>, or the chair changes hands: select the youth and press
+               <b>Change members</b>. Remove and add people the same way as when seating, then <b>Save members</b>.
+               The room timer keeps running.</li>
+            <li><b>Completing.</b> When the board has decided:
+               <ol>
+                  <li>Select the youth, or click their room card, and press <b>Complete</b> (or Ctrl+Enter).</li>
+                  <li>Enter the board's decision and any notes: <b>Approved</b>; <b>Adjourned</b> (the board
+                     postpones its decision); or <b>Not approved</b>.</li>
+                  <li>The message that follows names the youth's leaders and parents who have signed in, so they
+                     can be fetched. The room and its members are free again.</li>
+               </ol>
+            </li>
+            <li><b>Undo.</b> Every step, member change, room move, and Link or Disable can be taken back with the
+               <b>Undo</b> button in the message that follows it, or Ctrl+Z. Reset and Postpone ask first instead.</li>
+            <li><b>Correcting a result.</b> On Results (the Admin page's Boards tab), change the Result. If the
+               result was recorded against the wrong youth, give the youth who was actually reviewed the status
+               Completed, the Result, Chair and Members, and set the other youth's status back to Registered with
+               the Result, Chair and Members cleared. They can then be seated for their own board.</li>
+         </ol>
 
-         <a id="Rooms"></a>
+         <h2 id="Timers">Room timers</h2>
+         <p>Each room card shows how long its board has been in its current step, and the clock restarts at
+            each step. While a board is convening (Seated), the card turns red once the members have kept the
+            youth waiting too long. Once the review starts, the card turns yellow and then red at the times set
+            for final boards or project reviews. The colors come with a warning icon and a tooltip saying what
+            they mean. They are a prompt to check on the room, not a limit: nothing stops a board that needs
+            longer. Set the times on the Settings page.</p>
 
-         <p style="font-size: large; "><b>Room Setup</b></p>
-         <blockquote>
-            <ol>
-               <li>Go to the 'Rooms' tab of the '/admin' page and add rooms. 
-               <li>Rooms may be 'Final' or 'Project' Rooms. 
-               <li>You must pre-allocate whether rooms are for Project reviews or Final boards.
-               <li> For 'Project' rooms where you may put multiple Project Boards in a single room,
-                  create Multiple Room entries like 200A and 200B with of type 'Project'.
-            </ol>
-         </blockquote>
+         <h2 id="Admin">Results and People</h2>
+         <p>The Admin page holds every record as an editable table:</p>
+         <ul>
+            <li><b>Boards</b> (Results): every youth's board and result; correct a result here.</li>
+            <li><b>Youth</b>: the youth signed in, and their details.</li>
+            <li><b>Youth scheduled</b>: the youth who signed up ahead of time.</li>
+            <li><b>Adults</b> (People): the adults signed in. Promote someone to chair here.</li>
+            <li><b>Adult history</b>: the adults remembered from earlier events, for auto-fill.</li>
+            <li><b>Rooms</b>: add and remove rooms.</li>
+         </ul>
 
-
-         <a id="Status"></a>
-         <p style="font-size: large; "><b>Status Values</b></p>
-         <blockquote>
-            <ol>
-               <li><b>Registered</b>:  The Youth has signed in and is ready to be seated
-               <li><b>Seated</b>: The Adults are in the room with the application,
-                  references and project workbook. The Youth is still outside.
-               <li><b>InProgress</b>: The Youth is in the Board room
-               <li><b>Completed</b>: The Board is completed and a result has been entered.
-               <li><b>Postponed</b>: The Youth arrived unprepared and was sent away without seeing a board. This is
-                  decided before a board is seated; once the board has met the Youth, its decision is the Result.
-            </ol>
-         </blockquote>
-
-         <a id="Process"></a>
-         <p style="font-size: large; "><b>Process</b></p>
-         <blockquote>
-            <ol>
-               <li>Sign-in: Youth/Adults sign in on sign-in screen
-               <li>Paperwork check: As Youth sign in, check their writeups and paperwork for
-                  the board. This is done off-screen &mdash; there is no longer a 'Verify' step in the
-                  User Interface. If the paperwork
-                  is not in order you may move them to 'Postponed' and they can reschedule for the next month.
-               <li>Seating: Once the paperwork is in order, you may seat a board.  To do this:
-                  <ol>
-                     <li>Select the youth in the Youth list on the Event page. Their board is built in the
-                        details pane on the right.
-                     <li>The scheduler proposes a board: a room, a registered 'Chair' and the appropriate number
-                        of 'Members'.
-                        It picks with the whole waiting line in mind: it keeps adults who can chair free for
-                        the boards still to come, and uses adults whose troop rules them out for youth still
-                        waiting. If there aren't enough adults to do that it still proposes the best board it can.
-                     <li>Under Board members, the rules are checked as you go: too few or too many members,
-                        nobody who may chair, someone from the youth's own unit, or no free room.
-                     <li>To choose someone yourself, remove who you don't want (&times;) and press 'Add' beside
-                        an adult under Add members. 'Fill the rest' then completes the board around the people you
-                        chose; 'Start over' proposes a whole new board. Tick 'Show everyone' to see adults on another
-                        board, gone home, or not serving on this kind of board.
-                     <li>The chair is the member with 'Chair' marked. Only adults who may chair this kind of board
-                        can be marked.
-                     <li>To seat the board in a different room, choose it under Room, or click a free room card.
-                     <li>Press 'Seat board' (or Ctrl+Enter). The youth's status becomes 'Seated'.
-                  </ol>
-               <li>Starting: When the adults are ready to meet with the Youth, you can move the status to InProgress as follows:
-                  <ol>
-                     <li>Select the youth in the Youth list, or click their room card.
-                     <li>Under Leaders and parents, the details pane lists anyone who came to support the youth and
-                        where they are. 'Locate' also looks for their leaders and parents by name and unit, and
-                        'Link an adult' records someone who didn't say so at sign-in.
-                     <li>Go get the Youth and Scoutmaster (or Life to Eagle coach) who will introduce them.
-                     <li>Once they have gone back, press 'Start review' (or Ctrl+Enter).
-                  </ol>
-               <li>Completing: Once a board has finished and has the results you may complete the process as follows:
-                  <ol>
-                     <li>Select the youth, or click their room card, and press 'Complete' (or Ctrl+Enter).
-                     <li>Enter the board's decision and any related comments:
-                        <b>Approved</b>; <b>Adjourned</b> (the board postpones its decision);
-                        or <b>Not approved</b>.
-                     <li>The message that follows names the youth's leaders and parents who have signed in, so they
-                        can be fetched.
-                  </ol>
-               <li>Every step, room move, and Link or Disable can be taken back with the 'Undo' button in the
-                  message that follows it, or Ctrl+Z. Reset and Postpone ask first instead.
-               <li>After completion, this will free up the adults and rooms associated with the board.
-               <li>Correcting a result: on the Admin page's <b>Boards</b> tab, change the Result.
-                  If the result was recorded against the wrong Youth, give the Youth who was
-                  actually reviewed the Status 'Completed', the Result, Chair and Members, and set the
-                  other Youth's Status back to 'Registered' with the Result, Chair and Members cleared.
-                  They can then be seated for their own board.
-
-            </ol>
-         </blockquote>
-
-         <a id="Timers"></a>
-         <p style="font-size: large; "><b>Board Timers</b></p>
-         <blockquote>
-            The scheduler supports board timers that will alert the user when a Board has not changed 
-            status in a pre-set amount of time then post a reminder every few minutes. This is applicable to the
-            'Seated' and 'InProgress' status values. You may use these to check on (move-along) boards that seem to 
-            be taking too long. These values may be set through the 'Settings' screen. 
-         </blockquote>
-
-
-         <a id="Admin"></a>
-         <p style="font-size: large; "><b>Administration Page</b></p>
-         <blockquote>
-            <ol>
-               <li>The Admin page has lists for:
-                  <ul>
-                     <li>Boards (Results on the Event page): View the current status, and correct a result
-                     <li>Youth: You may see the currently registered youth and modify fields
-                     <li>Youth Scheduled: You may see the pre-registered youth
-                     <li>Adults (People on the Event page): View/modify the list of adults who have signed-in
-                     <li>Adult History: View modify the list of adults from the history/auto-fill file.
-                     <li>Rooms: View/Add/Remove rooms available for boards.
-                  </ul>
-            </ol>
-         </blockquote>
-
-         <a id="Settings"></a>
-         <p style="font-size: large; "><b>Settings Page</b></p>
-         <blockquote>
-            <ul>
-               <li>Configure application parameters
-               <li>Set the page refresh time (seconds) 
-               <li>Set the Board Timer Alert time (minutes)
-               <li>Set the Board Timer reminder time (minutes)
-               <li>Configure the Status colors.
-            </ul>
-         </blockquote>
-
+         <h2 id="Settings">Settings</h2>
+         <ul>
+            <li>The room timer times, for convening, final boards and project reviews.</li>
+            <li>How often the check-in page's signed-in lists refresh.</li>
+         </ul>
       </div>
+      </main>
    </body>
 </html>

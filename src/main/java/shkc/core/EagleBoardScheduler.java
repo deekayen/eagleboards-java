@@ -309,6 +309,14 @@ public class EagleBoardScheduler {
       this._server.addHandler("/postpone-board", new EagleBoardScheduler.PostponeBoardHandler());
       this._server.addHandler("/reset-board", new EagleBoardScheduler.ResetBoardHandler());
       this._server.addHandler("/restore-board", new EagleBoardScheduler.RestoreBoardHandler());
+      this._server.addHandler("/change-board-members", new EagleBoardScheduler.ChangeBoardMembersHandler());
+      this._server.addHandler("/checkin-address", new CheckInAddress.AddressHandler());
+      this._server.addHandler("/checkin-qr", new CheckInAddress.QrHandler());
+      // Every POST above may change what a page shows; /events tells the
+      // pages that are listening (SPEC.md D-15, nothing polls).
+      ChangeFeed changeFeed = new ChangeFeed();
+      this._server.setChangeFeed(changeFeed);
+      this._server.addHandler("/events", changeFeed);
       this._server.addHandler("/adult-autofill", new EagleBoardScheduler.AutoFillHandler<>(this._adultHistoryRecords, "Email"));
       this._server.addHandler("/youth-autofill", new EagleBoardScheduler.AutoFillHandler<>(this._scoutsScheduledRecords, "Email"));
       this._server.addHandler("/config-autofill", new EagleBoardScheduler.AutoFillHandler<>(this._configRecords, "Name"));
@@ -443,6 +451,111 @@ public class EagleBoardScheduler {
          response.setContentType(contentType);
          response.getOutputStream().write(out.toString().getBytes());
          response.setStatus(200);
+      }
+   }
+
+   // /change-board-members: swap who sits on a board that is already seated
+   // or in review -- someone has to leave, or the chair changes hands. The
+   // same composition rules as seating apply, except that the adults already
+   // in the room may stay. Those who leave are freed; those who join are put
+   // in the room. The timer keeps running (LastUpdateTime is not touched):
+   // it is the same board, and the Windows and Mac versions agree.
+   public class ChangeBoardMembersHandler extends EagleBoardScheduler.CoreBoardHandler {
+      @Override
+      public synchronized void handle(String target, HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException {
+         synchronized (EagleBoardScheduler.this.LOCK) {
+            EagleBoardScheduler.verbose(request);
+            EagleBoardScheduler.verbose(request.getParameterMap());
+            String scoutId = request.getParameter("ScoutID");
+            String chairId = request.getParameter("ChairID");
+            String memberIds = request.getParameter("MemberIDs");
+            ScoutRecord scout = EagleBoardScheduler.this._scoutRecords.get(scoutId);
+            if (scout == null) {
+               this.sendError("ERROR: Invalid Scout ID" + scoutId, response);
+               return;
+            }
+
+            if (!"Seated".equals(scout.getStatus()) && !"InProgress".equals(scout.getStatus())) {
+               this.sendError("ERROR: " + scout.getFullName() + " has no board seated or in review to change", response);
+               return;
+            }
+
+            // By name, or -- for a room renamed under the board -- the card
+            // that still names the scout (see CompleteBoardHandler).
+            RoomRecord room = null;
+            for (RoomRecord candidateRoom : EagleBoardScheduler.this._roomRecords.getRecords()) {
+               if (candidateRoom.getRoom().equals(scout.getRoom())) {
+                  room = candidateRoom;
+                  break;
+               }
+            }
+            if (room == null) {
+               for (RoomRecord candidateRoom : EagleBoardScheduler.this._roomRecords.getRecords()) {
+                  if (candidateRoom.getScout().length() > 0 && candidateRoom.getScout().equals(scout.getFullName())) {
+                     room = candidateRoom;
+                     break;
+                  }
+               }
+            }
+            if (room == null) {
+               this.sendError("ERROR: The room for " + scout.getFullName() + "'s board is gone; Reset the board and seat it again", response);
+               return;
+            }
+
+            String boardRoom = scout.getRoom();
+            BoardComposition board = EagleBoardScheduler.this.checkComposition(scout, chairId, memberIds, boardRoom);
+            if (board.error != null) {
+               this.sendError(board.error, response);
+               return;
+            }
+
+            UndoBuilder undo = new UndoBuilder();
+            for (AdultRecord adult : EagleBoardScheduler.this._adultRecords.getRecords()) {
+               if (adult.getRoom().equals(boardRoom) && !board.members.contains(adult)) {
+                  String oldAdultRoom = adult.getRoom();
+                  adult.setRoom("");
+                  undo.field("Adult", adult, "Room", oldAdultRoom);
+               }
+            }
+
+            StringBuffer memberIdList = new StringBuffer();
+            for (AdultRecord member : board.members) {
+               if (!boardRoom.equals(member.getRoom())) {
+                  String oldMemberRoom = member.getRoom();
+                  member.setRoom(boardRoom);
+                  undo.field("Adult", member, "Room", oldMemberRoom);
+               }
+               if (memberIdList.length() > 0) {
+                  memberIdList.append(",");
+               }
+               memberIdList.append(member.getID());
+            }
+
+            String oldRoomLeaders = room.getLeaders();
+            String oldBoardMembers = scout.getValue("BoardMembers");
+            String oldBoardMemberIDs = scout.getValue("BoardMembersIDs");
+            String oldBoardChair = scout.getValue("BoardChair");
+            String oldBoardChairID = scout.getValue("BoardChairID");
+            room.setLeaders(board.memberNames);
+            scout.setBoardMembers(board.memberNames);
+            scout.setBoardMemberIDs(memberIdList.toString());
+            scout.setBoardChair(board.chair.getFullName());
+            scout.setBoardChairID(board.chair.getID());
+            undo.field("Room", room, "Leaders", oldRoomLeaders);
+            undo.field("Scout", scout, "BoardMembers", oldBoardMembers);
+            undo.field("Scout", scout, "BoardMembersIDs", oldBoardMemberIDs);
+            undo.field("Scout", scout, "BoardChair", oldBoardChair);
+            undo.field("Scout", scout, "BoardChairID", oldBoardChairID);
+
+            // updateFields(false): refresh the derived columns without
+            // stamping LastUpdateTime, which would restart the room timer.
+            scout.updateFields(false);
+            EagleBoardScheduler.this._scoutRecords.store();
+            EagleBoardScheduler.this._roomRecords.store();
+            EagleBoardScheduler.this._adultRecords.store();
+            undo.commit("Change board members for " + scout.getFullName());
+            this.sendSuccess(response);
+         }
       }
    }
 
@@ -1220,6 +1333,142 @@ public class EagleBoardScheduler {
       }
    }
 
+   // The board a /seat-board or /change-board-members request asks for,
+   // checked against the composition rules. error is set when the request is
+   // refused; otherwise members, chair and memberNames describe the board.
+   private class BoardComposition {
+      String error = null;
+      ArrayList<AdultRecord> members = new ArrayList<>();
+      AdultRecord chair = null;
+      String memberNames = null;
+
+      BoardComposition refuse(String message) {
+         this.error = message;
+         return this;
+      }
+   }
+
+   // boardRoom: the room this board already sits in, when changing the
+   // members of a seated board -- adults already in it may stay. null when
+   // seating a new board, where every member must be free.
+   private BoardComposition checkComposition(ScoutRecord scout, String chairId, String memberIds, String boardRoom) {
+      BoardComposition composition = new BoardComposition();
+      if (memberIds == null || memberIds.trim().length() == 0) {
+         // No board members: reject cleanly instead of crashing on
+         // StringTokenizer(null) or silently seating an empty board.
+         return composition.refuse("ERROR: No board members selected");
+      }
+
+      AdultRecord chair = EagleBoardScheduler.this._adultRecords.get(chairId);
+      ArrayList<AdultRecord> members = new ArrayList<>();
+      StringBuffer memberNames = new StringBuffer();
+      StringTokenizer memberIdTokens = new StringTokenizer(memberIds, ",", false);
+
+      while (memberIdTokens.hasMoreTokens()) {
+         String memberId = memberIdTokens.nextToken().trim();
+         AdultRecord member = EagleBoardScheduler.this._adultRecords.get(memberId);
+         if (member == null) {
+            return composition.refuse("ERROR: Invalid Member ID " + memberId);
+         }
+
+         // "N/A" is the Disable button's marker for an adult who
+         // has gone home, not a room anyone can be sent to, so it
+         // gets its own wording rather than "in room N/A".
+         if ("N/A".equals(member.getRoom())) {
+            return composition.refuse("ERROR: Member " + member.getFullName() + " has been disabled for tonight");
+         }
+
+         if (member.getRoom().length() > 0 && !member.getRoom().equals(boardRoom)) {
+            return composition.refuse("ERROR: Member " + member.getFullName() + " already assigned to a board in room " + member.getRoom());
+         }
+
+         // "No thanks" to this kind of board at sign-in is stored as
+         // Unavailable for it. Auto-select and the grid skip them, but
+         // a hand-picked or hand-built board must not seat them either.
+         String memberRole = "Project".equals(scout.getBoardType()) ? member.getProjectReviewRole() : member.getFinalBoardRole();
+         if ("Unavailable".equals(memberRole)) {
+            return composition.refuse("ERROR: Member " + member.getFullName() + " is Unavailable for " + scout.getBoardType() + " boards");
+         }
+
+         // The size rules below count entries, so the same adult
+         // listed twice would let two people pass as a board of
+         // three. The UI's checkboxes cannot produce this; a
+         // hand-built or replayed request can.
+         if (members.contains(member)) {
+            return composition.refuse("ERROR: Member " + member.getFullName() + " is listed more than once");
+         }
+
+         if (memberNames.length() > 0) {
+            memberNames.append(",");
+         }
+
+         // Full name, not getShortName()'s "F. Last": the room
+         // card is how someone looks up which room an adult is
+         // in, and initial-only made that lookup by first name
+         // impossible without already knowing their last name.
+         memberNames.append(member.getFullName());
+         members.add(member);
+      }
+
+      // Composition rules are enforced here as well as in
+      // process_seat.js. The browser is the normal way in, not the
+      // only one, and a board seated past the UI is a board that
+      // never met the rule -- which is only discovered later, from
+      // the record of a review that should not have happened.
+      //
+      // Guide to Advancement 8.0.0.3: a board of review has no
+      // fewer than three and no more than six members. A project
+      // proposal review is not a board of review (GTA 9.0.2.4) and
+      // this district runs it with two, under the same ceiling.
+      // Keep in step with checkBoardSize()/checkProjectSize().
+      boolean isProjectBoard = "Project".equals(scout.getBoardType());
+      int minMembers = isProjectBoard ? 2 : 3;
+
+      if (members.size() < minMembers) {
+         return composition.refuse("ERROR: Only " + members.size() + " board member(s) selected; "
+            + minMembers + " required for " + scout.getBoardType() + " boards");
+      }
+
+      if (members.size() > 6) {
+         return composition.refuse("ERROR: " + members.size()
+            + " board members selected; no more than 6 permitted (Guide to Advancement 8.0.0.3)");
+      }
+
+      // The Chair designation is binding. Promoting someone from
+      // Member to Chair is a deliberate edit on the Admin page; it
+      // must never happen as a side effect of seating a board
+      // because the qualified chairs were all busy.
+      if (chair == null) {
+         return composition.refuse("ERROR: Invalid Chair ID " + chairId);
+      }
+
+      boolean chairIsMember = false;
+
+      for (AdultRecord candidate : members) {
+         if (candidate.getID().equals(chair.getID())) {
+            chairIsMember = true;
+            break;
+         }
+      }
+
+      if (!chairIsMember) {
+         return composition.refuse("ERROR: Chair " + chair.getFullName() + " is not one of the board members");
+      }
+
+      String chairRole = isProjectBoard ? chair.getProjectReviewRole() : chair.getFinalBoardRole();
+
+      if (!"Chair".equals(chairRole)) {
+         return composition.refuse("ERROR: " + chair.getFullName() + " is not qualified to chair a "
+            + scout.getBoardType() + " board (role: "
+            + (chairRole == null || chairRole.length() == 0 ? "none" : chairRole) + ")");
+      }
+
+      composition.members = members;
+      composition.chair = chair;
+      composition.memberNames = memberNames.toString();
+      return composition;
+   }
+
    public class SeatBoardHandler extends EagleBoardScheduler.CoreBoardHandler {
       @Override
       public synchronized void handle(String target, HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException {
@@ -1254,126 +1503,16 @@ public class EagleBoardScheduler {
                // have no room, and must be seatable for their real board.
                } else if (!"".equals(scout.getRoom()) && !"N/A".equals(scout.getRoom()) && !scout.getRoom().equals(room.getRoom())) {
                   this.sendError("ERROR: Scout Already Assigned Room: " + scout.getRoom(), response);
-               } else if (memberIds == null || memberIds.trim().length() == 0) {
-                  // No board members: reject cleanly instead of crashing on
-                  // StringTokenizer(null) or silently seating an empty board.
-                  this.sendError("ERROR: No board members selected", response);
                } else {
-                  AdultRecord chair = EagleBoardScheduler.this._adultRecords.get(chairId);
-                  ArrayList<AdultRecord> members = new ArrayList<>();
-                  StringBuffer memberNames = new StringBuffer();
-                  StringTokenizer memberIdTokens = new StringTokenizer(memberIds, ",", false);
-
-                  while (memberIdTokens.hasMoreTokens()) {
-                     String memberId = memberIdTokens.nextToken().trim();
-                     AdultRecord member = EagleBoardScheduler.this._adultRecords.get(memberId);
-                     if (member == null) {
-                        this.sendError("ERROR: Invalid Member ID " + memberId, response);
-                        return;
-                     }
-
-                     // "N/A" is the Disable button's marker for an adult who
-                     // has gone home, not a room anyone can be sent to, so it
-                     // gets its own wording rather than "in room N/A".
-                     if ("N/A".equals(member.getRoom())) {
-                        this.sendError("ERROR: Member " + member.getFullName() + " has been disabled for tonight", response);
-                        return;
-                     }
-
-                     if (member.getRoom().length() > 0) {
-                        this.sendError("ERROR: Member " + member.getFullName() + " already assigned to a board in room " + member.getRoom(), response);
-                        return;
-                     }
-
-                     // "No thanks" to this kind of board at sign-in is stored as
-                     // Unavailable for it. Auto-select and the grid skip them, but
-                     // a hand-picked or hand-built board must not seat them either.
-                     String memberRole = "Project".equals(scout.getBoardType()) ? member.getProjectReviewRole() : member.getFinalBoardRole();
-                     if ("Unavailable".equals(memberRole)) {
-                        this.sendError("ERROR: Member " + member.getFullName() + " is Unavailable for " + scout.getBoardType() + " boards", response);
-                        return;
-                     }
-
-                     // The size rules below count entries, so the same adult
-                     // listed twice would let two people pass as a board of
-                     // three. The UI's checkboxes cannot produce this; a
-                     // hand-built or replayed request can.
-                     if (members.contains(member)) {
-                        this.sendError("ERROR: Member " + member.getFullName() + " is listed more than once", response);
-                        return;
-                     }
-
-                     if (memberNames.length() > 0) {
-                        memberNames.append(",");
-                     }
-
-                     // Full name, not getShortName()'s "F. Last": the room
-                     // card is how someone looks up which room an adult is
-                     // in, and initial-only made that lookup by first name
-                     // impossible without already knowing their last name.
-                     memberNames.append(member.getFullName());
-                     members.add(member);
-                  }
-
-                  // Composition rules are enforced here as well as in
-                  // process_seat.js. The browser is the normal way in, not the
-                  // only one, and a board seated past the UI is a board that
-                  // never met the rule -- which is only discovered later, from
-                  // the record of a review that should not have happened.
-                  //
-                  // Guide to Advancement 8.0.0.3: a board of review has no
-                  // fewer than three and no more than six members. A project
-                  // proposal review is not a board of review (GTA 9.0.2.4) and
-                  // this district runs it with two, under the same ceiling.
-                  // Keep in step with checkBoardSize()/checkProjectSize().
-                  boolean isProjectBoard = "Project".equals(scout.getBoardType());
-                  int minMembers = isProjectBoard ? 2 : 3;
-
-                  if (members.size() < minMembers) {
-                     this.sendError("ERROR: Only " + members.size() + " board member(s) selected; "
-                        + minMembers + " required for " + scout.getBoardType() + " boards", response);
+                  BoardComposition board = EagleBoardScheduler.this.checkComposition(scout, chairId, memberIds, null);
+                  if (board.error != null) {
+                     this.sendError(board.error, response);
                      return;
                   }
 
-                  if (members.size() > 6) {
-                     this.sendError("ERROR: " + members.size()
-                        + " board members selected; no more than 6 permitted (Guide to Advancement 8.0.0.3)", response);
-                     return;
-                  }
-
-                  // The Chair designation is binding. Promoting someone from
-                  // Member to Chair is a deliberate edit on the Admin page; it
-                  // must never happen as a side effect of seating a board
-                  // because the qualified chairs were all busy.
-                  if (chair == null) {
-                     this.sendError("ERROR: Invalid Chair ID " + chairId, response);
-                     return;
-                  }
-
-                  boolean chairIsMember = false;
-
-                  for (AdultRecord candidate : members) {
-                     if (candidate.getID().equals(chair.getID())) {
-                        chairIsMember = true;
-                        break;
-                     }
-                  }
-
-                  if (!chairIsMember) {
-                     this.sendError("ERROR: Chair " + chair.getFullName() + " is not one of the board members", response);
-                     return;
-                  }
-
-                  String chairRole = isProjectBoard ? chair.getProjectReviewRole() : chair.getFinalBoardRole();
-
-                  if (!"Chair".equals(chairRole)) {
-                     this.sendError("ERROR: " + chair.getFullName() + " is not qualified to chair a "
-                        + scout.getBoardType() + " board (role: "
-                        + (chairRole == null || chairRole.length() == 0 ? "none" : chairRole) + ")", response);
-                     return;
-                  }
-
-                  String memberNameList = memberNames.toString();
+                  AdultRecord chair = board.chair;
+                  ArrayList<AdultRecord> members = board.members;
+                  String memberNameList = board.memberNames;
                   String oldRoomScout = room.getScout();
                   String oldRoomLeaders = room.getLeaders();
                   String oldScoutRoom = scout.getRoom();

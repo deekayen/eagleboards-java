@@ -14,6 +14,7 @@
       <script src="process_complete.js"></script>
       <script src="process_postpone.js"></script>
       <script src="process_reset.js"></script>
+      <script src="process_change.js"></script>
    </head>
    <!-- The live-operations view (SPEC.md O-3): the youth queue, the room
         cards and the details pane always visible together, so a room's
@@ -38,6 +39,7 @@
                href="/youth-cells?cols=RegNum,Last,First,Phone,Email,BoardType,DOB,UnitType,Unit,Leader,Status,Result,BoardChair,BoardMembers,Notes&amp;fmt=csv&amp;filename=Report.csv">Save report</a>
          </span>
       </header>
+      <div class="eb-messages eb-messages-page" id="connection-messages"></div>
       <div class="eb-messages eb-messages-page" id="main-messages"></div>
 
       <main class="eb-event">
@@ -97,10 +99,12 @@
                   </header>
                   <div class="eb-messages" id="scout-messages"></div>
 
-                  <!-- Waiting: build the board (D-10, D-12) -->
-                  <div id="d-waiting" hidden>
+                  <!-- Build the board (D-10, D-12): for a waiting youth, or to
+                       change the members of a board already seated -->
+                  <div id="d-build" hidden>
                      <h3><label for="d-room">Room</label></h3>
                      <select id="d-room"></select>
+                     <p id="d-room-fixed" hidden></p>
 
                      <div class="eb-section-head">
                         <h3>Board members</h3>
@@ -120,6 +124,10 @@
                                 title="The members go to the room to read the application, references and workbook. The youth waits outside until Start review. (Ctrl+Enter)">Seat board</button>
                         <button type="button" id="d-postpone"
                                 title="No board at this event, usually because the paperwork isn't in order">Postpone&hellip;</button>
+                        <button type="button" class="eb-accent" id="d-save-members" hidden
+                                title="Put these members on the board. The room timer keeps running. (Ctrl+Enter)">Save members</button>
+                        <button type="button" id="d-cancel-change" hidden
+                                title="Keep the board as it was">Cancel</button>
                      </div>
 
                      <div class="eb-section-head eb-section-gap">
@@ -143,6 +151,8 @@
                      <ul class="eb-member-list" id="d-active-members"></ul>
                      <div class="eb-actions">
                         <button type="button" class="eb-accent" id="d-primary"></button>
+                        <button type="button" id="d-change"
+                                title="Someone has to leave the board, or the chair changes hands">Change members&hellip;</button>
                         <button type="button" id="d-reset"
                                 title="Back to waiting: the room and members are freed">Reset&hellip;</button>
                      </div>
@@ -170,6 +180,12 @@
             </div>
          </section>
       </main>
+
+      <footer class="eb-footer">
+         <span id="checkin-address">Check-in address: finding it&hellip;</span>
+         <button type="button" id="checkin-qr" hidden
+                 title="Show the check-in address as a QR code for a tablet's camera">QR code&hellip;</button>
+      </footer>
 
       <script src="scheduler_event.js"></script>
    </body>

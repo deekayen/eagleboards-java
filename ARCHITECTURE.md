@@ -94,19 +94,23 @@ be served through `/config-autofill` and friends.
 ## Browser UI
 
 Static files under `src/main/resources/shkc/core/WEBROOT`, packaged into the jar.
-Built on [Tabulator](https://tabulator.info/) (MIT), which replaced the original
-GPL dhtmlxSuite.
+The operator's Event page is plain DOM, laid out like the Windows version's
+Event page (shared SPEC.md O-3). The Admin tables use
+[Tabulator](https://tabulator.info/) (MIT), which replaced the original GPL
+dhtmlxSuite. The operator pages share `eb-app.css`, which follows the system's
+light/dark appearance, font and accent color; the check-in pages keep the
+Scouting palette in `eb-ui.css`.
 
 | File | Role |
 | --- | --- |
 | `index.html` | check-in station landing page; live registered lists |
 | `youth_register.html`, `adult_register.html` | check-in forms |
-| `scheduler.html` | the operator's main screen |
-| `admin.html` | tabular admin over every record type |
+| `scheduler.html` + `scheduler_event.js` | the Event page: youth queue, room cards, details pane |
+| `admin.html` | Results and People: tabular admin over every record type |
 | `configure.html` | Settings |
 | `help.html` | operator documentation |
 | `eb-data.js` | **the adapter** — speaks the server's wire formats |
-| `scheduler_*_grid.js` | grid behavior per panel |
+| `scheduler_config.js` | timers, status labels, messages, dialogs, menus |
 | `process_*.js` | one file per board lifecycle action |
 
 `eb-data.js` is the seam worth understanding first. The server's wire formats
@@ -116,31 +120,41 @@ pseudo-JSON with unquoted keys for autofill lists, form-encoded POSTs with a
 `ebFetchRows`, `ebSaveRow`, `ebAction`, `ebAutofillList`, and
 `ebAutofillRecord`. Prefer changing the client over changing the server.
 
-Three screens auto-refresh on the `RefreshTimeSecs` setting: the check-in index,
-the admin tab in view, and the scheduler grids. Polls skip while a cell editor
-is open or the browser tab is hidden.
+The Event and Admin pages never poll. `/events` (`ChangeFeed`) is a
+server-sent event stream that sends a message after every POST a handler
+answers, and the pages re-read what they show when one arrives; room timers
+tick on the minute from the last read. The check-in index still refreshes its
+lists on the `RefreshTimeSecs` setting, because the Windows version serves the
+same page.
+
+`/checkin-address` lists the addresses the tablets can reach the server at
+(`CheckInAddress`), and `/checkin-qr?url=` draws one of them as an SVG QR code
+for the Event page's footer.
 
 ## Board lifecycle
 
 ```
-  Registered ──► InProgress ──► Completed
-       │                        (Result: Approved | Adjourned | NotApproved)
+  Registered ──► Seated ──► InProgress ──► Completed
+       │       /seat-board  /inprogress-board  (Result: Approved | Adjourned | NotApproved)
        └──────► Postponed
 ```
 
-Two deliberate departures from the original binary:
+`/seat-board` convenes the board: the members read the paperwork while the
+youth waits outside. `/inprogress-board` (Start review) brings the youth in.
+While Seated or InProgress, `/change-board-members` swaps who sits on the
+board under the same composition rules; the timer keeps running. `/reset-board`
+returns a Seated or InProgress youth to Registered, and `/restore-board` undoes
+the last reversible action.
 
-- **Seat and Start were merged.** Seating goes straight to `InProgress`; there is
-  no separate `Seated` state and no Start button.
-- **Verify was removed.** Paperwork is checked off-screen, so a `Registered`
-  scout is seated directly. There is no `/verify-board` endpoint.
+**Verify was removed.** Paperwork is checked off-screen, so a `Registered`
+scout is seated directly. There is no `/verify-board` endpoint. `Verified` is
+still *accepted* wherever it appeared, so a record carried over from an older
+run stays usable instead of stuck.
 
-Both old statuses are still *accepted* wherever they appeared, so a record
-carried over from an older run stays usable instead of stuck.
-
-Room cards show a minutes-since-seated badge that turns yellow then red at
-thresholds that are specific to the board type — `ProjectYellowMins`,
-`ProjectRedMins`, `FinalYellowMins`, `FinalRedMins`.
+Room cards show minutes since the last step. While Seated, the card turns red
+past `ConveneRedMins`; once in review it turns yellow then red at thresholds
+specific to the board type: `ProjectYellowMins`, `ProjectRedMins`,
+`FinalYellowMins`, `FinalRedMins`.
 
 ## SignUpGenius import
 

@@ -5,16 +5,16 @@
 //   youthStore / adultStore / roomStore  the rows the server has, fetched
 //        from the -cells endpoints. The process_*.js handlers read them
 //        through getColumnValue, the same name the old grids used.
-//   boardBuilder  the board being built for a waiting youth: the members
-//        picked, the chair marked, the room chosen. Client-side only until
-//        Seat board posts it.
+//   boardBuilder  the board being built for a waiting youth, or the new
+//        members of a board already seated: the members picked, the chair
+//        marked, the room chosen. Client-side only until Seat board or Save
+//        members posts it.
 //   render()  redraws the three panels from those. Nothing else touches the
 //        page's lists, so a refresh can never leave two panels disagreeing.
 //
-// The page re-reads the server every RefreshTimeSecs and redraws only when
-// something changed, so an idle screen is left alone. (SPEC.md D-15 asks for
-// no polling at all; that needs a push endpoint on the server, and is the
-// next step.)
+// Nothing polls (SPEC.md D-15). The server's /events stream says when any
+// data changed and the page re-reads then; the room timers tick on the
+// minute from the last read, without asking the server again.
 // ------------------------------------------------------------------------
 
 // ------------------------------------------------------------ data stores
@@ -35,6 +35,7 @@ EventTable.prototype.load = function () {
          return false;
       }
       t.signature = signature;
+      t.loadedAt = Date.now();
       t.rows = rows;
       t.byId = {};
       rows.forEach(function (r) { t.byId[r.id] = r; });
@@ -92,6 +93,17 @@ function isFinished(status) {
    return status === "Completed" || status === "Postponed";
 }
 
+// Minutes since a youth's status last changed, as of now: the server's count
+// when the rows were read, plus the minutes since. Lets the room timers tick
+// between reads without asking the server (D-15).
+function minsOf(s) {
+   var base = parseInt(s.MinsSinceLastUpdate, 10);
+   if (isNaN(base)) {
+      return "";
+   }
+   return base + Math.floor((Date.now() - (youthStore.loadedAt || Date.now())) / 60000);
+}
+
 function fullName(row) {
    return (row.First + " " + row.Last).trim();
 }
@@ -138,6 +150,9 @@ var boardBuilder = {
    roomId: null,
    problems: [],
    needsProposal: false,
+   // Changing the members of a board already seated, rather than building
+   // one for a waiting youth: the room is fixed and Save members posts it.
+   editing: false,
 
    memberIds: function () {
       return this.picked.slice();
@@ -148,6 +163,23 @@ var boardBuilder = {
       this.chairId = null;
       this.roomId = null;
       this.problems = [];
+      this.editing = false;
+   },
+
+   // Start from the board as it sits now, chair first.
+   startEditing: function (s) {
+      this.reset();
+      this.scoutId = s.id;
+      this.editing = true;
+      this.needsProposal = false;
+      this.chairId = s.BoardChairID || null;
+      var chair = this.chairId;
+      this.picked = adultStore.rows
+         .filter(function (a) { return a.Room === s.Room; })
+         .sort(function (a, b) { return (a.id === chair ? -1 : b.id === chair ? 1 : byName(a, b)); })
+         .map(function (a) { return a.id; });
+      this.roomId = roomIdFor(s.Room);
+      this.settleChair();
    },
 
    add: function (id) {
@@ -351,7 +383,9 @@ function render() {
    }
    var s = selection.youthId && youthStore.get(selection.youthId);
    if (s && boardBuilder.scoutId === s.id) {
-      if (!isWaiting(s.Status)) {
+      if (isOnBoard(s.Status) && boardBuilder.editing) {
+         // Changing this board's members: keep the operator's edits.
+      } else if (!isWaiting(s.Status)) {
          // Seated (here or in another window): nothing to build. If they
          // come back to waiting -- Undo, Reset -- propose afresh.
          boardBuilder.reset();
@@ -411,16 +445,17 @@ function renderQueue() {
          if (s.Status === "Completed" && s.Result) {
             sub.push(s.Result === "NotApproved" ? "Not approved" : s.Result);
          }
-         var tip = isWaiting(s.Status) ? "Waiting " + minsText(s.MinsSinceLastUpdate)
-            : isOnBoard(s.Status) ? SCHEDULER_statusLabel(s.Status) + " for " + minsText(s.MinsSinceLastUpdate)
-            : minsText(s.MinsSinceLastUpdate) + " since finishing";
+         var mins = minsOf(s);
+         var tip = isWaiting(s.Status) ? "Waiting " + minsText(mins)
+            : isOnBoard(s.Status) ? SCHEDULER_statusLabel(s.Status) + " for " + minsText(mins)
+            : minsText(mins) + " since finishing";
          var selected = s.id === selection.youthId;
          html += "<div class='eb-queue-item" + (selected ? " selected" : "") + "' role='option' tabindex='"
             + (selected ? "0" : "-1") + "' aria-selected='" + selected + "' data-id='" + h(s.id) + "'>"
             + "<span class='eb-queue-main'><span class='eb-queue-name'>" + h(fullName(s)) + "</span>"
             + "<span class='eb-hint' title='" + h(SCHEDULER_regnumMeaning(s.RegNum)) + "'>" + h(sub.filter(Boolean).join(" · ")) + "</span></span>"
             + "<span class='eb-queue-side'>" + (isWaiting(s.Status) ? "" : SCHEDULER_statusHtml(s.Status))
-            + "<span class='eb-hint' title='" + h(tip) + "'>" + h(minsText(s.MinsSinceLastUpdate)) + "</span></span>"
+            + "<span class='eb-hint' title='" + h(tip) + "'>" + h(minsText(mins)) + "</span></span>"
             + "</div>";
       });
    });
@@ -457,7 +492,7 @@ function renderRooms() {
       var state = "ok";
       var phase = "";
       if (s) {
-         var mins = parseInt(s.MinsSinceLastUpdate, 10) || 0;
+         var mins = minsOf(s) || 0;
          state = SCHEDULER_timerState(s.Status, s.BoardType, mins);
          phase = s.Status === "Seated" ? "Convening" : "In review";
          timer = "<span class='eb-timer eb-timer-" + state + "' title='" + h(SCHEDULER_timerMeaning(s.Status, s.BoardType, state)) + "'>"
@@ -519,11 +554,12 @@ function renderDetails() {
       m.hidden = !!about && about !== s.id;
    });
 
-   el("d-waiting").hidden = !isWaiting(s.Status);
-   el("d-active").hidden = !isOnBoard(s.Status);
+   var editing = isOnBoard(s.Status) && boardBuilder.editing && boardBuilder.scoutId === s.id;
+   el("d-build").hidden = !(isWaiting(s.Status) || editing);
+   el("d-active").hidden = !isOnBoard(s.Status) || editing;
    el("d-finished").hidden = !isFinished(s.Status);
 
-   if (isWaiting(s.Status)) {
+   if (isWaiting(s.Status) || editing) {
       renderBuilder(s);
    } else if (isOnBoard(s.Status)) {
       renderActive(s);
@@ -535,6 +571,18 @@ function renderDetails() {
 
 function renderBuilder(s) {
    var btype = s.BoardType;
+   var editing = !isWaiting(s.Status);
+
+   // Changing a seated board keeps its room; building a new one picks one.
+   el("d-room").hidden = editing;
+   el("d-room-fixed").hidden = !editing;
+   el("d-room-fixed").textContent = "Room " + s.Room + " · " + ebBoardTypeLabel(btype)
+      + " · " + (s.Status === "Seated" ? "convening" : "in review") + ". The timer keeps running.";
+   el("d-seat").hidden = editing;
+   el("d-postpone").hidden = editing;
+   el("d-start-over").hidden = editing;
+   el("d-save-members").hidden = !editing;
+   el("d-cancel-change").hidden = !editing;
 
    // Room: free rooms of this board type first, then the rest, each labeled.
    var free = roomStore.rows.filter(roomIsFree).sort(byRoomName);
@@ -582,6 +630,7 @@ function renderBuilder(s) {
 
    var blocked = rules.some(function (r) { return r.kind === "error"; });
    el("d-seat").disabled = blocked;
+   el("d-save-members").disabled = blocked || (editing && !builderChanged(s));
    var minSize = membersBesideChair(btype) + 1;
    el("d-fill").disabled = boardBuilder.picked.length >= minSize && !!boardBuilder.chairId;
    el("d-start-over").disabled = false;
@@ -592,13 +641,14 @@ function renderBuilder(s) {
 // [{kind: "error"|"warn"|"ok", text}] for the board being built.
 function builderRules(s) {
    var btype = s.BoardType;
+   var editing = !isWaiting(s.Status);
    var rules = [];
    var picked = boardBuilder.picked.map(function (id) { return adultStore.get(id); }).filter(Boolean);
 
    picked.forEach(function (a) {
       if (a.Room === "N/A") {
          rules.push({ kind: "error", text: fullName(a) + " has been marked as gone home." });
-      } else if (!adultIsFreeRow(a)) {
+      } else if (!adultIsFreeRow(a) && !(editing && a.Room === s.Room)) {
          rules.push({ kind: "error", text: fullName(a) + " is now on the board in room " + a.Room + "." });
       } else if (roleFor(a, btype) === "Unavailable") {
          rules.push({ kind: "error", text: fullName(a) + " said no thanks to " + (btype === "Project" ? "project reviews." : "final boards.") });
@@ -612,7 +662,8 @@ function builderRules(s) {
    } else if (verdict === "too-many") {
       rules.push({ kind: "error", text: "No more than " + BOARD_MAX_MEMBERS + " members; has " + picked.length + "." });
    } else if (verdict === "over-preferred") {
-      rules.push({ kind: "warn", text: picked.length + " members, more than the usual " + min + ". Seat board asks you to confirm." });
+      rules.push({ kind: "warn", text: picked.length + " members, more than the usual " + min + ". "
+         + (editing ? "Save members" : "Seat board") + " asks you to confirm." });
    }
 
    if (picked.length > 0 && !boardBuilder.chairId) {
@@ -627,12 +678,15 @@ function builderRules(s) {
          rules.push({ kind: "error", text: "Everyone here is in " + s.UnitName + ", the youth's own unit. Add someone from outside it." });
       } else {
          rules.push({ kind: "warn", text: conflicts.map(function (c) { return c.first + " " + c.last; }).join(", ")
-            + (conflicts.length === 1 ? " is" : " are") + " in " + s.UnitName + ", the youth's own unit. Seat board asks you to confirm." });
+            + (conflicts.length === 1 ? " is" : " are") + " in " + s.UnitName + ", the youth's own unit. "
+            + (editing ? "Save members" : "Seat board") + " asks you to confirm." });
       }
    }
 
    var room = boardBuilder.roomId && roomStore.get(boardBuilder.roomId);
-   if (!room) {
+   if (editing) {
+      // The board keeps its room.
+   } else if (!room) {
       rules.push({ kind: "error", text: "Choose a room." });
    } else if (!roomIsFree(room)) {
       rules.push({ kind: "error", text: "Room " + room.Room + " is taken now. Choose another." });
@@ -645,13 +699,29 @@ function builderRules(s) {
    });
 
    if (!rules.some(function (r) { return r.kind === "error" || r.kind === "warn"; })) {
-      rules.push({ kind: "ok", text: "Ready to seat." });
+      if (!editing) {
+         rules.push({ kind: "ok", text: "Ready to seat." });
+      } else if (builderChanged(s)) {
+         rules.push({ kind: "ok", text: "Ready to save." });
+      } else {
+         rules.push({ kind: "ok", text: "No changes yet. Remove someone, or add someone below." });
+      }
    }
    return rules;
 }
 
+// Whether the members or chair picked differ from the board as it sits.
+function builderChanged(s) {
+   var now = adultStore.rows.filter(function (a) { return a.Room === s.Room; }).map(function (a) { return a.id; }).sort();
+   var picked = boardBuilder.picked.slice().sort();
+   return now.join(",") !== picked.join(",") || (boardBuilder.chairId || "") !== (s.BoardChairID || "");
+}
+
 function renderAdultList(s) {
    var btype = s.BoardType;
+   // Changing a seated board: someone taken off it can be put back.
+   var ownRoom = isWaiting(s.Status) ? null : s.Room;
+   var isFreeHere = function (a) { return adultIsFreeRow(a) || a.Room === ownRoom; };
    var everyone = el("d-show-everyone").checked;
    var find = el("d-find-adult").value.trim().toLowerCase();
    var rows = adultStore.rows.filter(function (a) {
@@ -662,7 +732,7 @@ function renderAdultList(s) {
             .toLowerCase().indexOf(find) < 0) {
          return false;
       }
-      var available = adultIsFreeRow(a) && roleFor(a, btype) !== "Unavailable";
+      var available = isFreeHere(a) && roleFor(a, btype) !== "Unavailable";
       return everyone || available;
    });
    // Those who may chair this board type first, then by name.
@@ -673,10 +743,11 @@ function renderAdultList(s) {
    });
 
    var html = rows.map(function (a) {
-      var free = adultIsFreeRow(a);
+      var free = isFreeHere(a);
       var available = free && roleFor(a, btype) !== "Unavailable";
       var sameUnit = s.UnitName && a.UnitName === s.UnitName;
-      var where = free ? "" : " · " + (a.Room === "N/A" ? "Gone home" : "Room " + a.Room);
+      var where = a.Room === ownRoom ? " · Leaving this board"
+         : free ? "" : " · " + (a.Room === "N/A" ? "Gone home" : "Room " + a.Room);
       return "<li class='eb-adult" + (available ? "" : " eb-unavailable") + "' data-id='" + h(a.id) + "'>"
          + "<span class='eb-member-main'><span>" + h(fullName(a)) + "</span>"
          + "<span class='eb-hint'>" + h(adultDetail(a, btype) + where)
@@ -688,7 +759,7 @@ function renderAdultList(s) {
 }
 
 function renderActive(s) {
-   var mins = parseInt(s.MinsSinceLastUpdate, 10) || 0;
+   var mins = minsOf(s) || 0;
    var state = SCHEDULER_timerState(s.Status, s.BoardType, mins);
    el("d-active-room").innerHTML = "Room " + h(s.Room) + " · " + h(ebBoardTypeLabel(s.BoardType)) + " · "
       + "<span class='eb-timer eb-timer-" + state + "' title='" + h(SCHEDULER_timerMeaning(s.Status, s.BoardType, state)) + "'>"
@@ -760,6 +831,12 @@ function runPrimary() {
    if (isWaiting(s.Status)) {
       if (!el("d-seat").disabled) {
          ProcessSeatBoard(s.id);
+      }
+      return;
+   }
+   if (boardBuilder.editing && boardBuilder.scoutId === s.id) {
+      if (!el("d-save-members").disabled) {
+         ProcessChangeMembers(s.id);
       }
       return;
    }
@@ -937,6 +1014,7 @@ function youthMenu(s_id, e) {
       { label: "Seat board", disabled: !isWaiting(s.Status) || el("d-seat").disabled, run: runPrimary },
       { label: step ? step.label : "", disabled: !step, run: runPrimary },
       { label: "Locate", run: function () { SCHEDULER_locateAdults(s_id, true); } },
+      { label: "Change members…", disabled: !isOnBoard(s.Status), run: function () { changeMembers(s_id); } },
       { label: "Link an adult…", run: function () { linkAdultDialog(s_id); } },
       { label: "Reset…", disabled: !isOnBoard(s.Status), run: function () { ProcessResetBoard(s_id); } },
       { label: "Postpone…", disabled: !isWaiting(s.Status), run: function () { ProcessPostponeBoard(s_id); } }
@@ -1068,11 +1146,14 @@ function changeRooms(from, to) {
 
 // --------------------------------------------------------------- loading
 var loading = null;
+var loadAgain = false;
 
-// Re-read everything and redraw if anything changed. The process_*.js
-// handlers call this after each action.
+// Re-read everything and redraw if anything changed. Called when /events
+// says something changed, and by the process_*.js handlers after each action.
+// A change that arrives mid-read gets one more read once this one finishes.
 function refresh_all() {
    if (loading) {
+      loadAgain = true;
       return loading;
    }
    loading = Promise.all([youthStore.load(), adultStore.load(), roomStore.load()])
@@ -1082,20 +1163,132 @@ function refresh_all() {
          }
       })
       .catch(function (e) {
-         ebAlert("Connection", "The scheduler can't reach the server. Is it still running?", "main");
          console.log("refresh failed: " + e);
       })
       .then(function () {
          loading = null;
+         if (loadAgain) {
+            loadAgain = false;
+            refresh_all();
+         }
       });
    return loading;
 }
 
-function poll() {
-   if (!document.hidden) {
+// SPEC.md D-15: listen instead of polling. The first message on every
+// (re)connection re-reads, so nothing that happened while the connection was
+// down is missed. A drop is said once it has lasted a few seconds -- long
+// enough not to flash for a blip, soon enough that nobody works on stale data.
+var connectionTimer = null;
+
+function listenForChanges() {
+   var feed = new EventSource("/events");
+   feed.onmessage = function () {
       refresh_all();
+   };
+   feed.onopen = function () {
+      clearTimeout(connectionTimer);
+      connectionTimer = null;
+      el("connection-messages").innerHTML = "";
+   };
+   feed.onerror = function () {
+      if (connectionTimer) {
+         return;
+      }
+      connectionTimer = setTimeout(function () {
+         ebAlert("Connection", "Lost touch with the scheduler, so this screen may be out of date. "
+            + "Trying again every few seconds; is it still running?", "connection");
+      }, 4000);
+   };
+}
+
+// The timers tick on the minute (D-15) without a read: queue, room cards,
+// and the open board's own timer.
+function tickTimers() {
+   renderQueue();
+   renderRooms();
+   var s = selection.youthId && youthStore.get(selection.youthId);
+   if (s && isOnBoard(s.Status) && !boardBuilder.editing) {
+      renderActive(s);
    }
-   setTimeout(poll, SCHEDULER_refreshTime * 1000);
+}
+
+// --------------------------------------------------- changing a seated board
+function changeMembers(s_id) {
+   var s = youthStore.get(s_id);
+   if (!s || !isOnBoard(s.Status)) {
+      return;
+   }
+   selection.youthId = s_id;
+   boardBuilder.startEditing(s);
+   render();
+   el("d-find-adult").focus();
+}
+
+function stopChangingMembers() {
+   boardBuilder.reset();
+   boardBuilder.needsProposal = true;
+   render();
+}
+
+// ------------------------------------------------------ check-in address
+// Where the tablets at the door reach the check-in page, from the server:
+// this browser usually has the scheduler open as localhost, which a tablet
+// cannot use.
+var checkinUrls = [];
+
+function loadCheckinAddress() {
+   fetch("/checkin-address")
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+         checkinUrls = data.urls || [];
+         var where = el("checkin-address");
+         if (checkinUrls.length === 0) {
+            where.textContent = "Check-in address: this computer isn't on a network, so the tablets can't reach it.";
+         } else {
+            where.innerHTML = "Check-in address: " + checkinUrls.map(function (u) {
+               return "<a href='" + h(u) + "' target='_blank' rel='noopener'>" + h(u) + "</a>";
+            }).join(" or ");
+         }
+         el("checkin-qr").hidden = checkinUrls.length === 0;
+      })
+      .catch(function () {
+         el("checkin-address").textContent = "Check-in address: couldn't be found.";
+      });
+}
+
+// A big QR code for a tablet's camera, with the address spelled out for
+// typing. Black on white whatever the theme: that is what a camera reads.
+function showCheckinQr() {
+   if (checkinUrls.length === 0) {
+      return;
+   }
+   var dlg = ebDialogEl();
+   dlg.classList.add("eb-qr-dialog");
+   var picker = checkinUrls.length > 1
+      ? "<label>Network <select name='url'>" + checkinUrls.map(function (u) {
+           return "<option>" + h(u) + "</option>";
+        }).join("") + "</select></label>"
+      : "";
+   dlg.innerHTML = "<h2 class='eb-dialog-title'>Sign in at the door</h2>"
+      + "<div class='eb-dialog-body'>"
+      + "<img class='eb-qr' alt='QR code for the check-in page'/>"
+      + "<p class='eb-qr-url'></p>"
+      + "<p class='eb-hint'>Point a tablet's camera at this, or type the address into its browser.</p>"
+      + picker + "</div>"
+      + "<div class='eb-dialog-buttons'><button type='button' class='eb-accent'>Close</button></div>";
+   var show = function (u) {
+      dlg.querySelector(".eb-qr").src = "/checkin-qr?url=" + encodeURIComponent(u);
+      dlg.querySelector(".eb-qr-url").textContent = u;
+   };
+   show(checkinUrls[0]);
+   var select = dlg.querySelector("select");
+   if (select) {
+      select.addEventListener("change", function () { show(select.value); });
+   }
+   dlg.querySelector(".eb-dialog-buttons button").addEventListener("click", function () { dlg.close(); });
+   dlg.addEventListener("close", function () { dlg.remove(); });
+   dlg.showModal();
 }
 
 // ---------------------------------------------------------------- events
@@ -1210,6 +1403,10 @@ el("d-start-over").addEventListener("click", function () {
    render();
 });
 el("d-seat").addEventListener("click", runPrimary);
+el("d-save-members").addEventListener("click", runPrimary);
+el("d-cancel-change").addEventListener("click", stopChangingMembers);
+el("d-change").addEventListener("click", function () { changeMembers(selection.youthId); });
+el("checkin-qr").addEventListener("click", showCheckinQr);
 el("d-primary").addEventListener("click", runPrimary);
 el("d-postpone").addEventListener("click", function () { ProcessPostponeBoard(selection.youthId); });
 el("d-reset").addEventListener("click", function () { ProcessResetBoard(selection.youthId); });
@@ -1258,15 +1455,11 @@ document.addEventListener("keydown", function (ev) {
    }
 });
 
-document.addEventListener("visibilitychange", function () {
-   if (!document.hidden) {
-      refresh_all();
-   }
-});
-
 SCHEDULER_configReady.then(function () {
    refresh_all().then(function () {
       render();
-      setTimeout(poll, SCHEDULER_refreshTime * 1000);
+      listenForChanges();
+      setInterval(tickTimers, 20000);
    });
 });
+loadCheckinAddress();

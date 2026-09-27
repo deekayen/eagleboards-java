@@ -1,181 +1,104 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
    <head>
-      <title>Configuration: Scheduler</title>
-      <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
-      <link rel="stylesheet" type="text/css" href="scheduler.css"/>
+      <meta charset="UTF-8"/>
+      <meta name="viewport" content="width=device-width, initial-scale=1"/>
+      <meta name="color-scheme" content="light dark"/>
+      <title>Settings: Eagle Boards</title>
+      <link rel="stylesheet" href="eb-app.css"/>
       <style>
-         .cfg-wrap {
-            max-width: 860px;
-            margin: 0 auto;
-         }
-         .cfg-manager {
-            border: 1px solid var(--eb-line);
-            border-radius: 4px;
-            padding: 12px 16px 16px 16px;
-            background: var(--eb-page-bg);
-         }
-         .cfg-manager > legend {
-            font-weight: bold;
-            font-size: 14px;
-            padding: 0 6px;
-         }
-         .cfg-columns {
-            display: flex;
-            gap: 16px;
-            flex-wrap: wrap;
-            justify-content: center;
-         }
-         .cfg-columns fieldset {
-            border: 1px solid var(--eb-line);
-            border-radius: 4px;
-            padding: 10px 14px;
-            margin: 0;
-            min-width: 220px;
-         }
-         .cfg-columns legend {
-            font-size: 13px;
-            padding: 0 4px;
-         }
-         .cfg-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 10px;
-            margin: 6px 0;
-            font-size: 13px;
-            text-align: left;
-         }
-         .cfg-row input[type=number] {
-            width: 60px;
-            font-size: 13px;
-            padding: 2px 4px;
-            color: var(--eb-dark-gray);
-            background: var(--eb-page-bg);
-            border: 1px solid var(--eb-line);
-         }
-         /* Provenance for the timer defaults. Sits inside the Settings
-            fieldset and is wider than the number rows, so the column is
-            allowed to grow rather than squeezing the inputs. */
-         .cfg-note {
-            margin: 12px 0 2px;
-            padding: 8px 10px;
-            border-top: 1px solid var(--eb-line);
-            font-size: 11px;
-            line-height: 1.45;
-            text-align: left;
-            color: var(--eb-warm-gray);
-            max-width: 380px;
-         }
-         .cfg-note p {
-            margin: 4px 0;
-         }
-         .cfg-note dl {
-            margin: 6px 0 4px;
-         }
-         .cfg-note dt {
-            font-weight: bold;
-            margin-top: 5px;
-         }
-         .cfg-note dd {
-            margin: 1px 0 0 12px;
-         }
-         .cfg-buttons {
-            display: flex;
-            gap: 24px;
-            justify-content: center;
-            margin-top: 18px;
-         }
-         .cfg-buttons button {
-            padding: 6px 24px;
-            border: 1px solid var(--eb-line);
-            border-radius: 3px;
-            background: var(--eb-surface);
-            color: var(--eb-dark-gray);
-            font-weight: bold;
-            font-size: 13px;
-            cursor: pointer;
-         }
-         #cfg-status {
-            text-align: center;
-            color: var(--eb-red-text);
-            font-size: 13px;
-            min-height: 18px;
-         }
+         .cfg-note dl { margin: 6px 0 4px; }
+         .cfg-note dt { font-weight: 600; margin-top: 8px; }
+         .cfg-note dd { margin: 2px 0 0 12px; }
+         #cfg-status:empty { display: none; }
       </style>
-      <link rel="stylesheet" type="text/css" href="eb-ui.css"/>
    </head>
-   <body class="eb-operator">
-      <div class="cfg-wrap">
-         <br/>
-         <span class="page-header">Scheduler Configuration</span>
-         <br/><br/>
-         <form id="cfg-form" onsubmit="return false;">
-            <fieldset class="cfg-manager">
-               <legend>Configuration Manager</legend>
-               <div class="cfg-columns">
-                  <fieldset>
-                     <legend>Settings</legend>
-                     <div class="cfg-row"><label for="RefreshTimeSecs">Refresh Time (secs):</label>
-                        <input type="number" min="1" id="RefreshTimeSecs" name="RefreshTimeSecs" value="10" required/></div>
-                     <div class="cfg-row"><label for="ConveneRedMins">Convene Red (mins):</label>
-                        <input type="number" min="0" id="ConveneRedMins" name="ConveneRedMins" value="30" required/></div>
-                     <div class="cfg-row"><label for="ProjectYellowMins">Project Yellow (mins):</label>
-                        <input type="number" min="0" id="ProjectYellowMins" name="ProjectYellowMins" value="25" required/></div>
-                     <div class="cfg-row"><label for="ProjectRedMins">Project Red (mins):</label>
-                        <input type="number" min="0" id="ProjectRedMins" name="ProjectRedMins" value="40" required/></div>
-                     <div class="cfg-row"><label for="FinalYellowMins">Final Yellow (mins):</label>
-                        <input type="number" min="0" id="FinalYellowMins" name="FinalYellowMins" value="30" required/></div>
-                     <div class="cfg-row"><label for="FinalRedMins">Final Red (mins):</label>
-                        <input type="number" min="0" id="FinalRedMins" name="FinalRedMins" value="45" required/></div>
+   <body class="eb-app">
+      <header class="eb-appbar">
+         <span class="eb-brand">Eagle Boards</span>
+         <nav class="eb-nav" aria-label="Pages">
+            <a href="/scheduler">Event</a>
+            <a href="/admin#boards" title="Every board and its result; correct a result here">Results</a>
+            <a href="/admin#adults" title="The adults signed in at this event">People</a>
+            <a href="/configure" aria-current="page">Settings</a>
+            <a href="/help" title="How to run an event">Help</a>
+         </nav>
+      </header>
 
-                     <!-- Where these defaults come from. The scheduler buttons
-                          are deliberately plain-language for use during an
-                          event; this page is where someone CHANGES the values,
-                          so it names the source they would be departing from. -->
-                     <div class="cfg-note">
-                        <b>Where these defaults come from</b>
-                        <p>Scouting America <i>Guide to Advancement</i>, Eagle
-                           Scout boards of review (8.0.3.0).</p>
-                        <dl>
-                           <dt>Convene Red &mdash; 30</dt>
-                           <dd>&ldquo;Members should convene at least 30 minutes
-                              before the scheduled board of review&rdquo; to go
-                              over the application, references and service
-                              project workbook (#8). Used here as a cap: past
-                              this the candidate is being kept waiting, so the
-                              card turns red. There is no yellow stage, because
-                              the window is a limit rather than a target.</dd>
-                           <dt>Final Yellow / Red &mdash; 30 and 45</dt>
-                           <dd>&ldquo;Eagle boards generally last 30 minutes or
-                              somewhat longer &hellip; but rarely should one
-                              last longer than 45 minutes&rdquo; (#9). Counted
-                              from <i>Start Review</i>, when the youth is
-                              brought in &mdash; not from when the board was
-                              seated.</dd>
-                           <dt>Project Yellow / Red &mdash; 25 and 40</dt>
-                           <dd>District practice. A project proposal review is
-                              not a board of review, so the Guide sets no
-                              length for it.</dd>
-                        </dl>
-                        <p>These are guidance, not hard limits &mdash; the
-                           colors are a prompt to the room, and nothing stops a
-                           board that needs longer. Adjust them to suit how
-                           your district actually runs.</p>
-                     </div>
-                  </fieldset>
-               </div>
-               <input type="hidden" name="Type" value="CONFIG"/>
-               <input type="hidden" name="ID" value="DEFAULT"/>
-               <input type="hidden" name="Name" value="DEFAULT"/>
-               <div class="cfg-buttons">
-                  <button id="cfg-store">Store</button>
-                  <button id="cfg-cancel">Cancel</button>
-               </div>
-               <div id="cfg-status"></div>
-            </fieldset>
+      <main class="eb-page">
+      <div class="eb-page-inner">
+         <h1>Settings</h1>
+         <form id="cfg-form" onsubmit="return false;">
+            <section class="eb-card" aria-labelledby="timers-title">
+               <h2 id="timers-title">Room timers</h2>
+               <p class="eb-hint">Minutes before a room card turns yellow, then red. Each phase is timed from
+                  when it began: convening from Seat board, the review from Start review.</p>
+               <div class="eb-field"><label for="ConveneRedMins">Convening: red after
+                     <span class="eb-hint">Members reading the paperwork, youth still outside. A limit, so no yellow.</span></label>
+                  <input type="number" min="0" id="ConveneRedMins" name="ConveneRedMins" value="30" required/></div>
+               <div class="eb-field"><label for="FinalYellowMins">Final board: yellow after</label>
+                  <input type="number" min="0" id="FinalYellowMins" name="FinalYellowMins" value="30" required/></div>
+               <div class="eb-field"><label for="FinalRedMins">Final board: red after</label>
+                  <input type="number" min="0" id="FinalRedMins" name="FinalRedMins" value="45" required/></div>
+               <div class="eb-field"><label for="ProjectYellowMins">Project review: yellow after</label>
+                  <input type="number" min="0" id="ProjectYellowMins" name="ProjectYellowMins" value="25" required/></div>
+               <div class="eb-field"><label for="ProjectRedMins">Project review: red after</label>
+                  <input type="number" min="0" id="ProjectRedMins" name="ProjectRedMins" value="40" required/></div>
+            </section>
+
+            <section class="eb-card" aria-labelledby="checkin-title">
+               <h2 id="checkin-title">Check-in page</h2>
+               <div class="eb-field"><label for="RefreshTimeSecs">Refresh the signed-in lists every (seconds)
+                     <span class="eb-hint">The lists on the tablets at the door. The Event, Results and People
+                        pages update the moment anything changes and don't use this.</span></label>
+                  <input type="number" min="1" id="RefreshTimeSecs" name="RefreshTimeSecs" value="10" required/></div>
+            </section>
+
+            <input type="hidden" name="Type" value="CONFIG"/>
+            <input type="hidden" name="ID" value="DEFAULT"/>
+            <input type="hidden" name="Name" value="DEFAULT"/>
+            <div class="eb-actions">
+               <button type="button" class="eb-accent" id="cfg-store">Save settings</button>
+               <button type="button" id="cfg-cancel">Cancel</button>
+            </div>
+            <div id="cfg-status" class="eb-message eb-message-error" role="alert"></div>
+
+            <!-- Where these defaults come from. The scheduler buttons
+                 are deliberately plain-language for use during an
+                 event; this page is where someone CHANGES the values,
+                 so it names the source they would be departing from. -->
+            <section class="eb-card cfg-note eb-section-gap" aria-labelledby="source-title">
+               <h2 id="source-title">Where the timer defaults come from</h2>
+               <p>Scouting America <i>Guide to Advancement</i>, Eagle
+                  Scout boards of review (8.0.3.0).</p>
+               <dl>
+                  <dt>Convening red: 30</dt>
+                  <dd>&ldquo;Members should convene at least 30 minutes
+                     before the scheduled board of review&rdquo; to go
+                     over the application, references and service
+                     project workbook (#8). Used here as a cap: past
+                     this the candidate is being kept waiting, so the
+                     card turns red. There is no yellow stage, because
+                     the window is a limit rather than a target.</dd>
+                  <dt>Final board yellow and red: 30 and 45</dt>
+                  <dd>&ldquo;Eagle boards generally last 30 minutes or
+                     somewhat longer &hellip; but rarely should one
+                     last longer than 45 minutes&rdquo; (#9). Counted
+                     from <i>Start review</i>, when the youth is
+                     brought in, not from when the board was seated.</dd>
+                  <dt>Project review yellow and red: 25 and 40</dt>
+                  <dd>District practice. A project proposal review is
+                     not a board of review, so the Guide sets no
+                     length for it.</dd>
+               </dl>
+               <p>These are guidance, not hard limits: the
+                  colors are a prompt to the room, and nothing stops a
+                  board that needs longer. Adjust them to suit how
+                  your district actually runs.</p>
+            </section>
          </form>
       </div>
+      </main>
       <script>
          // The server emits pseudo-JSON with unquoted keys, so parse with
          // a regex rather than JSON.parse.
@@ -193,7 +116,10 @@
 
          var form = document.getElementById("cfg-form");
 
-         var TIME_FIELDS = ["RefreshTimeSecs", "ProjectYellowMins", "ProjectRedMins",
+         // Every setting on the page. ConveneRedMins was once left out of this
+         // list, so the form always showed its default and Save wrote that
+         // default over whatever was stored.
+         var TIME_FIELDS = ["RefreshTimeSecs", "ConveneRedMins", "ProjectYellowMins", "ProjectRedMins",
             "FinalYellowMins", "FinalRedMins"];
 
          // populate from the stored DEFAULT config record
@@ -201,7 +127,6 @@
             .then(function (r) { return r.text(); })
             .then(function (text) {
                var cfg = parseLooseJSON(text);
-               console.log(cfg);
                if (!cfg) {
                   return;
                }
@@ -215,7 +140,7 @@
                }
             })
             .catch(function (e) {
-               document.getElementById("cfg-status").textContent = "Could not load stored configuration: " + e;
+               document.getElementById("cfg-status").textContent = "The saved settings could not be loaded: " + e;
             });
 
          document.getElementById("cfg-store").addEventListener("click", function () {
@@ -237,17 +162,15 @@
                if (r.ok) {
                   window.location.href = "/scheduler";
                } else {
-                  document.getElementById("cfg-status").textContent = "Store failed (HTTP " + r.status + ")";
+                  document.getElementById("cfg-status").textContent = "The settings were not saved (HTTP " + r.status + ").";
                }
             }).catch(function (e) {
-               document.getElementById("cfg-status").textContent = "Store failed: " + e;
+               document.getElementById("cfg-status").textContent = "The settings were not saved: " + e;
             });
          });
 
          document.getElementById("cfg-cancel").addEventListener("click", function () {
-            if (window.confirm("Are you sure you want to Cancel ?")) {
-               window.location.href = "/scheduler";
-            }
+            window.location.href = "/scheduler";
          });
       </script>
    </body>

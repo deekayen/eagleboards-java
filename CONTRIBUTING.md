@@ -274,7 +274,12 @@ looks like a pass**, because a tool that quietly produces nothing empties out
 
 ### Colour has meaning
 
-`eb-ui.css` implements the Scouts BSA palette (BSA Brand Guidelines p.54: "mainly
+The operator pages (Event, Admin, Settings, Help) use `eb-app.css`, which takes
+its colors from the system instead: light or dark, the system accent for the
+one action a panel is for, red text for what deletes. Status is a pill with an
+icon and a word, never a color alone (shared SPEC.md D-13, D-16).
+
+The check-in pages keep the palette below. `eb-ui.css` implements the Scouts BSA palette (BSA Brand Guidelines p.54: "mainly
 tan, gray, and olive hues… Scouting Red as an accent or action color"). Button
 colour states what the button *does*, so an operator can find the right one
 without reading every label:

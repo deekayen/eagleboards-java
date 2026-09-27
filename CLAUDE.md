@@ -26,8 +26,14 @@ original source was received) and then modernized. See `PROVENANCE.md`.
   page (SPEC.md O-3): youth queue, room cards and a details pane that builds
   the board, all visible at once. The Admin tables still use **Tabulator**
   (MIT), which replaced the original GPL dhtmlx; they really are
-  spreadsheets. The other pages still use `eb-ui.css` and are to be restyled
-  on `eb-app.css`.
+  spreadsheets. Admin, Settings and Help share `eb-app.css` and the same top
+  bar. The check-in pages keep `eb-ui.css`: they are served identically by
+  the Windows version, so change them there too (or in the shared repo).
+- **Nothing polls** (SPEC.md D-15). `/events` (`ChangeFeed`) streams a message
+  after every POST a handler answers; the Event and Admin pages re-read then.
+  Keep every change to the data a POST, and never a read: a GET that changed
+  data would go unannounced. `RefreshTimeSecs` now only drives the check-in
+  page's lists.
 - Optional Swing popup (`PopupDialog`, only with `-w`) shows the check-in URL.
 - Optional **SignUpGenius** import (`SignUpGeniusPlugin`, Jackson JSON).
 
@@ -158,6 +164,10 @@ push be the verification.
   accepted a `Seated` scout, which was harmless while nothing was ever left in
   that state and became "record a result for a review that never happened" the
   moment it was restored; there is now a CI guard for exactly that.
+- **Changing a seated board's members** (`/change-board-members`) runs the
+  same composition check as seating (`checkComposition`), except that adults
+  already in the room may stay. It does not touch `LastUpdateTime`, so the
+  room timer keeps running: it is the same board.
 - **Board composition rules** live in `process_seat.js` for the operator's sake
   (it explains and, where allowed, offers an override) **and again in
   `SeatBoardHandler` as a hard backstop**. The UI is the normal way in, not the

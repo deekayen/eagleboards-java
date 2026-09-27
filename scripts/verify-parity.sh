@@ -787,7 +787,7 @@ UI_PAGES="/index.html /admin.html /scheduler.html
 /configure.html /youth_register.html /adult_register.html /eb-data.js
 /scheduler_config.js /scheduler_event.js /eb-app.css
 /process_seat.js /process_start.js
-/process_complete.js /process_postpone.js /process_reset.js
+/process_complete.js /process_postpone.js /process_reset.js /process_change.js
 /tabulator/tabulator.min.js /tabulator/tabulator.min.css"
 uicount=0
 for p in $UI_PAGES; do

@@ -28,6 +28,7 @@ under its own license; see that component for full terms.
     Jackson (FasterXML)        Apache License 2.0
     SLF4J (QOS.ch)             MIT License
     Tabulator (Oliver Folkerd) MIT License
+    QR Code generator (Nayuki) MIT License
 
 The original binary additionally bundled dhtmlxSuite 4.1.2 (GPL) and a
 repackaged json-simple. Neither is present in this tree: the user interface was

@@ -33,6 +33,18 @@ public class WebServer {
       _bindHost = bindHost;
    }
 
+   public static String getBindHost() {
+      return _bindHost;
+   }
+
+   // Told after every POST a handler answers, so the pages listening on
+   // /events re-read at once instead of polling (see ChangeFeed).
+   private ChangeFeed _changeFeed = null;
+
+   public void setChangeFeed(ChangeFeed changeFeed) {
+      this._changeFeed = changeFeed;
+   }
+
    public WebServer() {
       this("html");
    }
@@ -190,6 +202,7 @@ public class WebServer {
       _contentTypeMap.put("zip", "application/zip");
       _contentTypeMap.put("gzip", "application/gzip");
       _contentTypeMap.put("json", "application/json");
+      _contentTypeMap.put("svg", "image/svg+xml");
    }
 
    public class LocalDefaultHandler extends HttpServlet {
@@ -228,6 +241,9 @@ public class WebServer {
                if (handler != null) {
                   EagleBoardScheduler.verbose("FOUND: " + target + "." + command);
                   handler.handle(target, request, response);
+                  if (WebServer.this._changeFeed != null && "POST".equalsIgnoreCase(request.getMethod())) {
+                     WebServer.this._changeFeed.changed();
+                  }
                } else if (!WebServer.this.sendResponseFile(WebServer.this._htmlDirectory, target, response)) {
                   if (WebServer.this.sendResponseFile(WebServer.this._htmlDirectory, target + ".html", response)) {
                      return;

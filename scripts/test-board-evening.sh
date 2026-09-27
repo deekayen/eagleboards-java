@@ -29,13 +29,14 @@
 # So the evening is capped at five concurrent boards no matter how many rooms
 # are free -- which is the constraint the scheduler actually has to survive.
 #
-# Sections 9-19 then work through what goes wrong on the night: malformed
+# Sections 9-21 then work through what goes wrong on the night: malformed
 # and replayed requests, every out-of-order step, adults and scouts signing
 # in twice, boards moved between rooms, a room renamed or deleted under a
 # board, a name with a comma in it, two operators seating the same chair at
 # once, the server restarting mid-evening, a room switched between
-# Project and Final, a recorded result corrected on the Admin page, and
-# what an adult says at sign-in (Wood Badge, "no thanks", whom they support).
+# Project and Final, a recorded result corrected on the Admin page, what an
+# adult says at sign-in (Wood Badge, "no thanks", whom they support), undo,
+# and a seated board's members changed.
 # ------------------------------------------------------------------------
 
 set -u
@@ -995,6 +996,99 @@ accepted "undo the disable" "$(restore)"
 chk "undo re-enables the adult" "$(adult_room "$M1")" ""
 
 chk "nobody committed after section 20" "$(busy_adults)" "0"
+
+# ------------------------- 21. change the members of a board already seated
+# Someone on a seated board has to leave, or the chair changes hands. The
+# same composition rules as seating apply, except that the adults already in
+# the room may stay; whoever leaves is freed, whoever joins is committed, and
+# the room timer keeps running because it is the same board.
+echo
+echo "== 21. change the members of a seated board =="
+
+change() { # <scout> <chair> <member>...
+    _sc=$1; _ch=$2
+    shift 2
+    _ids=""
+    for _m in "$@"; do _ids="${_ids:+$_ids,}$_m"; done
+    act /change-board-members \
+        --data-urlencode "ScoutID=$_sc" \
+        --data-urlencode "ChairID=$_ch" \
+        --data-urlencode "MemberIDs=$_ids"
+}
+last_update() { awk -F, -v i="$1" 'NR>1 && $2==i {print $15}' "$SCOUTS"; }
+room_leaders() { awk -F, -v r="$1" 'NR>1 && $2==r {print $6}' "$ROOMS"; }
+
+C1=$(xscout Quennell Rosalind 3601 Final)
+C2=$(xscout Ravenscroft Sebastian 3602 Final)
+accepted "a board to change" "$(seat 101 "$C1" "$FC1" "$M1" "$M2")"
+accepted "and one next door" "$(seat 102 "$C2" "$FC2" "$M4" "$M5")"
+since=$(last_update "$C1")
+
+accepted "the chair leaves: another chair takes over and a member joins" \
+    "$(change "$C1" "$FC3" "$FC3" "$M1" "$M3")"
+chk "the chair who left is free" "$(adult_room "$FC1")" ""
+chk "the member not kept is free" "$(adult_room "$M2")" ""
+chk "the new chair and member are in the room" "$(adult_room "$FC3")|$(adult_room "$M3")" "101|101"
+chk "the member who stayed is still in the room" "$(adult_room "$M1")" "101"
+chk "the new chair is recorded" "$(chair_of "$C1")" "$FC3"
+chk "the room card names the new board" "$(room_leaders ROOM:101 | tr '~' ',' | awk -F, '{print NF}')" "3"
+chk "still convening: the step is unchanged" "$(status_of "$C1")" "Seated"
+chk "the timer keeps running" "$(last_update "$C1")" "$since"
+
+refused "an adult on the board next door cannot join" "$(change "$C1" "$FC3" "$FC3" "$M1" "$M4")"
+refused "too few members is refused" "$(change "$C1" "$FC3" "$FC3" "$M1")"
+refused "a plain member may not take the chair" "$(change "$C1" "$M1" "$FC3" "$M1" "$M3")"
+refused "the chair must sit on the board" "$(change "$C1" "$FC1" "$M1" "$M3" "$M6")"
+refused "a waiting scout has no board to change" "$(change "$U1" "$FC1" "$FC1" "$M6" "$M7")"
+chk "none of those changed anyone" "$(adult_room "$FC3")|$(adult_room "$M1")|$(adult_room "$M3")|$(adult_room "$M6")" "101|101|101|"
+
+start "$C1" >/dev/null
+accepted "members can change during the review too" "$(change "$C1" "$FC3" "$FC3" "$M1" "$M3" "$M6")"
+chk "still in review" "$(status_of "$C1")" "InProgress"
+chk "the added member is in the room" "$(adult_room "$M6")" "101"
+accepted "undo the change" "$(act /restore-board)"
+chk "undo takes the added member back out" "$(adult_room "$M6")" ""
+
+accepted "completing releases whoever is on the board now" "$(complete "$C1" Approved)"
+chk "the changed board's members are all free" \
+    "$(adult_room "$FC3")|$(adult_room "$M1")|$(adult_room "$M3")" "||"
+reset "$C2" >/dev/null
+chk "nobody committed after section 21" "$(busy_adults)" "0"
+
+# ------------------ 22. the Event page is told about changes (Java only)
+# The browser operator screen never polls (SPEC.md D-15): /events streams a
+# message after every POST, and the page re-reads when one arrives. The
+# check-in address and its QR code are for the tablets at the door. Both are
+# the Java version's own -- the Windows and Mac operator screens are native --
+# so this section is not copied to their tests.
+echo
+echo "== 22. the Event page hears about changes, and shows the check-in address =="
+
+EVENTS="$WORK/events.out"
+curl -sN --max-time 4 "$B/events" > "$EVENTS" 2>/dev/null &
+LISTENER=$!
+sleep 1
+post --data "!nativeeditor_status=inserted&gr_id=ROOM:900&Room=900&BoardType=Final" "$B/room-update"
+wait "$LISTENER" 2>/dev/null
+chk "the stream opens with where the count stands, then a message for the change" \
+    "$(grep -c '^data: ' "$EVENTS")" "2"
+chk "and tells the browser how soon to reconnect" "$(grep -c '^retry: ' "$EVENTS")" "1"
+post --data "!nativeeditor_status=deleted&gr_id=ROOM:900" "$B/room-update"
+
+ADDRS=$(curl -sf "$B/checkin-address")
+case "$ADDRS" in
+    '{"urls": ['*) ok "the check-in address list answers" ;;
+    *) bad "the check-in address list answers -- got '$ADDRS'" ;;
+esac
+FIRST_URL=$(echo "$ADDRS" | sed -n 's/.*\["\([^"]*\)".*/\1/p')
+if [ -n "$FIRST_URL" ]; then
+    chk "its QR code is an SVG" \
+        "$(curl -s -o /dev/null -w '%{content_type}' --get --data-urlencode "url=$FIRST_URL" "$B/checkin-qr")" "image/svg+xml"
+else
+    ok "no network on this runner, so no QR code to draw"
+fi
+chk "no QR code for an address the server does not have" \
+    "$(curl -s -o /dev/null -w '%{http_code}' --get --data-urlencode "url=http://example.org/" "$B/checkin-qr")" "404"
 
 echo
 echo "== the evening ends clean =="

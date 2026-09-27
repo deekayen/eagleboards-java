@@ -431,6 +431,27 @@ input[type=search], #d-room { width: 100%; }
 .eb-facts dt { color: var(--eb-text-2); }
 .eb-facts dd { margin: 0; }
 
+/* ------------------------------------------------ footer and QR window */
+.eb-footer {
+   flex: 0 0 auto;
+   display: flex;
+   flex-wrap: wrap;
+   align-items: center;
+   gap: 12px;
+   padding: 0 16px 10px;
+   font-size: 13px;
+   color: var(--eb-text-2);
+}
+.eb-qr-dialog .eb-dialog-body { text-align: center; }
+.eb-qr {
+   display: block;
+   width: min(60vh, 360px);
+   aspect-ratio: 1;
+   margin: 4px auto 0;
+   image-rendering: pixelated;
+}
+.eb-qr-url { margin: 12px 0 4px; font-size: 20px; font-weight: 600; word-break: break-all; }
+
 /* --------------------------------------------- persistent messages (D-14) */
 .eb-messages:empty, .eb-messages:not(:has(> :not([hidden]))) { display: none; }
 .eb-messages { margin: 0 12px 8px; }
@@ -504,6 +525,148 @@ dialog.eb-dialog::backdrop { background: rgba(0, 0, 0, 0.35); }
    min-height: 30px;
 }
 .eb-context-menu button:hover, .eb-context-menu button:focus-visible { background: var(--eb-hover); }
+
+/* ----------------------------------------------- pages that scroll (Help, Settings) */
+.eb-page {
+   flex: 1 1 auto;
+   min-height: 0;
+   overflow: auto;
+   padding: 16px;
+}
+.eb-page-inner { max-width: 820px; margin: 0 auto; }
+.eb-page h1 { font-size: 22px; margin: 4px 0 12px; }
+.eb-page h2 { margin: 28px 0 8px; font-size: 17px; }
+.eb-page h3 { margin: 16px 0 6px; }
+.eb-page p, .eb-page li { line-height: 1.5; }
+.eb-page ol, .eb-page ul { padding-left: 22px; }
+.eb-page li { margin: 3px 0; }
+.eb-page code, .eb-page pre {
+   font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+   font-size: 12.5px;
+   background: var(--eb-surface-alt);
+   border: 1px solid var(--eb-line);
+   border-radius: var(--eb-radius-sm);
+}
+.eb-page code { padding: 0 4px; }
+.eb-page pre { padding: 10px 12px; overflow-x: auto; }
+.eb-toc { display: flex; flex-wrap: wrap; gap: 4px 14px; margin: 0 0 8px; padding: 0; list-style: none; }
+.eb-card {
+   background: var(--eb-surface);
+   border: 1px solid var(--eb-line);
+   border-radius: var(--eb-radius);
+   padding: 16px 20px;
+   margin-bottom: 16px;
+}
+
+/* Forms (Settings) */
+.eb-field {
+   display: grid;
+   grid-template-columns: 1fr 90px;
+   align-items: center;
+   gap: 12px;
+   padding: 8px 0;
+   border-bottom: 1px solid var(--eb-line);
+}
+.eb-field:last-of-type { border-bottom: none; }
+.eb-field input[type=number] {
+   min-height: 30px;
+   padding: 4px 8px;
+   border: 1px solid var(--eb-line-strong);
+   border-radius: var(--eb-radius-sm);
+   background: var(--eb-surface);
+   font: inherit;
+   color: var(--eb-text);
+   width: 100%;
+}
+.eb-field .eb-hint { display: block; margin-top: 2px; }
+
+/* ------------------------------------------------------------- tabs (Admin) */
+.eb-tabs {
+   flex: 0 0 auto;
+   display: flex;
+   flex-wrap: wrap;
+   gap: 2px;
+   padding: 8px 12px 0;
+   border-bottom: 1px solid var(--eb-line);
+}
+.eb-tabs button {
+   border: none;
+   border-radius: var(--eb-radius-sm) var(--eb-radius-sm) 0 0;
+   background: transparent;
+   padding: 8px 14px;
+   position: relative;
+}
+.eb-tabs button:hover { background: var(--eb-hover); }
+.eb-tabs button.active { font-weight: 600; }
+.eb-tabs button.active::after {
+   content: "";
+   position: absolute;
+   left: 10px; right: 10px; bottom: -1px;
+   height: 3px;
+   border-radius: 2px;
+   background: var(--eb-accent);
+}
+.eb-tabpanel { display: none; }
+.eb-tabpanel.active {
+   flex: 1 1 auto;
+   min-height: 0;
+   display: flex;
+   flex-direction: column;
+   padding: 8px 12px 12px;
+}
+.eb-toolbar {
+   flex: 0 0 auto;
+   display: flex;
+   flex-wrap: wrap;
+   align-items: center;
+   gap: 8px;
+   padding: 0 0 8px;
+}
+.eb-toolbar .eb-sep { width: 1px; align-self: stretch; background: var(--eb-line); margin: 2px 4px; }
+.eb-toolbar label { display: inline-flex; align-items: center; gap: 6px; }
+.eb-grid { flex: 1 1 auto; min-height: 0; }
+button.eb-danger { color: var(--eb-error-fg); }
+
+/* Tabulator (the Admin tables) in the same theme, light and dark. */
+.eb-app .tabulator {
+   background: var(--eb-surface);
+   border: 1px solid var(--eb-line);
+   border-radius: var(--eb-radius-sm);
+   color: var(--eb-text);
+   font-size: 13px;
+}
+.eb-app .tabulator .tabulator-header,
+.eb-app .tabulator .tabulator-header .tabulator-col {
+   background: var(--eb-surface-alt);
+   color: var(--eb-text);
+   border-color: var(--eb-line);
+}
+.eb-app .tabulator .tabulator-header { border-bottom: 1px solid var(--eb-line-strong); font-weight: 600; }
+.eb-app .tabulator .tabulator-header .tabulator-col.tabulator-sortable:hover { background: var(--eb-hover); }
+.eb-app .tabulator .tabulator-header .tabulator-header-filter input,
+.eb-app .tabulator .tabulator-header .tabulator-header-filter select {
+   background: var(--eb-surface);
+   color: var(--eb-text);
+   border: 1px solid var(--eb-line-strong);
+   border-radius: 3px;
+   padding: 2px 4px;
+   font-weight: 400;
+}
+.eb-app .tabulator .tabulator-tableholder { background: var(--eb-surface); }
+.eb-app .tabulator .tabulator-tableholder .tabulator-placeholder span { color: var(--eb-text-2); }
+.eb-app .tabulator-row { background: var(--eb-surface); color: var(--eb-text); border-bottom: 1px solid var(--eb-line); }
+.eb-app .tabulator-row.tabulator-row-even { background: var(--eb-surface-alt); }
+.eb-app .tabulator-row .tabulator-cell { border-right: 1px solid var(--eb-line); }
+.eb-app .tabulator-row.tabulator-selectable:hover { background: var(--eb-hover); }
+.eb-app .tabulator-row.tabulator-selected,
+.eb-app .tabulator-row.tabulator-selected:hover { background: var(--eb-accent-soft); }
+.eb-app .tabulator-row .tabulator-cell.tabulator-editing { border: 1px solid var(--eb-accent); }
+.eb-app .tabulator-row .tabulator-cell.tabulator-editing input,
+.eb-app .tabulator-row .tabulator-cell.tabulator-editing select { background: var(--eb-surface); color: var(--eb-text); }
+.eb-app .tabulator-edit-list { background: var(--eb-surface); color: var(--eb-text); border: 1px solid var(--eb-line); }
+.eb-app .tabulator-edit-list .tabulator-edit-list-item { color: var(--eb-text); }
+.eb-app .tabulator-edit-list .tabulator-edit-list-item:hover,
+.eb-app .tabulator-edit-list .tabulator-edit-list-item.active { background: var(--eb-accent); color: var(--eb-accent-text); }
 
 /* ---------------------------------------------- high contrast (D-13, D-16) */
 @media (forced-colors: active) {

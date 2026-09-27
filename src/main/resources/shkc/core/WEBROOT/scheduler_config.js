@@ -1,7 +1,7 @@
 // ------------------------------------------------------------------------
 // scheduler_config.js — scheduler configuration + shared UI helpers.
 //
-// Loads the DEFAULT config record (refresh and room-timer settings) from
+// Loads the DEFAULT config record (the room-timer settings) from
 // /config-autofill?Name=DEFAULT&fmt=json. The server emits pseudo-JSON with
 // unquoted keys, so it is parsed with a regex.
 //
@@ -9,8 +9,6 @@
 // dialog helpers and the right-click menu used by the scheduler page and the
 // process_*.js board-lifecycle handlers.
 // ------------------------------------------------------------------------
-
-var SCHEDULER_refreshTime = 10;
 
 // How long the board may spend convening (status "Seated") before the scout
 // is brought in. Red only -- the window is a cap, not something to aim at, so
@@ -46,6 +44,9 @@ function ebParseLooseJSON(text) {
 // defaults kept). The page waits on this before its first render, so the
 // room timers never flash the default thresholds.
 //
+// RefreshTimeSecs is not read here: the Event page listens on /events
+// instead of polling (D-15). The check-in page still uses it.
+//
 // The status colors (RegisteredColor..PostponedHiColor) are no longer read:
 // status colors come from the theme (SPEC.md D-13), and an older file that
 // still sets them loads fine with the keys ignored.
@@ -54,7 +55,6 @@ var SCHEDULER_configReady = fetch("/config-autofill?Name=DEFAULT&fmt=json")
    .then(function (text) {
       SCHEDULER_Config = ebParseLooseJSON(text);
       if (SCHEDULER_Config) {
-         SCHEDULER_refreshTime = parseInt(SCHEDULER_Config.RefreshTimeSecs, 10) || SCHEDULER_refreshTime;
          SCHEDULER_ConveneRedTime = parseInt(SCHEDULER_Config.ConveneRedMins, 10) || SCHEDULER_ConveneRedTime;
          SCHEDULER_ProjectYellowTime = parseInt(SCHEDULER_Config.ProjectYellowMins, 10) || SCHEDULER_ProjectYellowTime;
          SCHEDULER_ProjectRedTime = parseInt(SCHEDULER_Config.ProjectRedMins, 10) || SCHEDULER_ProjectRedTime;

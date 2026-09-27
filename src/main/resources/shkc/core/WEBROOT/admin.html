@@ -1,205 +1,134 @@
-<html>
+<!DOCTYPE html>
+<html lang="en">
    <head>
+      <meta charset="UTF-8"/>
+      <meta name="viewport" content="width=device-width, initial-scale=1"/>
+      <meta name="color-scheme" content="light dark"/>
       <title>Eagle Board Admin Page</title>
-
-      <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
-      <link rel="stylesheet" type="text/css" href="/tabulator/tabulator.min.css"/>
-      <link rel="stylesheet" type="text/css" href="scheduler.css"/>
+      <link rel="stylesheet" href="/tabulator/tabulator.min.css"/>
+      <link rel="stylesheet" href="eb-app.css"/>
 
       <script src="/tabulator/tabulator.min.js"></script>
       <script src="/eb-data.js"></script>
 
       <style>
-         html, body { height: 100%; }
-         body {
-            margin: 0;
-            padding: 0 8px 8px 8px;
-            box-sizing: border-box;
-            /* Sized to the viewport so a whole tab fits without the page ever
-               scrolling; the grid scrolls inside its own panel instead. */
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-         }
-         /* Compact header. A default <h1> plus a paragraph spent roughly 160px
-            of height on two lines of text, which the grid needs more. */
-         body > h1 {
-            font-size: 20px;
-            margin: 8px 0 4px 0;
-         }
-         body > p {
-            margin: 0 0 6px 0;
-            font-size: 13px;
-         }
-         body > h1, body > p, .eb-tabbar { flex: 0 0 auto; }
-         .eb-tabbar {
-            display: flex;
-            gap: 2px;
-            border-bottom: 1px solid #b6b0a4;
-            margin-top: 8px;
-         }
-         .eb-tabbar button {
-            padding: 8px 18px;
-            border: 1px solid #b6b0a4;
-            border-bottom: none;
-            border-radius: 4px 4px 0 0;
-            background: #E9E9E4;
-            cursor: pointer;
-            font-size: 14px;
-         }
-         .eb-tabbar button.active {
-            background: #ffffff;
-            font-weight: bold;
-         }
-         .eb-panel {
-            display: none;
-            border: 1px solid #b6b0a4;
-            border-top: none;
-            background: #ffffff;
-            padding: 6px;
-            box-sizing: border-box;
-         }
-         /* The visible tab takes the rest of the viewport. min-height:0 is what
-            lets the grid inside it shrink instead of overflowing the page. */
-         .eb-panel.active {
-            display: flex;
-            flex-direction: column;
+         /* The tab's table fills the window; the table scrolls, the page does not. */
+         .eb-admin {
             flex: 1 1 auto;
             min-height: 0;
-            overflow: hidden;
-         }
-         .eb-toolbar {
             display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 4px 2px 8px 2px;
-            flex-wrap: wrap;
+            flex-direction: column;
+            padding: 12px;
          }
-         .eb-toolbar button, .eb-toolbar a.eb-btn {
-            padding: 4px 12px;
-            border: 1px solid #b6b0a4;
-            border-radius: 3px;
-            background: #E9E9E4;
-            color: #232528;
-            text-decoration: none;
-            font-size: 13px;
-            cursor: pointer;
-            display: inline-block;
-         }
-         .eb-toolbar .eb-sep {
-            border-left: 1px solid #b6b0a4;
-            height: 20px;
-         }
-         .eb-toolbar label {
-            font-size: 13px;
-         }
-         .eb-toolbar input, .eb-toolbar select {
-            font-size: 13px;
-            padding: 2px 4px;
-         }
-         .eb-panel .eb-toolbar { flex: 0 0 auto; }
-         /* Was a fixed 430px, which together with the header and toolbar ran off
-            the bottom of the screen. Tabulator is built with height: "100%", so
-            it fills whatever definite height flexbox hands this container. */
-         .eb-grid {
-            flex: 1 1 auto;
-            min-height: 0;
-         }
+         .eb-admin > .eb-panel { flex: 1 1 auto; }
       </style>
-      <link rel="stylesheet" type="text/css" href="eb-ui.css"/>
    </head>
-   <body class="eb-operator">
-      <h1>Eagle Board Admin Page</h1>
-      <p>
-         <a href="/scheduler">Scheduler Page</a>
-      </p>
+   <!-- Every record, editable as a table: where a result is corrected, an
+        adult promoted to chair, or a mistaken identity put right. The Event
+        page's Results and People links open the Boards and Adults tabs. -->
+   <body class="eb-app">
+      <header class="eb-appbar">
+         <span class="eb-brand">Eagle Boards</span>
+         <nav class="eb-nav" aria-label="Pages">
+            <a href="/scheduler">Event</a>
+            <a href="/admin#boards" id="nav-results" title="Every board and its result; correct a result here">Results</a>
+            <a href="/admin#adults" id="nav-people" title="The adults signed in at this event">People</a>
+            <a href="/configure" title="Room timers and other settings">Settings</a>
+            <a href="/help" title="How to run an event">Help</a>
+         </nav>
+      </header>
 
-      <div class="eb-tabbar" id="tabbar">
-         <button data-tab="boards" class="active">Boards</button>
-         <button data-tab="scouts">Youth</button>
-         <button data-tab="scheduled">Youth Scheduled</button>
-         <button data-tab="adults">Adults</button>
-         <button data-tab="history">Adult History</button>
-         <button data-tab="rooms">Rooms</button>
+      <main class="eb-admin">
+      <section class="eb-panel" aria-label="Admin tables">
+      <div class="eb-tabs" id="tabbar" role="tablist">
+         <button data-tab="boards" class="active" role="tab">Boards</button>
+         <button data-tab="scouts" role="tab">Youth</button>
+         <button data-tab="scheduled" role="tab">Youth scheduled</button>
+         <button data-tab="adults" role="tab">Adults</button>
+         <button data-tab="history" role="tab">Adult history</button>
+         <button data-tab="rooms" role="tab">Rooms</button>
       </div>
 
-      <div class="eb-panel active" id="panel-boards">
+      <div class="eb-tabpanel active" id="panel-boards">
          <div class="eb-toolbar">
             <button id="boards-refresh">Refresh</button>
-            <a class="eb-btn" href="/youth-cells?cols=Last,First,Phone,Email,BoardType,DOB,UnitType,Unit,Leader,Status,Result,BoardChair,BoardMembers,Notes&amp;fmt=csv&amp;filename=Report.csv">CSV</a>
+            <a class="eb-button" href="/youth-cells?cols=Last,First,Phone,Email,BoardType,DOB,UnitType,Unit,Leader,Status,Result,BoardChair,BoardMembers,Notes&amp;fmt=csv&amp;filename=Report.csv">Save CSV</a>
             <span class="eb-sep"></span>
-            <button id="boards-delete">Delete</button>
+            <button id="boards-delete" class="eb-danger">Delete</button>
          </div>
          <div class="eb-grid" id="grid-boards"></div>
       </div>
 
-      <div class="eb-panel" id="panel-scouts">
+      <div class="eb-tabpanel" id="panel-scouts">
          <div class="eb-toolbar">
             <button id="scouts-refresh">Refresh</button>
-            <a class="eb-btn" href="/youth-cells?cols=RegTime,Last,First,DOB,UnitType,Unit,Leader,Email,Phone,BoardType,Room,Status,Result&amp;fmt=csv&amp;filename=Youth.csv">CSV</a>
+            <a class="eb-button" href="/youth-cells?cols=RegTime,Last,First,DOB,UnitType,Unit,Leader,Email,Phone,BoardType,Room,Status,Result&amp;fmt=csv&amp;filename=Youth.csv">Save CSV</a>
             <span class="eb-sep"></span>
-            <button id="scouts-delete">Delete</button>
+            <button id="scouts-delete" class="eb-danger">Delete</button>
          </div>
          <div class="eb-grid" id="grid-scouts"></div>
       </div>
 
-      <div class="eb-panel" id="panel-scheduled">
+      <div class="eb-tabpanel" id="panel-scheduled">
          <div class="eb-toolbar">
             <button id="scheduled-refresh">Refresh</button>
-            <a class="eb-btn" href="/youth-scheduled-cells?cols=Last,First,DOB,UnitType,Unit,Leader,Email,Phone,BoardType&amp;fmt=csv&amp;filename=Youth.csv">CSV</a>
+            <a class="eb-button" href="/youth-scheduled-cells?cols=Last,First,DOB,UnitType,Unit,Leader,Email,Phone,BoardType&amp;fmt=csv&amp;filename=Youth.csv">Save CSV</a>
             <span class="eb-sep"></span>
-            <button id="scheduled-delete">Delete</button>
+            <button id="scheduled-delete" class="eb-danger">Delete</button>
          </div>
          <div class="eb-grid" id="grid-scheduled"></div>
       </div>
 
-      <div class="eb-panel" id="panel-adults">
+      <div class="eb-tabpanel" id="panel-adults">
          <div class="eb-toolbar">
             <button id="adults-refresh">Refresh</button>
-            <a class="eb-btn" href="/adult-cells?cols=RegTime,Last,First,UnitType,Unit,Email,Phone,FinalBoard,ProjectReview,Room,WoodBadge&amp;fmt=csv&amp;filename=Adults.csv">CSV</a>
+            <a class="eb-button" href="/adult-cells?cols=RegTime,Last,First,UnitType,Unit,Email,Phone,FinalBoard,ProjectReview,Room,WoodBadge&amp;fmt=csv&amp;filename=Adults.csv">Save CSV</a>
             <span class="eb-sep"></span>
-            <button id="adults-delete">Delete</button>
+            <button id="adults-delete" class="eb-danger">Delete</button>
          </div>
          <div class="eb-grid" id="grid-adults"></div>
       </div>
 
-      <div class="eb-panel" id="panel-history">
+      <div class="eb-tabpanel" id="panel-history">
          <div class="eb-toolbar">
             <button id="history-refresh">Refresh</button>
-            <a class="eb-btn" href="/adult-history-cells?cols=RegTime,Last,First,UnitType,Unit,Email,Phone,FinalBoard,ProjectReview&amp;fmt=csv&amp;filename=AdultHistory.csv">CSV</a>
+            <a class="eb-button" href="/adult-history-cells?cols=RegTime,Last,First,UnitType,Unit,Email,Phone,FinalBoard,ProjectReview&amp;fmt=csv&amp;filename=AdultHistory.csv">Save CSV</a>
             <span class="eb-sep"></span>
-            <button id="history-delete">Delete</button>
+            <button id="history-delete" class="eb-danger">Delete</button>
          </div>
          <div class="eb-grid" id="grid-history"></div>
       </div>
 
-      <div class="eb-panel" id="panel-rooms">
+      <div class="eb-tabpanel" id="panel-rooms">
          <div class="eb-toolbar">
             <button id="rooms-refresh">Refresh</button>
-            <a class="eb-btn" href="/room-cells?cols=Room,BoardType,Scout,Leaders&amp;fmt=csv&amp;filename=Rooms.csv">CSV</a>
+            <a class="eb-button" href="/room-cells?cols=Room,BoardType,Scout,Leaders&amp;fmt=csv&amp;filename=Rooms.csv">Save CSV</a>
             <span class="eb-sep"></span>
-            <label>Room #: <input type="text" id="rooms-add-room" size="6"/></label>
-            <label>BoardType:
+            <label>Room <input type="text" id="rooms-add-room" size="6"/></label>
+            <label>Used for
                <select id="rooms-add-type">
-                  <option value="Final">Final Board</option>
-                  <option value="Project">Proposal Review</option>
+                  <option value="Final">Final boards</option>
+                  <option value="Project">Project reviews</option>
                </select>
             </label>
-            <button id="rooms-add">Add</button>
+            <button id="rooms-add">Add room</button>
             <span class="eb-sep"></span>
-            <button id="rooms-remove">Remove</button>
+            <button id="rooms-remove" class="eb-danger">Remove</button>
          </div>
          <div class="eb-grid" id="grid-rooms"></div>
       </div>
+      </section>
+      </main>
 
       <script>
          var UNIT_TYPES = ["Troop", "Post", "Crew", "Ship", "Pack"];
          // A value->label map, not an array. Tabulator's list editor uses an
          // array item as BOTH the stored value and the label, which would write
-         // "Proposal Review" into BoardType. As an object it stores the key and
+         // "Project review" into BoardType. As an object it stores the key and
          // shows the label, so the data keeps saying "Project" / "Final" -- the
-         // values that key room assignments and the Project*/Final* timers.
-         var BOARD_TYPES = { Project: "Proposal Review", Final: "Final Board" };
+         // values that key room assignments and the Project*/Final* timers. The
+         // labels are the Event page's (ebBoardTypeLabel in scheduler_config.js).
+         var BOARD_TYPES = { Project: "Project review", Final: "Final board" };
          // Statuses an administrator may set by hand. "Registered" is how a
          // result recorded against the wrong scout is undone: it puts them back
          // in the queue for their real board. This list once offered "Waiting",
@@ -228,7 +157,7 @@
          // value->label map. With a map the editor dropdown shows labels while
          // storing the key -- but the CELL would still render the raw stored
          // value, so the grid would read "Project" under a dropdown offering
-         // "Proposal Review". The lookup formatter closes that gap, and the
+         // "Project review". The lookup formatter closes that gap, and the
          // header filter is given the same map so it lists labels too.
          function selectCol(title, field, width, values) {
             var col = {
@@ -580,10 +509,13 @@
             for (var i = 0; i < buttons.length; i++) {
                buttons[i].classList.toggle("active", buttons[i] === btn);
             }
-            var panels = document.querySelectorAll(".eb-panel");
+            var panels = document.querySelectorAll(".eb-tabpanel");
             for (var p = 0; p < panels.length; p++) {
                panels[p].classList.toggle("active", panels[p].id === "panel-" + tab);
             }
+            markNav(tab);
+            // A reload, or the Back button, comes back to this tab.
+            history.replaceState(null, "", "#" + tab);
             // Tabulator needs a redraw after its container becomes visible.
             gridsByTab[tab].table.redraw(true);
             // Switching tabs should show current data, not whatever was last polled.
@@ -600,42 +532,47 @@
             });
          }
 
-         // ---- Auto-refresh ----
-         // Poll the visible tab so new check-ins appear without anyone pressing
-         // Refresh. The interval is RefreshTimeSecs from config.properties, the
-         // same setting the scheduler page already polls on, so the Settings page
-         // controls both. Only the active tab is polled, and a poll is skipped
-         // while a cell editor is open or the browser tab is in the background.
-         var autoRefreshSeconds = 30;
+         // Results for the board tables, People for the adults, in the nav.
+         function markNav(tab) {
+            var results = tab === "boards" || tab === "scouts" || tab === "scheduled";
+            var people = tab === "adults" || tab === "history";
+            [["nav-results", results], ["nav-people", people]].forEach(function (link) {
+               var a = document.getElementById(link[0]);
+               if (link[1]) {
+                  a.setAttribute("aria-current", "page");
+               } else {
+                  a.removeAttribute("aria-current");
+               }
+            });
+         }
+         markNav(location.hash.slice(1) || "boards");
 
+         // Results and People while already here only change the hash.
+         window.addEventListener("hashchange", function () {
+            var button = document.querySelector("#tabbar button[data-tab='" + location.hash.slice(1) + "']");
+            if (button && !button.classList.contains("active")) {
+               button.click();
+            }
+         });
+
+         // ---- Live updates ----
+         // The server says when anything changes (/events, see ChangeFeed.java),
+         // so new check-ins and the scheduler's steps appear without anyone
+         // pressing Refresh and without polling (SPEC.md D-15). Only the tab on
+         // show is re-read, and never while a cell is being edited: the save that
+         // ends the edit sends a change of its own, which re-reads then.
          function activeGrid() {
             var activeButton = document.querySelector("#tabbar button.active");
             var tab = activeButton && activeButton.getAttribute("data-tab");
             return tab ? gridsByTab[tab] : null;
          }
 
-         function pollActiveGrid() {
+         new EventSource("/events").onmessage = function () {
             var grid = activeGrid();
-            if (grid && !document.hidden && !grid.isEditing()) {
+            if (grid && !grid.isEditing()) {
                grid.reloadQuiet();
             }
-            setTimeout(pollActiveGrid, Math.max(1, autoRefreshSeconds) * 1000);
-         }
-
-         fetch("/config-autofill?Name=DEFAULT&fmt=json")
-            .then(function (response) { return response.text(); })
-            .then(function (text) {
-               // Same pseudo-JSON scheduler_config.js parses; take just this key.
-               var match = /RefreshTimeSecs"?\s*:\s*"?(\d+)/.exec(text);
-               var seconds = match ? parseInt(match[1], 10) : 0;
-               if (seconds > 0) {
-                  autoRefreshSeconds = seconds;
-               }
-            })
-            .catch(function () { /* unreachable config: keep the default */ })
-            .then(function () {
-               setTimeout(pollActiveGrid, Math.max(1, autoRefreshSeconds) * 1000);
-            });
+         };
 
          // Returning to a backgrounded tab should show current data immediately
          // rather than after up to a full interval.

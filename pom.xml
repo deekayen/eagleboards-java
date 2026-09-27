@@ -50,6 +50,13 @@
       <artifactId>jackson-databind</artifactId>
       <version>2.22.3</version>
     </dependency>
+    <!-- Draws the check-in address as a QR code for the tablets at the door
+         (CheckInAddress). One small class, no dependencies, MIT. -->
+    <dependency>
+      <groupId>io.nayuki</groupId>
+      <artifactId>qrcodegen</artifactId>
+      <version>1.8.0</version>
+    </dependency>
   </dependencies>
 
   <build>
