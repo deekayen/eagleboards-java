@@ -208,6 +208,17 @@ input[type=search], #d-room { width: 100%; }
 }
 .eb-appbar-end { margin-left: auto; display: flex; gap: 8px; }
 
+/* The Donate link (SPEC.md D-17): beside the pages, never in the event's
+   panes. It goes to Settings' Support section. */
+.eb-donate {
+   padding: 6px 12px;
+   border-radius: var(--eb-radius-sm);
+   color: var(--eb-text);
+   text-decoration: none;
+}
+.eb-donate:hover { background: var(--eb-hover); }
+.eb-donate::before { content: "\2665\FE0E"; margin-right: 6px; color: var(--eb-accent-fg); }
+
 /* ------------------------------------------------------------------- layout */
 .eb-event {
    flex: 1 1 auto;
