@@ -1,12 +1,12 @@
-<html>
+<!DOCTYPE html>
+<html lang="en">
    <head>
-      <title>Scheduler: Eagle Board</title>
+      <meta charset="UTF-8"/>
+      <meta name="viewport" content="width=device-width, initial-scale=1"/>
+      <meta name="color-scheme" content="light dark"/>
+      <title>Eagle Board Scheduler</title>
+      <link rel="stylesheet" href="eb-app.css"/>
 
-      <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
-      <link rel="stylesheet" type="text/css" href="/tabulator/tabulator.min.css"/>
-      <link rel="stylesheet" type="text/css" href="scheduler.css"/>
-
-      <script src="/tabulator/tabulator.min.js"></script>
       <script src="eb-data.js"></script>
       <script src="scheduler_config.js"></script>
       <script src="process_seat.js"></script>
@@ -14,1054 +14,163 @@
       <script src="process_complete.js"></script>
       <script src="process_postpone.js"></script>
       <script src="process_reset.js"></script>
-      <script src="scheduler_grid.js"></script>
-      <script src="scheduler_scout_grid.js"></script>
-      <script src="scheduler_board_grid.js"></script>
-      <script src="scheduler_adult_grid.js"></script>
-      <script src="scheduler_details_pane.js"></script>
-
-      <style type="text/css">
-         html, body { height: 100%; }
-         body {
-            margin: 0;
-            padding: 0 8px 8px 8px;
-            box-sizing: border-box;
-            /* The scheduler is sized to the viewport so an operator sees
-               scouts, adults, rooms and boards at once. Panels scroll
-               internally; the page itself never does. */
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-         }
-         #main-toolbar { flex: 0 0 auto; }
-         .eb-layout {
-            flex: 1 1 auto;
-            min-height: 0;
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-         }
-         .eb-row {
-            display: flex;
-            gap: 8px;
-            min-height: 0;
-         }
-         /* Scouts and Adult Board Members sit side by side as they did in the
-            original layout, so the top band costs one panel's height, not two.
-            The flex shares below reproduce its roughly even three-band split. */
-         .eb-row > .eb-panel { flex: 1 1 0; min-width: 0; }
-         .eb-row-top { flex: 4 1 0; }
-         .eb-panel-rooms { flex: 3 1 0; }
-         .eb-panel-boards { flex: 4 1 0; }
-         .eb-toolbar {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            padding: 6px 2px;
-            flex-wrap: wrap;
-         }
-         .eb-toolbar button, .eb-toolbar a.eb-btn {
-            padding: 4px 12px;
-            border: 1px solid #b6b0a4;
-            border-radius: 3px;
-            background: #E9E9E4;
-            color: #232528;
-            text-decoration: none;
-            font-size: 13px;
-            cursor: pointer;
-            display: inline-block;
-         }
-         .eb-toolbar button:disabled {
-            opacity: 0.45;
-            cursor: default;
-         }
-         .eb-toolbar .eb-sep {
-            border-left: 1px solid var(--eb-line);
-            height: 20px;
-         }
-         .eb-toolbar .eb-title {
-            font-size: large;
-            font-weight: bold;
-            margin-left: 12px;
-         }
-         .eb-toolbar input {
-            font-size: 13px;
-            padding: 2px 4px;
-            color: var(--eb-dark-gray);
-            background: var(--eb-page-bg);
-            border: 1px solid var(--eb-line);
-         }
-         .eb-panel {
-            border: 1px solid var(--eb-line);
-            background: var(--eb-page-bg);
-            display: flex;
-            flex-direction: column;
-            min-height: 0;
-            overflow: hidden;
-         }
-         .eb-panel-title, .eb-panel .eb-toolbar { flex: 0 0 auto; }
-         .eb-panel-title {
-            background: #E9E9E4;
-            border-bottom: 1px solid #b6b0a4;
-            padding: 4px 8px;
-            font-size: 13px;
-            font-weight: bold;
-            color: #232528;
-            text-align: left;
-         }
-         .eb-panel .eb-toolbar {
-            padding: 4px 6px;
-            border-bottom: 1px solid #e6e2da;
-         }
-         /* Grids fill whatever their panel is given. The old fixed 30vh/26vh/30vh
-            heights added up to 86vh of grid alone, which is what forced the page
-            to scroll once the toolbars and titles were added on top. */
-         .eb-grid-scouts, .eb-grid-adults, .eb-grid-boards {
-            flex: 1 1 auto;
-            min-height: 80px;
-         }
-
-         /* Details pane (D-10/D-11): the selected youth's board, beside the
-            queue -- room, members with the chair marked, live rule
-            feedback, then the free-adults grid filling what's left. See
-            SchedulerDetailsPane in scheduler_details_pane.js. */
-         #details-container {
-            display: flex;
-            flex-direction: column;
-            flex: 1 1 auto;
-            min-height: 0;
-            overflow: hidden;
-         }
-         .eb-details-empty {
-            padding: 12px;
-            color: var(--eb-warm-gray);
-            font-size: 13px;
-         }
-         .eb-details-content {
-            display: none;   /* SchedulerDetailsPane.render() shows it once a youth is selected */
-            flex: 1 1 auto;
-            overflow-y: auto;
-            min-height: 160px;
-            padding: 2px 8px 4px;
-         }
-         .eb-details-room {
-            font-size: 13px;
-            font-weight: bold;
-            padding: 6px 0 2px;
-         }
-         .eb-details-section-title {
-            font-size: 12px;
-            font-weight: bold;
-            text-transform: uppercase;
-            letter-spacing: .02em;
-            color: var(--eb-warm-gray);
-            padding: 6px 8px 2px;
-            flex: 0 0 auto;
-         }
-         .eb-details-members-list {
-            list-style: none;
-            margin: 0;
-            padding: 0;
-         }
-         .eb-details-member {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            padding: 3px 4px;
-            font-size: 13px;
-         }
-         .eb-details-member .eb-status-icon { width: 12px; height: 12px; }
-         .eb-details-chair { font-weight: bold; }
-         .eb-details-none { color: var(--eb-warm-gray); font-style: italic; }
-         .eb-details-remove {
-            margin-left: auto;
-            border: none;
-            background: none;
-            color: inherit;
-            font-size: 15px;
-            line-height: 1;
-            cursor: pointer;
-            padding: 0 4px;
-         }
-         .eb-details-problems {
-            font-size: 12px;
-            padding: 4px 8px;
-            color: var(--eb-red-text);
-         }
-         .eb-details-problems:empty { display: none; }
-
-         /* room cards */
-         #roomview {
-            display: flex;
-            flex-wrap: nowrap;
-            overflow-x: auto;
-            overflow-y: hidden;
-            gap: 6px;
-            padding: 6px;
-            flex: 1 1 auto;
-            min-height: 96px;
-            background: var(--eb-page-bg);
-         }
-         .eb-room-card {
-            flex: 0 0 200px;
-            min-height: 84px;
-            border: 1px solid var(--eb-line);
-            border-radius: 3px;
-            padding: 6px 8px;
-            cursor: pointer;
-            font-size: 13px;
-            text-align: left;
-            overflow: hidden;
-         }
-
-         /* persistent messages (D-14): stay until fixed or dismissed, next
-            to the toolbar/panel they're about -- see #main-messages,
-            #scout-messages, #adult-messages and ebShowMessage in
-            scheduler_config.js. */
-         .eb-messages:empty { display: none; }
-         .eb-message {
-            display: flex;
-            align-items: flex-start;
-            justify-content: space-between;
-            gap: 8px;
-            padding: 6px 10px;
-            margin: 2px 0 6px;
-            border-radius: 3px;
-            font-size: 13px;
-            text-align: left;
-         }
-         .eb-message-body { flex: 1 1 auto; }
-         .eb-message-actions {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            flex: 0 0 auto;
-         }
-         .eb-message-dismiss {
-            border: none;
-            background: none;
-            color: inherit;
-            font-size: 16px;
-            line-height: 1;
-            cursor: pointer;
-            padding: 0 2px;
-         }
-         .eb-message-undo {
-            border: 1px solid currentColor;
-            background: none;
-            color: inherit;
-            padding: 2px 10px;
-            border-radius: 3px;
-            font-size: 12px;
-            cursor: pointer;
-         }
-
-         /* P-1: right-click menu built on the Popover API. See
-            ebContextMenu in scheduler_config.js. */
-         .eb-context-menu {
-            margin: 0;
-            padding: 4px;
-            border: 1px solid var(--eb-line);
-            border-radius: 4px;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.35);
-            background: var(--eb-page-bg);
-            display: flex;
-            flex-direction: column;
-            min-width: 160px;
-         }
-         .eb-context-menu button {
-            display: block;
-            width: 100%;
-            padding: 6px 10px;
-            border: none;
-            background: none;
-            color: var(--eb-dark-gray);
-            text-align: left;
-            font-size: 13px;
-            cursor: pointer;
-         }
-         .eb-context-menu button:hover,
-         .eb-context-menu button:focus-visible {
-            background: var(--eb-surface);
-         }
-
-         /* native <dialog> (P-4): see ebConfirm/ebModalForm in
-            scheduler_config.js. The browser supplies the backdrop and
-            centering; ::backdrop is styled in eb-ui.css. */
-         dialog.eb-dialog {
-            border: 1px solid var(--eb-line);
-            border-radius: 4px;
-            min-width: 300px;
-            max-width: 480px;
-            padding: 0;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.35);
-            text-align: left;
-            background: var(--eb-page-bg);
-            color: var(--eb-dark-gray);
-         }
-         .eb-dialog-title {
-            padding: 6px 10px;
-            font-weight: bold;
-            font-size: 14px;
-         }
-         .eb-dialog-body {
-            padding: 12px;
-            font-size: 13px;
-         }
-         .eb-dialog-body label { font-size: 13px; }
-         .eb-dialog-buttons {
-            padding: 8px 12px 12px 12px;
-            display: flex;
-            gap: 12px;
-            justify-content: center;
-         }
-         .eb-dialog-buttons button {
-            padding: 4px 18px;
-            border-radius: 3px;
-            cursor: pointer;
-            font-size: 13px;
-         }
-      </style>
-      <link rel="stylesheet" type="text/css" href="eb-ui.css"/>
    </head>
-   <body class="eb-operator">
-      <div class="eb-toolbar" id="main-toolbar">
-         <button data-action="Refresh" title="Refresh All Data">Refresh</button>
-         <span class="eb-sep"></span>
-         <button data-action="Settings" title="Configure Settings">Settings</button>
-         <span class="eb-sep"></span>
-         <a class="eb-btn" title="Generate CSV Report"
-            href="/youth-cells?cols=RegNum,Last,First,Phone,Email,BoardType,DOB,UnitType,Unit,Leader,Status,Result,BoardChair,BoardMembers,Notes&amp;fmt=csv&amp;filename=Report.csv">CSV</a>
-         <span class="eb-sep"></span>
-         <button data-action="Admin" title="Table Admin Page">Admin</button>
-         <button data-action="Login" title="Youth/Adult Login Page">Login</button>
-         <button data-action="Help" title="Administrator Help Page">Help</button>
-         <span class="eb-sep"></span>
-         <button data-action="AddRoom" title="Add New Room">+ Room</button>
-         <button data-action="RemoveRoom" title="Remove Room">- Room</button>
-         <button data-action="ChangeRoom" title="Change/Swap Rooms">Change Room</button>
-         <span class="eb-title">Eagle Board Scheduler</span>
-      </div>
-      <div class="eb-messages" id="main-messages"></div>
+   <!-- The live-operations view (SPEC.md O-3): the youth queue, the room
+        cards and the details pane always visible together, so a room's
+        timer is never out of sight while working the queue. Results,
+        People and Settings are separate pages. The layout follows the
+        Windows version's Event page; see scheduler_event.js for behavior. -->
+   <body class="eb-app">
+      <header class="eb-appbar">
+         <span class="eb-brand">Eagle Boards</span>
+         <nav class="eb-nav" aria-label="Pages">
+            <a href="/scheduler" aria-current="page">Event</a>
+            <a href="/admin#boards" title="Every board and its result; correct a result here">Results</a>
+            <a href="/admin#adults" title="The adults signed in at this event">People</a>
+            <a href="/configure" title="Room timers and other settings">Settings</a>
+            <a href="/help" title="How to run an event">Help</a>
+         </nav>
+         <span class="eb-appbar-end">
+            <a class="eb-button" href="/" target="_blank" rel="noopener"
+               title="Open the check-in page the tablets at the door show">Check-in page</a>
+            <a class="eb-button" download="Report.csv"
+               title="Save every youth's board and result as a CSV file for Excel"
+               href="/youth-cells?cols=RegNum,Last,First,Phone,Email,BoardType,DOB,UnitType,Unit,Leader,Status,Result,BoardChair,BoardMembers,Notes&amp;fmt=csv&amp;filename=Report.csv">Save report</a>
+         </span>
+      </header>
+      <div class="eb-messages eb-messages-page" id="main-messages"></div>
 
-      <div class="eb-layout">
-      <div class="eb-row eb-row-top">
-      <div class="eb-panel">
-         <div class="eb-panel-title">Youth</div>
-         <div class="eb-toolbar" id="scout-toolbar">
-            <button data-action="Filter" title="Show Completed Records">View</button>
-         </div>
-         <div class="eb-messages" id="scout-messages"></div>
-         <div class="eb-grid-scouts" id="grid-scouts"></div>
-      </div>
-
-      <div class="eb-panel" id="details-panel">
-         <div class="eb-panel-title">Board Details</div>
-         <!-- D-10/D-11: the selected youth's board is built here, beside
-              the queue -- room, members with the chair marked, live rule
-              feedback, and one status-driven primary action. The Free
-              Adults grid below (schedulerLeaderGrid) is the "free adults
-              to add from" D-10 asks for: clicking a row there adds that
-              adult to the board being built. -->
-         <div class="eb-toolbar" id="details-toolbar">
-            <button data-action="Primary" title="Seat, start or complete this youth's board">Seat Board</button>
-            <button data-action="Fill" title="Propose a full board from scratch">Fill the Rest</button>
-            <button data-action="Clear" title="Unpick every member">Clear</button>
-            <span class="eb-sep"></span>
-            <button data-action="Locate" title="Locate Leaders/Parents">Locate</button>
-            <button data-action="Reset" title="Reset Board">Reset</button>
-            <button data-action="Postpone" title="Postpone Board">Postpone</button>
-         </div>
-         <div class="eb-messages" id="details-messages"></div>
-         <div id="details-container" class="eb-details-container">
-            <div class="eb-details-empty">Select a youth to build their board.</div>
-            <div class="eb-details-content">
-               <div class="eb-details-room"></div>
-               <div class="eb-details-section-title">Members</div>
-               <ul class="eb-details-members-list"></ul>
-               <div class="eb-details-problems"></div>
+      <main class="eb-event">
+         <!-- ---------------------------------------------------- Youth -->
+         <section class="eb-panel" id="queue-panel" aria-labelledby="queue-title">
+            <div class="eb-panel-head">
+               <h2 id="queue-title">Youth</h2>
+               <label class="eb-visually-hidden" for="queue-show">Show</label>
+               <select id="queue-show" title="Narrow the list to one group">
+                  <option value="active" selected>Active</option>
+                  <option value="waiting">Waiting</option>
+                  <option value="onboard">On a board</option>
+                  <option value="finished">Finished</option>
+                  <option value="all">Everyone</option>
+               </select>
             </div>
-            <div class="eb-details-section-title">Free Adults</div>
-            <div class="eb-toolbar" id="adult-toolbar">
-               <button data-action="Filter" title="Show All Leaders">View</button>
+            <div class="eb-panel-tools">
+               <input type="search" id="queue-find" placeholder="Find a youth"
+                      aria-label="Find a youth" title="Find a youth by name, unit or room"/>
             </div>
-            <div class="eb-messages" id="adult-messages"></div>
-            <div class="eb-grid-adults" id="grid-adults"></div>
-         </div>
-      </div>
-      </div>
-
-      <div class="eb-panel eb-panel-rooms">
-         <div class="eb-panel-title">Available Rooms</div>
-         <div class="eb-toolbar" id="room-toolbar">
-            <label>Filter <input type="text" id="room-filter" size="18"/></label>
-            <button id="room-filter-clear">Clear</button>
-         </div>
-         <div class="eb-messages" id="room-messages"></div>
-         <div id="roomview"></div>
-      </div>
-
-      <div class="eb-panel eb-panel-boards">
-         <div class="eb-panel-title">Active/Completed Boards</div>
-         <div class="eb-grid-boards" id="grid-boards"></div>
-      </div>
-      </div>
-
-      <script>
-
-         // ------------------------------------------------------------
-         // Room card view (replaces the old card view in cell "c")
-         // ------------------------------------------------------------
-         function RoomView(container_id) {
-            this.el = document.getElementById(container_id);
-            this.items = [];
-            this.byId = {};
-            this.selectedId = null;
-            this.filterValue = "";
-            this.onAfterSelect = null;    // fired for USER clicks only
-         }
-
-         RoomView.prototype.load = function (callback) {
-            var t = this;
-            ebFetchRows("/room-cells", ["Room", "BoardType", "Scout", "Leaders"])
-               .then(function (rows) {
-                  t.items = rows;
-                  t.byId = {};
-                  for (var i = 0; i < rows.length; i++) {
-                     t.byId[rows[i].id] = rows[i];
-                  }
-                  if (t.selectedId && !t.byId[t.selectedId]) {
-                     t.selectedId = null;
-                  }
-                  t.render();
-                  if (callback) {
-                     callback();
-                  }
-               })
-               .catch(function (e) {
-                  console.log("room load failed: " + e);
-               });
-         };
-
-         RoomView.prototype.render = function () {
-            var t = this;
-            this.el.innerHTML = "";
-            for (var i = 0; i < this.items.length; i++) {
-               var obj = this.items[i];
-               if (this.filterValue) {
-                  var v = this.filterValue;
-                  if (!((obj.Scout.indexOf(v) >= 0)
-                        || (obj.Leaders.indexOf(v) >= 0)
-                        || (obj.Room.indexOf(v) >= 0))) {
-                     continue;
-                  }
-               }
-               var card = document.createElement("div");
-               card.className = "eb-room-card" + (obj.id === this.selectedId ? " selected" : "");
-               card.setAttribute("data-id", obj.id);
-               card.innerHTML = "<span style='font-size: medium;'>RM: <b>" + obj.Room + "</b> ("
-                       + obj.BoardType + ") </span><span style='font-size: medium; color:" + (obj.color || "#000000") + "'>"
-                       + (obj.RoomTime || "") + (obj.Icon || "") + "</span><br/>S: <span style='font-size: medium'><b>"
-                       + obj.Scout + "</b></span><br/>L: <b>"
-                       + obj.Leaders + "</b>";
-               card.addEventListener("click", function () {
-                  var id = this.getAttribute("data-id");
-                  t.select(id, false);
-               });
-               // P-1: right-click offers Remove/Change Room for this card,
-               // reusing the same main-toolbar buttons Add/Remove/Change
-               // Room already are.
-               card.addEventListener("contextmenu", function (e) {
-                  e.preventDefault();
-                  var id = this.getAttribute("data-id");
-                  t.select(id, false);
-                  ebContextMenu([
-                     document.querySelector('#main-toolbar [data-action="RemoveRoom"]'),
-                     document.querySelector('#main-toolbar [data-action="ChangeRoom"]')
-                  ], e.clientX, e.clientY);
-               });
-               this.el.appendChild(card);
-            }
-         };
-
-         RoomView.prototype.get = function (id) {
-            return this.byId[id];
-         };
-
-         RoomView.prototype.getSelected = function () {
-            return this.selectedId;
-         };
-
-         // silent=true for programmatic selection (no cascade)
-         RoomView.prototype.select = function (id, silent) {
-            this.selectedId = id;
-            this.render();
-            if (!silent && this.onAfterSelect) {
-               this.onAfterSelect(id);
-            }
-         };
-
-         RoomView.prototype.unselectAll = function () {
-            this.selectedId = null;
-            this.render();
-         };
-
-         RoomView.prototype.remove = function (id) {
-            if (this.byId[id]) {
-               delete this.byId[id];
-               for (var i = 0; i < this.items.length; i++) {
-                  if (this.items[i].id === id) {
-                     this.items.splice(i, 1);
-                     break;
-                  }
-               }
-               if (this.selectedId === id) {
-                  this.selectedId = null;
-               }
-               this.render();
-            }
-         };
-
-         RoomView.prototype.filter = function (value) {
-            this.filterValue = value || "";
-            this.render();
-         };
-
-         // ------------------------------------------------------------
-         // Panels
-         // ------------------------------------------------------------
-         var detailsPane = new SchedulerDetailsPane("details-container", "details-toolbar", "details-messages");
-
-         var schedulerScoutGrid = new SchedulerScoutGrid("grid-scouts", "scout-toolbar", "Youth");
-         schedulerScoutGrid.load();
-
-         var schedulerLeaderGrid = new SchedulerAdultGrid("grid-adults", "adult-toolbar", "Adult Board Members");
-         schedulerLeaderGrid.load();
-
-         var schedulerBoardGrid = new SchedulerBoardGrid("grid-boards", "Active/Completed Boards");
-         schedulerBoardGrid.load();
-
-         var roomView = new RoomView("roomview");
-
-         roomView.onAfterSelect = function (id) {
-            var rm_data = roomView.get(id);
-            if (rm_data && rm_data.Scout.length > 0) {
-               SCHEDULER_selectAllForRoom(rm_data.Room);
-            }
-            schedulerBoardGrid.highlight();
-            schedulerScoutGrid.highlight();
-            detailsPane.render();
-         };
-
-         document.getElementById("room-filter").addEventListener("keyup", function (ev) {
-            if (ev.key === "Enter") {
-               roomView.filter(this.value);
-            }
-         });
-         document.getElementById("room-filter-clear").addEventListener("click", function () {
-            document.getElementById("room-filter").value = "";
-            roomView.filter("");
-         });
-
-         // ------------------------------------------------------------
-         // Refresh plumbing
-         // ------------------------------------------------------------
-         function refresh_all() {
-            schedulerScoutGrid.refresh();
-            schedulerLeaderGrid.refresh();
-            schedulerBoardGrid.refresh();
-            room_refresh();
-         }
-
-         function refresh_scouts() {
-            schedulerScoutGrid.refresh();
-            schedulerBoardGrid.refresh();
-         }
-
-         function room_refresh() {
-            roomView.load(function () {
-               schedulerScoutGrid.setRoomTimerUpdateFunction(SCHEDULER_RoomTimerUpdate);
-               setTimeout(function () {
-                  schedulerScoutGrid.checkTimers();
-               }, 1000);
-            });
-         }
-
-         room_refresh();
-
-         // room seat-timer badges: [12m] orange at alert time, red at
-         // alert+reminder, with a warning icon.
-         function SCHEDULER_RoomTimerUpdate(s_room, mins, status) {
-            var id = "ROOM:" + s_room;
-            var rm_data = roomView.get(id);
-            if (rm_data) {
-               rm_data.RoomTime = "[" + mins + "m]";
-               if (status === "alert") {
-                  rm_data.color = "orange";
-                  rm_data.Icon = "&nbsp;<img style='vertical-align: middle' src='/images/16x16/dialog-warning-4.png'/>";
-               } else if (status === "reminder") {
-                  rm_data.color = "red";
-                  rm_data.Icon = "&nbsp;<img style='vertical-align: middle' src='/images/16x16/dialog-warning-4.png'/>";
-               } else {
-                  rm_data.color = "black";
-                  rm_data.Icon = "";
-               }
-               roomView.render();
-            }
-         }
-
-         function refresh_polling() {
-            refresh_scouts();
-            // Adults check in too, so the leader grid has to poll alongside the
-            // scouts. Rooms are deliberately left out: room_refresh() resets the
-            // seat timers, and seating already calls refresh_all() itself.
-            schedulerLeaderGrid.refresh();
-            console.log("refresh-timeout: " + SCHEDULER_refreshTime + "s");
-            setTimeout(refresh_polling, SCHEDULER_refreshTime * 1000);
-         }
-
-         SCHEDULER_configReady.then(function () {
-            setTimeout(refresh_polling, SCHEDULER_refreshTime * 1000);
-         });
-
-         // Panel heights come from flexbox now, so resizing the window changes
-         // every grid's height. Tabulator measures once at build time and has to
-         // be told to re-measure; debounced so a drag-resize doesn't thrash.
-         var gridRedrawTimer = null;
-         window.addEventListener("resize", function () {
-            clearTimeout(gridRedrawTimer);
-            gridRedrawTimer = setTimeout(function () {
-               [schedulerScoutGrid, schedulerLeaderGrid, schedulerBoardGrid].forEach(function (grid) {
-                  if (grid && grid.table) {
-                     try { grid.table.redraw(true); } catch (e) { /* not built yet */ }
-                  }
-               });
-            }, 150);
-         });
-
-         // ------------------------------------------------------------
-         // Selection cascade (unchanged logic from the original page)
-         // ------------------------------------------------------------
-         function SCHEDULER_selectScout(s_id) {
-            SCHEDULER_autoSelect(s_id);
-         }
-
-         function SCHEDULER_autoSelect(s_id) {
-            var s_room = schedulerScoutGrid.getColumnValue(s_id, "Room");
-            var s_status = schedulerScoutGrid.getColumnValue(s_id, "Status");
-
-            // Row highlight is not a selection of people; always safe to reset.
-            schedulerLeaderGrid.clearSelection();
-            schedulerBoardGrid.clearSelection();
-            schedulerScoutGrid.highlight();
-
-            if (s_status == "Seated" || s_status == "InProgress") {
-               SCHEDULER_selectAllForRoom(s_room);
-            } else if (s_status != "Registered" && s_status != "Verified") {
-               if ((s_room.length > 0) && (s_room !== "N/A")) {
-                  SCHEDULER_selectAllForRoom(s_room);
-               } else {
-                  schedulerBoardGrid.selectById(s_id);
-               }
-               schedulerBoardGrid.highlight();
-            }
-
-            // Picks, room targeting for a new board, and rule feedback are
-            // the details pane's job now (D-10); it no-ops when s_id is the
-            // same youth already showing, so re-selecting never throws away
-            // manual picks (this replaces the old "anything checked at all"
-            // guard, which could not tell a different scout's stale picks
-            // from this one's).
-            detailsPane.onScoutSelected(s_id);
-         }
-
-         function SCHEDULER_selectAllForRoom(room_num) {
-            if (room_num == "" || room_num == "N/A") {
-               return;
-            }
-
-            schedulerLeaderGrid.pickForRoom(room_num);
-            schedulerBoardGrid.selectForRoom(room_num);
-            schedulerScoutGrid.selectForRoom(room_num);
-
-            var rm_id = roomView.getSelected();
-            if (rm_id && roomView.get(rm_id).Room == room_num) {
-               // already selected
-            } else {
-               for (var r = 0; r < roomView.items.length; r++) {
-                  if (roomView.items[r].Room == room_num) {
-                     roomView.select(roomView.items[r].id, true);
-                     break;
-                  }
-               }
-            }
-         }
-
-         // The shapes proposeBoard takes, read from the grids. Every row is
-         // included, filtered out of view or not: the proposal needs the whole
-         // picture, and proposeBoard itself skips adults who are not free.
-         function SCHEDULER_scoutForProposal(s_id) {
-            return {
-               id: s_id,
-               uname: schedulerScoutGrid.getColumnValue(s_id, "UnitName"),
-               btype: schedulerScoutGrid.getColumnValue(s_id, "BoardType")
-            };
-         }
-
-         function SCHEDULER_adultsForProposal() {
-            var adults = [];
-            schedulerLeaderGrid.forEachRow(function (l_id) {
-               adults.push({
-                  id: l_id,
-                  uname: schedulerLeaderGrid.getColumnValue(l_id, "UnitName"),
-                  final: schedulerLeaderGrid.getColumnValue(l_id, "FinalBoard"),
-                  project: schedulerLeaderGrid.getColumnValue(l_id, "ProjectReview"),
-                  room: schedulerLeaderGrid.getColumnValue(l_id, "Room"),
-                  regTime: schedulerLeaderGrid.getColumnValue(l_id, "RegTime"),
-                  woodBadge: schedulerLeaderGrid.getColumnValue(l_id, "WoodBadge"),
-                  supporting: schedulerLeaderGrid.getColumnValue(l_id, "Supporting")
-               });
-            });
-
-            // How long each has waited to volunteer: since sign-in, or since
-            // the last board they sat on was completed.
-            var boards = [];
-            schedulerScoutGrid.forEachRow(function (s_id) {
-               boards.push({
-                  status: schedulerScoutGrid.getColumnValue(s_id, "Status"),
-                  memberIds: schedulerScoutGrid.getColumnValue(s_id, "BoardMembersIDs"),
-                  lastUpdate: schedulerScoutGrid.getColumnValue(s_id, "LastUpdateTime")
-               });
-            });
-            var since = freeSinceTimes(adults, boards);
-            adults.forEach(function (a) {
-               a.freeSince = since[a.id];
-            });
-            return adults;
-         }
-
-         // The other scouts still waiting, in queue order: pre-registered
-         // before walk-ins, then by sign-in number (sort_regnum).
-         function SCHEDULER_waitingForProposal(s_id) {
-            var waiting = [];
-            schedulerScoutGrid.forEachRow(function (w_id) {
-               var status = schedulerScoutGrid.getColumnValue(w_id, "Status");
-               if (w_id !== s_id && (status === "Registered" || status === "Verified")) {
-                  var scout = SCHEDULER_scoutForProposal(w_id);
-                  scout.regnum = schedulerScoutGrid.getColumnValue(w_id, "RegNum");
-                  waiting.push(scout);
-               }
-            });
-            waiting.sort(function (a, b) { return sort_regnum(a.regnum, b.regnum); });
-            return waiting;
-         }
-
-         // The adults who said at sign-in that they came to support this
-         // scout, with where to find them: "Main" if not on a board.
-         function SCHEDULER_supportingAdults(s_id) {
-            var found = [];
-            schedulerLeaderGrid.forEachRow(function (l_id) {
-               var ids = (schedulerLeaderGrid.getColumnValue(l_id, "Supporting") || "").split("|");
-               if (ids.indexOf(s_id) >= 0) {
-                  var l_room = schedulerLeaderGrid.getColumnValue(l_id, "Room");
-                  found.push({
-                     id: l_id,
-                     name: schedulerLeaderGrid.getColumnValue(l_id, "First") + " "
-                        + schedulerLeaderGrid.getColumnValue(l_id, "Last"),
-                     room: (l_room === "" || l_room === "-") ? "Main" : l_room
-                  });
-               }
-            });
-            return found;
-         }
-
-         // Locate a scout's leaders (by the Leader column) and parents
-         // (same unit + same last name) among the registered adults.
-         function SCHEDULER_locateAdults(s_id, parents, undoLabel) {
-            var s_last = schedulerScoutGrid.getColumnValue(s_id, "Last");
-            var s_first = schedulerScoutGrid.getColumnValue(s_id, "First");
-            var s_uname = schedulerScoutGrid.getColumnValue(s_id, "UnitName");
-            var s_room = schedulerScoutGrid.getColumnValue(s_id, "Room");
-            var s_leader = schedulerScoutGrid.getColumnValue(s_id, "Leader");
-
-            var s_last_lower = s_last.toLowerCase();
-            var s_leader_lower = s_leader.toLowerCase();
-
-            var leader_match = [];
-            var parent_match = [];
-
-            schedulerLeaderGrid.forEachRow(function (l_id) {
-               var l_last = schedulerLeaderGrid.getColumnValue(l_id, "Last");
-               var l_first = schedulerLeaderGrid.getColumnValue(l_id, "First");
-               var l_uname = schedulerLeaderGrid.getColumnValue(l_id, "UnitName");
-
-               var l_last_lower = l_last.toLowerCase();
-               var l_first_lower = l_first.toLowerCase();
-
-               var found = false;
-               if (s_leader_lower.indexOf(l_last_lower) >= 0) {
-                  // Name Matches
-                  if (s_uname === l_uname) {
-                     leader_match.push(l_id);
-                     found = true;
-                  } else if (s_leader_lower.indexOf(l_first_lower) >= 0) {
-                     leader_match.push(l_id);
-                  }
-               }
-
-               if ((found === false) && (l_uname === s_uname)) {
-                  if (s_last_lower === l_last_lower) {
-                     parent_match.push(l_id);
-                  }
-               }
-            });
-
-            if ((leader_match.length > 0) && (parents === false)) {
-               parent_match = [];
-            }
-
-            // Those who linked themselves to this scout at sign-in come first
-            // and are not guessed at again below.
-            var supporting = SCHEDULER_supportingAdults(s_id);
-            var supporting_ids = supporting.map(function (a) { return a.id; });
-            var not_linked = function (l_id) { return supporting_ids.indexOf(l_id) < 0; };
-            leader_match = leader_match.filter(not_linked);
-            parent_match = parent_match.filter(not_linked);
-
-            var adult_list = leader_match.concat(parent_match);
-
-            if (adult_list.length == 0 && supporting.length == 0) {
-               // Locate never mutates anything, so this failure branch never
-               // offers Undo -- unlike the "Located" success message below,
-               // which passes through undoLabel from a caller that reached
-               // Locate as a side effect of a reversible action (e.g. Complete).
-               ebAlert("Cannot Locate",
-                  "Youth : <b>" + s_first.charAt(0) + " " + s_last + "</b><br/>Leader(s): '" + s_leader + "' <b>not registered.</b>",
-                  "scout");
-               return;
-            }
-
-            var text = "Youth : <b>" + s_first + " " + s_last + " [" + s_room + "]</b>";
-            supporting.forEach(function (a) {
-               text = text + "<br/>Supporting: <b>" + ebEscapeHtml(a.name) + " [" + ebEscapeHtml(a.room) + "] </b>";
-            });
-            for (var i = 0; i < adult_list.length; i++) {
-               var l_id = adult_list[i];
-               var l_last = schedulerLeaderGrid.getColumnValue(l_id, "Last");
-               var l_first = schedulerLeaderGrid.getColumnValue(l_id, "First");
-               var l_room = schedulerLeaderGrid.getColumnValue(l_id, "Room");
-
-               if (l_room == "") {
-                  l_room = "Main";
-               }
-               if (leader_match.indexOf(l_id) >= 0) {
-                  text = text + "<br/>Leader: <b>" + l_first + " " + l_last + " [" + l_room + "] </b>";
-               } else {
-                  text = text + "<br/>Parent: <b>" + l_first + " " + l_last + " [" + l_room + "] </b>";
-               }
-            }
-
-            ebMessage("Located", text, "scout", undoLabel);
-         }
-
-         // ------------------------------------------------------------
-         // Main toolbar
-         // ------------------------------------------------------------
-         document.getElementById("main-toolbar").addEventListener("click", function (ev) {
-            var btn = ev.target.closest("button[data-action]");
-            if (!btn) {
-               return;
-            }
-            var id = btn.getAttribute("data-action");
-
-            if (id === "RemoveRoom") {
-               PerformRemoveRoomAction();
-            } else if (id === "AddRoom") {
-               PerformAddRoomAction();
-            } else if (id === "ChangeRoom") {
-               PerformChangeRoomAction();
-            } else if (id === "Admin") {
-               window.location.href = "/admin";
-            } else if (id === "Help") {
-               window.location.href = "/help";
-            } else if (id === "Login") {
-               window.location.href = "/";
-            } else if (id === "Settings") {
-               window.location.href = "/configure";
-            } else if (id === "Refresh") {
-               refresh_all();
-            }
-         });
-
-         // ------------------------------------------------------------
-         // Room management (add / remove / change-swap)
-         // ------------------------------------------------------------
-         function PerformAddRoomAction() {
-            ebModalForm("Add Room",
-               "<label>Room #: <input type='text' name='Room' size='8'/></label><br/><br/>"
-               + "<label>BoardType: <select name='BoardType'>"
-               + "<option value='Final'>Final</option>"
-               + "<option value='Project'>Project</option>"
-               + "</select></label>",
-               [{ name: "Add", label: "Add" }, { name: "Cancel", label: "Cancel" }],
-               function (name, body) {
-                  if (name !== "Add") {
-                     return;
-                  }
-                  var room = body.querySelector("input[name='Room']").value.trim();
-                  var type = body.querySelector("select[name='BoardType']").value;
-                  if (room == "") {
-                     ebAlert("Add Room Error", "Room # is required.", "room");
-                     return false; // keep dialog open
-                  }
-                  var id = "ROOM:" + room;
-                  if (roomView.get(id)) {
-                     ebAlert("Add Room Error", "Room '" + room + "' Already Exists.", "room");
-                     return false;
-                  }
-                  ProcessAddRoom(room, type);
-               });
-         }
-
-         function PerformRemoveRoomAction() {
-            var rid = roomView.getSelected();
-            if (rid) {
-               var rm_data = roomView.get(rid);
-               var room = rm_data.Room;
-               var scout = rm_data.Scout;
-
-               if (scout && scout !== "") {
-                  ebAlert("Remove Room Error", "Room '" + room + "' is currently in use, cannot remove.", "room");
-                  return;
-               } else {
-                  ebConfirm("Confirm Remove Room", "Remove Room '" + room + "' ?", function (result) {
-                     if (result) {
-                        ProcessRemoveRoom(room);
-                     }
-                  }, "Remove");
-               }
-            } else {
-               ebAlert("Remove Room Error", "No Room Selected", "room");
-               return;
-            }
-         }
-
-         function PerformChangeRoomAction() {
-            var selected_id = roomView.getSelected();
-            if (!selected_id) {
-               ebAlert("Change Room Error", "No Room Selected", "room");
-               return;
-            }
-            var selected = roomView.get(selected_id);
-            var scout = selected.Scout ? " [" + selected.Scout + "]" : "";
-
-            var opts = "";
-            for (var r = 0; r < roomView.items.length; r++) {
-               var data = roomView.items[r];
-               if (data.id !== selected_id) {
-                  var s2 = data.Scout ? " [" + data.Scout + "]" : "";
-                  opts += "<option value=\"" + data.id + "\">" + data.Room + s2 + "</option>";
-               }
-            }
-
-            ebModalForm("Change/Swap Rooms",
-               "<label>1st Room: <input type='text' name='Rm1' readonly value=\"" + selected.Room + scout + "\"/></label><br/><br/>"
-               + "<label>2nd Room: <select name='RmID2'><option value=''></option>" + opts + "</select></label>",
-               [{ name: "Change", label: "Change/Swap" }, { name: "Cancel", label: "Cancel" }],
-               function (name, body) {
-                  if (name !== "Change") {
-                     return;
-                  }
-                  var rmid1 = selected_id;
-                  var rmid2 = body.querySelector("select[name='RmID2']").value;
-                  if (rmid2 == "") {
-                     ebAlert("Change Room Error", "Please select the 2nd room.", "room");
-                     return false;
-                  }
-                  var rm1 = roomView.get(rmid1);
-                  var rm2 = roomView.get(rmid2);
-
-                  if (!rm1) {
-                     ebAlert("Change Room Error", "No Such Room: " + rmid1, "room");
-                     return;
-                  }
-                  if (!rm2) {
-                     ebAlert("Change Room Error", "No Such Room: " + rmid2, "room");
-                     return;
-                  }
-
-                  if (rm1.BoardType !== rm2.BoardType) {
-                     ebConfirm("Change Room",
-                        "Room " + rm1.Room + " is a " + rm1.BoardType + " room and Room "
-                        + rm2.Room + " is a " + rm2.BoardType + " room. Is this Okay ?",
-                        function (result) {
-                           if (result) {
-                              ProcessChangeRoom(rmid1, rmid2);
-                           }
-                        }, "Change Anyway");
-                  } else {
-                     ProcessChangeRoom(rmid1, rmid2);
-                  }
-               });
-         }
-
-         function ProcessAddRoom(room, board_type) {
-            ebSaveRow("/room-update", "inserted", "ROOM:" + room, { Room: room, BoardType: board_type })
-               .then(function (ok) {
-                  if (!ok) {
-                     ebAlert("Add Room Error", " Add Room '" + room + "' Failed.", "room");
-                  }
-               })
-               .catch(function () {
-                  ebAlert("Add Room Error", " Add Room '" + room + "' Failed.", "room");
-               })
-               .then(function () {
-                  setTimeout(function () {
-                     refresh_all();
-                  }, 500);
-               });
-         }
-
-         function ProcessRemoveRoom(room) {
-            ebSaveRow("/room-update", "deleted", "ROOM:" + room)
-               .then(function (ok) {
-                  if (ok) {
-                     roomView.remove("ROOM:" + room);
-                  } else {
-                     ebAlert("Remove Room Error", " Remove Room '" + room + "' Failed.", "room");
-                  }
-               })
-               .catch(function () {
-                  ebAlert("Remove Room Error", " Remove Room '" + room + "' Failed.", "room");
-               })
-               .then(function () {
-                  setTimeout(function () {
-                     refresh_all();
-                  }, 500);
-               });
-         }
-
-         function ProcessChangeRoom(rmid1, rmid2) {
-            ebAction("/room-change", { RmID1: rmid1, RmID2: rmid2 })
-               .then(function (res) {
-                  if (res.ok) {
-                     // The room cards already show the swap (D-14); the
-                     // message here is only to offer Undo (O-2).
-                     ebMessage("Rooms Changed", rmid1 + " ↔ " + rmid2, "room", "Undo");
-                  } else {
-                     ebAlert("Change Room Error", " Change Room '" + rmid1 + " <==> " + rmid2 + "' Failed.<br/>" + res.text, "room");
-                  }
-               })
-               .catch(function () {
-                  ebAlert("Change Room Error", " Change Room '" + rmid1 + " <==> " + rmid2 + "' Failed.", "room");
-               })
-               .then(function () {
-                  setTimeout(function () {
-                     refresh_all();
-                  }, 500);
-               });
-         }
-      </script>
-
+            <div class="eb-panel-scroll" id="queue-list" role="listbox" aria-labelledby="queue-title"></div>
+         </section>
+
+         <!-- ---------------------------------------------------- Rooms -->
+         <section class="eb-panel" id="rooms-panel" aria-labelledby="rooms-title">
+            <div class="eb-panel-head">
+               <h2 id="rooms-title">Rooms</h2>
+               <span class="eb-spacer"></span>
+               <button type="button" id="room-add" title="Add a room">Add room</button>
+               <button type="button" id="room-move" title="Move the selected room's board to another room, or swap two boards">Move</button>
+               <button type="button" id="room-remove" title="Remove the selected room">Remove</button>
+            </div>
+            <div class="eb-messages" id="room-messages"></div>
+            <div class="eb-panel-scroll">
+               <div class="eb-room-grid" id="room-grid"></div>
+            </div>
+         </section>
+
+         <!-- -------------------------------------------------- Details -->
+         <section class="eb-panel" id="details-panel" aria-label="Details">
+            <div class="eb-panel-scroll eb-details" id="details">
+               <div class="eb-details-empty" id="details-empty">
+                  <p>Select a youth to build their board, or a room to see who's in it.</p>
+               </div>
+
+               <div id="details-room-only" hidden>
+                  <h2 id="dr-title"></h2>
+                  <p class="eb-hint" id="dr-sub"></p>
+                  <p class="eb-hint">Select a waiting youth, then this room, to seat their board here.</p>
+               </div>
+
+               <div id="details-body" hidden>
+                  <header class="eb-details-head">
+                     <h2 id="d-name"></h2>
+                     <p class="eb-hint" id="d-sub"></p>
+                     <div id="d-status"></div>
+                  </header>
+                  <div class="eb-messages" id="scout-messages"></div>
+
+                  <!-- Waiting: build the board (D-10, D-12) -->
+                  <div id="d-waiting" hidden>
+                     <h3><label for="d-room">Room</label></h3>
+                     <select id="d-room"></select>
+
+                     <div class="eb-section-head">
+                        <h3>Board members</h3>
+                        <span class="eb-spacer"></span>
+                        <button type="button" id="d-fill"
+                                title="Keep the members you've chosen and add a chair and members to complete the board">Fill the rest</button>
+                        <button type="button" id="d-start-over"
+                                title="Remove everyone and propose a new board">Start over</button>
+                     </div>
+                     <p class="eb-hint">To choose someone yourself, remove who you don't want and add them from the list below.
+                        Fill the rest completes the board around your choices.</p>
+                     <ul class="eb-member-list" id="d-members"></ul>
+                     <ul class="eb-rules" id="d-rules" aria-live="polite"></ul>
+
+                     <div class="eb-actions">
+                        <button type="button" class="eb-accent" id="d-seat"
+                                title="The members go to the room to read the application, references and workbook. The youth waits outside until Start review. (Ctrl+Enter)">Seat board</button>
+                        <button type="button" id="d-postpone"
+                                title="No board at this event, usually because the paperwork isn't in order">Postpone&hellip;</button>
+                     </div>
+
+                     <div class="eb-section-head eb-section-gap">
+                        <h3>Add members</h3>
+                        <span class="eb-spacer"></span>
+                        <label class="eb-check" title="Also list adults on another board, gone home, or not serving on this kind of board">
+                           <input type="checkbox" id="d-show-everyone"/> Show everyone
+                        </label>
+                     </div>
+                     <input type="search" id="d-find-adult" placeholder="Find an adult"
+                            aria-label="Find an adult" title="Find an adult by name or unit"/>
+                     <div class="eb-messages" id="adult-messages"></div>
+                     <ul class="eb-adult-list" id="d-adults"></ul>
+                  </div>
+
+                  <!-- Seated / in review -->
+                  <div id="d-active" hidden>
+                     <h3>Room</h3>
+                     <p id="d-active-room"></p>
+                     <h3>Board members</h3>
+                     <ul class="eb-member-list" id="d-active-members"></ul>
+                     <div class="eb-actions">
+                        <button type="button" class="eb-accent" id="d-primary"></button>
+                        <button type="button" id="d-reset"
+                                title="Back to waiting: the room and members are freed">Reset&hellip;</button>
+                     </div>
+                  </div>
+
+                  <!-- Completed / postponed -->
+                  <div id="d-finished" hidden>
+                     <dl class="eb-facts" id="d-facts"></dl>
+                     <p class="eb-hint">To correct a result or a mistaken identity, edit the board on
+                        <a href="/admin#boards">Results</a>.</p>
+                  </div>
+
+                  <section class="eb-section-gap" aria-labelledby="d-support-title">
+                     <div class="eb-section-head">
+                        <h3 id="d-support-title">Leaders and parents</h3>
+                        <span class="eb-spacer"></span>
+                        <button type="button" id="d-locate"
+                                title="Find this youth's leaders and parents among the adults signed in">Locate</button>
+                        <button type="button" id="d-link"
+                                title="Someone who came to support this youth but didn't say so at sign-in">Link an adult&hellip;</button>
+                     </div>
+                     <ul class="eb-member-list" id="d-support"></ul>
+                  </section>
+               </div>
+            </div>
+         </section>
+      </main>
+
+      <script src="scheduler_event.js"></script>
    </body>
 </html>

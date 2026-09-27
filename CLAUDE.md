@@ -19,9 +19,15 @@ original source was received) and then modernized. See `PROVENANCE.md`.
 - Data is **CSV files** in a working directory (`-d`), read/written through the
   `DataRecordFile` / `DataRecord` machinery. Records: scouts, adults, rooms,
   adult history, and a single-row CONFIG.
-- Browser UI is static files under `src/main/resources/shkc/core/WEBROOT`,
-  built on **Tabulator** (MIT) after the original GPL dhtmlx was removed.
-  `eb-data.js` is the adapter that speaks the server's endpoints.
+- Browser UI is static files under `src/main/resources/shkc/core/WEBROOT`.
+  `eb-data.js` is the adapter that speaks the server's endpoints. The
+  operator's **Event page** (`scheduler.html` + `scheduler_event.js`, styled
+  by `eb-app.css`) is plain DOM, laid out like the Windows version's Event
+  page (SPEC.md O-3): youth queue, room cards and a details pane that builds
+  the board, all visible at once. The Admin tables still use **Tabulator**
+  (MIT), which replaced the original GPL dhtmlx; they really are
+  spreadsheets. The other pages still use `eb-ui.css` and are to be restyled
+  on `eb-app.css`.
 - Optional Swing popup (`PopupDialog`, only with `-w`) shows the check-in URL.
 - Optional **SignUpGenius** import (`SignUpGeniusPlugin`, Jackson JSON).
 
@@ -35,7 +41,7 @@ the evening on their own, and it is easy to build a wrong model from them.
    `scouts_scheduled.csv`) so that sign-in can pre-fill the scout's details.
 2. **Sign-in.** A scout who RSVP'd gets a `P#` registration number; one who
    did not is a **walk-in** and gets `W#`. Walk-ins rank below every RSVP in
-   the queue (`sort_regnum` in `scheduler_scout_grid.js`). Status `Registered`.
+   the queue (`sort_regnum` in `scheduler_config.js`). Status `Registered`.
 3. **Pick a scout, assign adults, Seat Board** → `Seated`. The board goes in
    ahead of the scout to preview the application, references and project
    workbook.
@@ -165,12 +171,13 @@ push be the verification.
     board type is `Chair`, and the chair must be sitting on the board. When the
     qualified chairs are all busy the answer is to promote someone on the Admin
     page — never to let a Member hold the gavel because the dropdown had nobody
-    else. The chair dialog therefore lists only qualified chairs.
+    else. The details pane therefore offers the Chair mark only beside
+    qualified chairs, and the fallback chair dialog lists only them.
   - **One board at a time.** An adult with a `Room` is committed to it and
     cannot be added to a second; `Room` = `N/A` is the Disable button's marker
-    for someone who has gone home. Both are refused server-side, hidden by the
-    grid's default filter, skipped by auto-select, and their checkbox is
-    rendered `disabled` with the reason in its tooltip.
+    for someone who has gone home. Both are refused server-side, skipped by
+    auto-select, and left out of Add members unless Show everyone is ticked,
+    where their Add button is disabled and the room or "Gone home" is named.
   - **Same unit.** Adults from the scout's own unit raise an overridable warning
     naming every one of them: this council forbids them entirely, and the
     override falls back to the national rule (GTA 8.0.3.0 #2), which still
@@ -179,7 +186,9 @@ push be the verification.
     only, deliberately: it is a judgement call, not an absolute.
 
 - **Auto-select** (`proposeBoard` in `process_seat.js`) proposes the board
-  when a waiting scout is selected. It weighs the whole waiting line, not
+  when a waiting scout is selected, and **Fill the rest** (`fillBoard`, the
+  Windows `SchedulerLogic.FillBoard`) completes it around the adults the
+  operator picked, using the same ranking (`rankFreeAdults`). It weighs the whole waiting line, not
   just this scout: of every legal board, it takes the one that leaves the
   most other waiting scouts able to get a full board right now (chairs and
   troops both count), then the one using up the fewest chair qualifications
@@ -198,8 +207,8 @@ push be the verification.
   next month's form never pre-fills them. Start Review names the supporting
   adults and the room they are in, so someone can fetch them to introduce
   the scout; Locate lists them first. An operator links or unlinks them
-  after both have signed in with the adult panel's **Link** button (scout
-  selected, adult highlighted), which writes the same column.
+  after both have signed in with **Link an adult** in the details pane (or
+  an adult's right-click menu), which writes the same column.
 
   Age is attested by the "I am 21+" button on the sign-in page, and the
   parent/relative rule is handled by unit matching, so neither needs a field on

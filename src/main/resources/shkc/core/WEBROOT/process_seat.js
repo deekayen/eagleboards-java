@@ -1,9 +1,9 @@
 // ------------------------------------------------------------------------
-// process_seat.js — Registered -> InProgress transition (/seat-board).
+// process_seat.js — Registered -> Seated transition (/seat-board).
 //
-// Validates the selection (scout status, checked adults, unit conflicts,
-// availability, member counts per board type, selected room), then shows
-// the chair-confirmation dialog and posts the seat request.
+// Validates the board built in the details pane (scout status, members, unit
+// conflicts, availability, member counts per board type, room), then posts
+// the seat request with the chair chosen there.
 // ------------------------------------------------------------------------
 
 // Scouting America, Guide to Advancement 8.0.0.3 and 8.0.3.0 #3: a board of
@@ -282,13 +282,12 @@ function freeSinceTimes(adults, scouts) {
    return since;
 }
 
-function proposeBoard(scout, adults, waiting) {
-   var result = { chairId: null, memberIds: [], problems: [] };
-   var need = membersBesideChair(scout.btype);
-
-   // Every free adult, with the keys that rank them: chair qualifications,
-   // then how many other waiting scouts they could sit for, then how long they
-   // have waited to volunteer, then sign-in order.
+// Every free adult, best first for a seat: fewest chair qualifications (keep
+// chairs for the boards to come), then those who could sit for the fewest
+// other waiting scouts, then volunteers who came for any board, then the
+// longest since they were last free, then sign-in order. Each entry keeps the
+// keys it was ranked on, since proposeBoard scores whole boards with them.
+function rankFreeAdults(adults, waiting) {
    var pool = [];
    for (var i = 0; i < adults.length; i++) {
       var a = adults[i];
@@ -308,6 +307,13 @@ function proposeBoard(scout, adults, waiting) {
       return (x.chairs - y.chairs) || (x.useful - y.useful) || (x.anyBoard - y.anyBoard)
          || (x.since < y.since ? -1 : x.since > y.since ? 1 : 0) || (x.order - y.order);
    });
+   return pool;
+}
+
+function proposeBoard(scout, adults, waiting) {
+   var result = { chairId: null, memberIds: [], problems: [] };
+   var need = membersBesideChair(scout.btype);
+   var pool = rankFreeAdults(adults, waiting);
 
    var chairs = pool.filter(function (p) { return canChairFor(p.adult, scout); });
    var sitters = pool.filter(function (p) { return canSitFor(p.adult, scout); });
@@ -394,10 +400,53 @@ function proposeBoard(scout, adults, waiting) {
    return result;
 }
 
+// Fill the rest (D-12): keep the adults the operator chose and complete the
+// board around them -- a chair if none of them may chair this board type,
+// then members up to the working size. Same ranking as proposeBoard, and the
+// same algorithm as the Windows version's SchedulerLogic.FillBoard. Unlike
+// proposeBoard it does not search whole boards: the operator has already
+// decided who the board is built around.
+//
+//   pickedIds  the adults already on the board being built
+//   returns    { chairId, memberIds, problems } -- only the ADDED adults;
+//              chairId is null when a picked adult can already chair
+function fillBoard(scout, adults, pickedIds, waiting) {
+   var result = { chairId: null, memberIds: [], problems: [] };
+   var isPicked = function (id) { return pickedIds.indexOf(id) >= 0; };
+   var pool = rankFreeAdults(adults, waiting).filter(function (p) { return !isPicked(p.adult.id); });
+   var picked = adults.filter(function (a) { return isPicked(a.id); });
+
+   var hasChair = picked.some(function (a) { return adultRoleFor(a, scout.btype) === "Chair"; });
+   if (!hasChair) {
+      for (var c = 0; c < pool.length && result.chairId === null; c++) {
+         if (canChairFor(pool[c].adult, scout)) {
+            result.chairId = pool[c].adult.id;
+         }
+      }
+      if (result.chairId === null) {
+         result.problems.push("No " + scout.btype + " Chairs Available.");
+      }
+   }
+
+   var size = membersBesideChair(scout.btype) + 1;
+   var wanted = Math.max(0, size - pickedIds.length - (result.chairId === null ? 0 : 1));
+   for (var m = 0; m < pool.length && result.memberIds.length < wanted; m++) {
+      var a = pool[m].adult;
+      if (a.id !== result.chairId && canSitFor(a, scout)) {
+         result.memberIds.push(a.id);
+      }
+   }
+   if (result.memberIds.length < wanted) {
+      result.problems.push("Only " + result.memberIds.length + " " + scout.btype + " Members Available");
+   }
+   return result;
+}
+
 // Node (unit tests) picks this up; browsers ignore it and use the global.
 if (typeof module !== "undefined" && module.exports) {
    module.exports = {
       proposeBoard: proposeBoard,
+      fillBoard: fillBoard,
       withSupportLink: withSupportLink,
       freeSinceTimes: freeSinceTimes,
       findUnitConflicts: findUnitConflicts,
@@ -412,36 +461,36 @@ if (typeof module !== "undefined" && module.exports) {
 
 function ProcessSeatBoard(s_id) {
 
-   var s_last = schedulerScoutGrid.getColumnValue(s_id, "Last");
-   var s_first = schedulerScoutGrid.getColumnValue(s_id, "First");
-   var s_uname = schedulerScoutGrid.getColumnValue(s_id, "UnitName");
-   var s_btype = schedulerScoutGrid.getColumnValue(s_id, "BoardType");
-   var s_room = schedulerScoutGrid.getColumnValue(s_id, "Room");
-   var s_status = schedulerScoutGrid.getColumnValue(s_id, "Status");
+   var s_last = youthStore.getColumnValue(s_id, "Last");
+   var s_first = youthStore.getColumnValue(s_id, "First");
+   var s_uname = youthStore.getColumnValue(s_id, "UnitName");
+   var s_btype = youthStore.getColumnValue(s_id, "BoardType");
+   var s_room = youthStore.getColumnValue(s_id, "Room");
+   var s_status = youthStore.getColumnValue(s_id, "Status");
 
    if (s_status == "Seated") {
-      ebAlert("Schedule Error", "Youth " + s_first + " " + s_last + " board is already seated.", "scout");
+      ebAlert("Schedule error", "Youth " + s_first + " " + s_last + " board is already seated.", "scout");
       return;
    } else if (s_status == "InProgress") {
-      ebAlert("Schedule Error", "Youth is currently in a board see room " + s_room, "scout");
+      ebAlert("Schedule error", "Youth is currently in a board see room " + s_room, "scout");
       return;
    } else if (s_status == "Completed") {
-      ebAlert("Schedule Error", "Youth has already completed their " + s_btype + " board", "scout");
+      ebAlert("Schedule error", "Youth has already completed their " + s_btype + " board", "scout");
       return;
    } else if (s_status == "Postponed") {
-      ebAlert("Schedule Error", "Youth has already postponed their " + s_btype + " board", "scout");
+      ebAlert("Schedule error", "Youth has already postponed their " + s_btype + " board", "scout");
       return;
    } else if (s_status != "Registered" && s_status != "Verified") {
       // "Verified" is accepted for legacy records only; Verify was removed and
       // nothing sets that status anymore.
-      ebAlert("Schedule Error", "Unknown Status: " + s_status, "scout");
+      ebAlert("Schedule error", "Unknown Status: " + s_status, "scout");
       return;
    }
 
-   var selected_leader_str = schedulerLeaderGrid.getCheckedRowIds();
+   var selected_leader_str = boardBuilder.memberIds().join(",");
 
    if (!selected_leader_str) {
-      ebAlert("Schedule Error", "No Leaders Selected", "scout");
+      ebAlert("Schedule error", "No board members picked yet.", "scout");
       return;
    }
 
@@ -463,12 +512,12 @@ function ProcessSeatBoard(s_id) {
 
    for (var i = 0; i < selected_leaders.length; i++) {
       var l_id = selected_leaders[i];
-      var l_last = schedulerLeaderGrid.getColumnValue(l_id, "Last");
-      var l_first = schedulerLeaderGrid.getColumnValue(l_id, "First");
-      var l_uname = schedulerLeaderGrid.getColumnValue(l_id, "UnitName");
-      var l_final = schedulerLeaderGrid.getColumnValue(l_id, "FinalBoard");
-      var l_project = schedulerLeaderGrid.getColumnValue(l_id, "ProjectReview");
-      var l_room = schedulerLeaderGrid.getColumnValue(l_id, "Room");
+      var l_last = adultStore.getColumnValue(l_id, "Last");
+      var l_first = adultStore.getColumnValue(l_id, "First");
+      var l_uname = adultStore.getColumnValue(l_id, "UnitName");
+      var l_final = adultStore.getColumnValue(l_id, "FinalBoard");
+      var l_project = adultStore.getColumnValue(l_id, "ProjectReview");
+      var l_room = adultStore.getColumnValue(l_id, "Room");
       var l_fi = "";
 
       if (l_first && l_first.length > 0) {
@@ -479,14 +528,14 @@ function ProcessSeatBoard(s_id) {
          // Room "N/A" is the Disable button's marker for someone who has gone
          // home. Reporting that as "assigned to a board in room N/A" sent the
          // operator looking for a room that does not exist.
-         ebAlert("Schedule Error",
+         ebAlert("Schedule error",
             "Member '" + l_last + ", " + l_first + "' has been disabled for this event."
-            + "<br/>Use Enable on the Adult Board Members panel if they are back.", "scout");
+            + "<br/>If they are back, tick Show everyone under Add members, right-click them and choose Enable.", "scout");
          return;
       }
 
       if (l_room.length > 0) {
-         ebAlert("Schedule Error",
+         ebAlert("Schedule error",
             "Member '" + l_last + ", " + l_first + "' is already assigned to a board in room " + l_room + ".", "scout");
          return;
       }
@@ -507,7 +556,7 @@ function ProcessSeatBoard(s_id) {
       if ((chair_id == "")
             && (((s_btype == "Project") && (l_project == "Unavailable"))
                || ((s_btype == "Final") && (l_final == "Unavailable")))) {
-         ebAlert("Schedule Error",
+         ebAlert("Schedule error",
             "Member '" + l_last + ", " + l_first + "' is currently Unavailable for " + s_btype + " Boards."
             + "'. Please select another leader.", "scout");
          return;
@@ -532,13 +581,13 @@ function ProcessSeatBoard(s_id) {
 
    var proceedToRoomCheck = function () {
       // Check Room
-      var rm_id = roomView.getSelected();
+      var rm_id = boardBuilder.roomId;
       if (!rm_id) {
-         ebAlert("Schedule Error", "No room selected, please select a room and retry.", "scout");
+         ebAlert("Schedule error", "Choose a room for this board first.", "scout");
          return;
       }
 
-      var rm_data = roomView.get(rm_id);
+      var rm_data = roomStore.get(rm_id);
       if (rm_data.BoardType !== s_btype) {
          ebConfirm("Schedule",
             "You have selected a " + rm_data.BoardType + " room for a " + s_btype + " Board.<br/><br/>Is this correct ?",
@@ -546,10 +595,10 @@ function ProcessSeatBoard(s_id) {
                if (result) {
                   showChairDialog(rm_id);
                }
-            }, "Use This Room");
+            }, "Use this room");
          return;
       } else if (rm_data.Scout.length > 2) {
-         ebAlert("Schedule Error",
+         ebAlert("Schedule error",
             "Room " + rm_data.Room + " already occupied. Please select a different room.", "scout");
          return;
       }
@@ -557,6 +606,18 @@ function ProcessSeatBoard(s_id) {
    };
 
    var showChairDialog = function (rm_id) {
+      // The details pane marks the chair with a radio beside each qualified
+      // member, so clicking Seat board already answered this; the dialog is
+      // only for the case where that choice is somehow not among the
+      // qualified picks (and never offers anyone else -- see chair_ids_arr).
+      var chosen = boardBuilder.chairId;
+      if (chair_ids_arr.indexOf(chosen) < 0 && chair_ids_arr.length === 1) {
+         chosen = chair_ids_arr[0];
+      }
+      if (chair_ids_arr.indexOf(chosen) >= 0) {
+         SendSeatRequest(rm_id, s_id, chosen, member_ids);
+         return;
+      }
       // Qualified chairs only. requireQualifiedChair() has already refused the
       // seating if this list is empty, so the dropdown is never rendered blank.
       var opts = "";
@@ -564,9 +625,9 @@ function ProcessSeatBoard(s_id) {
          var sel = (chair_ids_arr[o] === chair_id) ? " selected" : "";
          opts += "<option value=\"" + chair_ids_arr[o] + "\"" + sel + ">" + chair_names_arr[o] + "</option>";
       }
-      ebModalForm("Seat Board",
-         "<label>Chair: <select name='Chair'>" + opts + "</select></label>",
-         [{ name: "Okay", label: "Seat Board" }, { name: "Cancel", label: "Cancel" }],
+      ebModalForm("Who chairs this board?",
+         "<label>Chair <select name='Chair'>" + opts + "</select></label>",
+         [{ name: "Cancel", label: "Cancel" }, { name: "Okay", label: "Seat board" }],
          function (name, body) {
             if (name == "Okay") {
                var actual_chair_id = body.querySelector("select[name='Chair']").value;
@@ -584,7 +645,7 @@ function ProcessSeatBoard(s_id) {
          return true;
       }
       var role_col = (s_btype == "Project") ? "Project" : "Final";
-      ebAlert("Schedule Error",
+      ebAlert("Schedule error",
          "<p style='text-align: left'>"
          + "<b>None of the selected board members is qualified to chair a "
          + s_btype + " board:</b><br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
@@ -605,7 +666,7 @@ function ProcessSeatBoard(s_id) {
 
       if (s_btype == "Final") {
          if (size_verdict === "too-few") {
-            ebAlert("Schedule Error",
+            ebAlert("Schedule error",
                "<p style='text-align: left; font-size: small'>Only " + selected_leaders.length
                + " board member(s) selected:<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;" + leader_names + "<br/>"
                + "Three (3) required for Final Boards."
@@ -615,7 +676,7 @@ function ProcessSeatBoard(s_id) {
          } else if (size_verdict === "too-many") {
             // Not overridable: six is a national ceiling, not a local
             // preference, so there is no correct reason to seat seven.
-            ebAlert("Schedule Error",
+            ebAlert("Schedule error",
                "<p style='text-align: left'>You have selected " + selected_leaders.length
                + " board members:<br/><br/>&nbsp;&nbsp;&nbsp;" + leader_names
                + "<br/><br/>A board of review may have no more than six (6) members"
@@ -632,14 +693,14 @@ function ProcessSeatBoard(s_id) {
                   if (res) {
                      proceedToRoomCheck();
                   }
-               }, "Seat Anyway");
+               }, "Seat anyway");
             return;
          }
       } else if (s_btype == "Project") {
          var project_verdict = checkProjectSize(selected_leaders.length);
 
          if (project_verdict === "too-few") {
-            ebAlert("Schedule Error",
+            ebAlert("Schedule error",
                "Only " + selected_leaders.length + " board members selected:<br/><br/>&nbsp;&nbsp;&nbsp;" + leader_names
                + "<br/><br/>Two (2) required for Project Reviews."
                + "<br/>Please select " + (PROJECT_MIN_MEMBERS - selected_leaders.length) + " more leaders.", "scout");
@@ -647,7 +708,7 @@ function ProcessSeatBoard(s_id) {
          } else if (project_verdict === "too-many") {
             // Same ceiling as a board of review, and refused the same way:
             // six is a limit, not a preference, so there is nothing to confirm.
-            ebAlert("Schedule Error",
+            ebAlert("Schedule error",
                "<p style='text-align: left'>You have selected " + selected_leaders.length
                + " board members:<br/><br/>&nbsp;&nbsp;&nbsp;" + leader_names
                + "<br/><br/>A project review may have no more than six (6) members."
@@ -663,11 +724,11 @@ function ProcessSeatBoard(s_id) {
                   if (res) {
                      proceedToRoomCheck();
                   }
-               }, "Seat Anyway");
+               }, "Seat anyway");
             return;
          }
       } else {
-         ebAlert("Schedule Error", "No BoardType selected for youth " + s_last, "scout");
+         ebAlert("Schedule error", "No BoardType selected for youth " + s_last, "scout");
          return;
       }
 
@@ -689,7 +750,7 @@ function ProcessSeatBoard(s_id) {
       // No bypass below the national floor: with nobody from outside the
       // unit there is no more permissive rule left to fall back on.
       if (!hasNonUnitMember(s_uname, member_arr)) {
-         ebAlert("Schedule Error",
+         ebAlert("Schedule error",
             "<p style='text-align: left'>"
             + "<b>Every selected board member is in " + s_uname
             + ", the same unit as youth " + s_first + " " + s_last + ":</b>"
@@ -702,7 +763,7 @@ function ProcessSeatBoard(s_id) {
          return;
       }
 
-      ebConfirm("Unit Conflict Warning",
+      ebConfirm("Unit conflict",
          "<p style='text-align: left'>"
          + "<b>" + unit_conflicts.length + " selected board member"
          + (unit_conflicts.length == 1 ? " is" : "s are")
@@ -719,7 +780,7 @@ function ProcessSeatBoard(s_id) {
             if (res) {
                proceedToCountChecks();
             }
-         }, "Seat Anyway");
+         }, "Seat anyway");
       return;
    }
 
@@ -727,8 +788,8 @@ function ProcessSeatBoard(s_id) {
 }
 
 function SendSeatRequest(room_id, s_id, chair_id, member_ids) {
-   var s_last = schedulerScoutGrid.getColumnValue(s_id, "Last");
-   var s_first = schedulerScoutGrid.getColumnValue(s_id, "First");
+   var s_last = youthStore.getColumnValue(s_id, "Last");
+   var s_first = youthStore.getColumnValue(s_id, "First");
 
    ebAction("/seat-board", {
       RoomID: room_id,
@@ -747,19 +808,19 @@ function SendSeatRequest(room_id, s_id, chair_id, member_ids) {
             // against the pre-seat local data (the server round trip
             // hasn't landed yet) and re-picks members who are now in this
             // room for a second board.
-            var rm_data = roomView.get(room_id);
+            var rm_data = roomStore.get(room_id);
             var seated_room = rm_data ? rm_data.Room : "";
             member_ids.split(",").forEach(function (id) {
-               schedulerLeaderGrid.setColumnValue(id, "Room", seated_room);
+               adultStore.setColumnValue(id, "Room", seated_room);
             });
-            schedulerLeaderGrid.unpickAll();
-            detailsPane.render();
+            boardBuilder.reset();
+            render();
          } else {
-            ebAlert("Seat Error", s_first + " " + s_last + " Seat Failed.<br/> " + res.text, "scout");
+            ebAlert("Seat error", s_first + " " + s_last + " Seat Failed.<br/> " + res.text, "scout");
          }
       })
       .catch(function () {
-         ebAlert("Seat Error", s_first + " " + s_last + " Seat Failed.", "scout");
+         ebAlert("Seat error", s_first + " " + s_last + " Seat Failed.", "scout");
       })
       .then(function () {
          setTimeout(function () {

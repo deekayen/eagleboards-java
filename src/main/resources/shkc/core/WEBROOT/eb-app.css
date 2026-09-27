@@ -1,0 +1,513 @@
+/* ========================================================================
+   eb-app.css — the operator pages' look, built from the system's own:
+   system font, light/dark appearance and accent color (SPEC.md D-16).
+   Status colors come from here, never from config.properties (D-13), and
+   every status also carries text and an icon, so color is never the only
+   cue. The Event page (scheduler.html) uses it; the other operator pages
+   are to follow.
+   ======================================================================== */
+
+:root {
+   color-scheme: light dark;
+
+   --eb-font: system-ui, -apple-system, "Segoe UI Variable Text", "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+
+   --eb-bg: #f3f3f3;
+   --eb-surface: #ffffff;
+   --eb-surface-alt: #f7f7f7;
+   --eb-hover: rgba(0, 0, 0, 0.045);
+   --eb-pressed: rgba(0, 0, 0, 0.08);
+   --eb-line: #e0e0e0;
+   --eb-line-strong: #c4c4c4;
+   --eb-text: #1b1b1b;
+   --eb-text-2: #5d5d5d;
+
+   --eb-accent: #005fb8;
+   --eb-accent-text: #ffffff;
+   --eb-accent-soft: rgba(0, 95, 184, 0.10);
+   --eb-accent-fg: #005fb8;
+
+   --eb-warn-bg: #fff4ce;
+   --eb-warn-fg: #7a5b00;
+   --eb-error-bg: #fde7e9;
+   --eb-error-fg: #b3261e;
+   --eb-ok-bg: #dff6dd;
+   --eb-ok-fg: #0f6b1d;
+   --eb-neutral-bg: #ececec;
+   --eb-neutral-fg: #4a4a4a;
+
+   --eb-radius: 8px;
+   --eb-radius-sm: 4px;
+   --eb-shadow: 0 8px 24px rgba(0, 0, 0, 0.18), 0 1px 3px rgba(0, 0, 0, 0.12);
+}
+
+@media (prefers-color-scheme: dark) {
+   :root {
+      --eb-bg: #1c1c1c;
+      --eb-surface: #272727;
+      --eb-surface-alt: #2e2e2e;
+      --eb-hover: rgba(255, 255, 255, 0.06);
+      --eb-pressed: rgba(255, 255, 255, 0.10);
+      --eb-line: #3a3a3a;
+      --eb-line-strong: #555555;
+      --eb-text: #f2f2f2;
+      --eb-text-2: #b4b4b4;
+
+      --eb-accent: #4cc2ff;
+      --eb-accent-text: #000000;
+      --eb-accent-soft: rgba(76, 194, 255, 0.14);
+      --eb-accent-fg: #7fd4ff;
+
+      --eb-warn-bg: #433519;
+      --eb-warn-fg: #ffd88a;
+      --eb-error-bg: #442726;
+      --eb-error-fg: #ffb4ab;
+      --eb-ok-bg: #1f3b22;
+      --eb-ok-fg: #9fe0a4;
+      --eb-neutral-bg: #3a3a3a;
+      --eb-neutral-fg: #d6d6d6;
+      --eb-shadow: 0 8px 24px rgba(0, 0, 0, 0.5), 0 1px 3px rgba(0, 0, 0, 0.4);
+   }
+}
+
+/* The system accent where the browser exposes it (Safari, Firefox). */
+@supports (color: AccentColor) {
+   :root {
+      --eb-accent: AccentColor;
+      --eb-accent-text: AccentColorText;
+      --eb-accent-fg: AccentColor;
+      --eb-accent-soft: color-mix(in srgb, AccentColor 14%, transparent);
+   }
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html, body { height: 100%; }
+
+body.eb-app {
+   margin: 0;
+   font: 14px/1.4 var(--eb-font);
+   color: var(--eb-text);
+   background: var(--eb-bg);
+   accent-color: var(--eb-accent);
+   display: flex;
+   flex-direction: column;
+   overflow: hidden;
+}
+
+h2, h3 { margin: 0; font-weight: 600; }
+h2 { font-size: 16px; }
+h3 { font-size: 14px; }
+a { color: var(--eb-accent-fg); }
+[hidden] { display: none !important; }
+
+.eb-visually-hidden {
+   position: absolute; width: 1px; height: 1px; overflow: hidden;
+   clip: rect(0 0 0 0); white-space: nowrap;
+}
+.eb-spacer { flex: 1 1 auto; }
+.eb-hint { color: var(--eb-text-2); font-size: 12.5px; }
+.eb-warn-text { color: var(--eb-warn-fg); font-weight: 600; }
+.eb-accent-text { color: var(--eb-accent-fg); }
+
+.eb-icon {
+   width: 12px; height: 12px;
+   flex: 0 0 auto;
+   vertical-align: -1px;
+}
+
+/* ---------------------------------------------------------------- controls */
+button, .eb-button, select, input[type=search], input[type=text], textarea {
+   font: inherit;
+   color: var(--eb-text);
+}
+
+button, .eb-button {
+   display: inline-flex;
+   align-items: center;
+   gap: 6px;
+   min-height: 30px;
+   padding: 4px 12px;
+   border: 1px solid var(--eb-line-strong);
+   border-radius: var(--eb-radius-sm);
+   background: var(--eb-surface);
+   text-decoration: none;
+   cursor: pointer;
+   white-space: nowrap;
+}
+button:hover, .eb-button:hover { background: var(--eb-surface-alt); }
+button:active, .eb-button:active { background: var(--eb-pressed); }
+button:disabled { opacity: 0.45; cursor: default; }
+button:disabled:hover { background: var(--eb-surface); }
+
+button.eb-accent {
+   background: var(--eb-accent);
+   border-color: var(--eb-accent);
+   color: var(--eb-accent-text);
+   font-weight: 600;
+}
+button.eb-accent:hover { filter: brightness(1.08); background: var(--eb-accent); }
+button.eb-accent:disabled:hover { filter: none; }
+
+.eb-icon-button {
+   min-height: 28px;
+   width: 28px;
+   padding: 0;
+   justify-content: center;
+   border-color: transparent;
+   background: transparent;
+}
+.eb-icon-button:hover { background: var(--eb-hover); }
+
+select, input[type=search], input[type=text], textarea {
+   min-height: 30px;
+   padding: 4px 8px;
+   border: 1px solid var(--eb-line-strong);
+   border-radius: var(--eb-radius-sm);
+   background: var(--eb-surface);
+}
+input[type=search], #d-room { width: 100%; }
+
+:focus-visible {
+   outline: 2px solid var(--eb-accent);
+   outline-offset: 1px;
+}
+
+.eb-check {
+   display: inline-flex;
+   align-items: center;
+   gap: 4px;
+   font-size: 13px;
+   cursor: pointer;
+   white-space: nowrap;
+}
+
+/* ------------------------------------------------------------------ app bar */
+.eb-appbar {
+   flex: 0 0 auto;
+   display: flex;
+   align-items: center;
+   gap: 20px;
+   padding: 8px 16px;
+   background: var(--eb-surface);
+   border-bottom: 1px solid var(--eb-line);
+}
+.eb-brand { font-weight: 700; font-size: 15px; }
+.eb-nav { display: flex; gap: 2px; }
+.eb-nav a {
+   padding: 6px 12px;
+   border-radius: var(--eb-radius-sm);
+   color: var(--eb-text);
+   text-decoration: none;
+}
+.eb-nav a:hover { background: var(--eb-hover); }
+.eb-nav a[aria-current=page] {
+   background: var(--eb-accent-soft);
+   color: var(--eb-accent-fg);
+   font-weight: 600;
+}
+.eb-appbar-end { margin-left: auto; display: flex; gap: 8px; }
+
+/* ------------------------------------------------------------------- layout */
+.eb-event {
+   flex: 1 1 auto;
+   min-height: 0;
+   display: grid;
+   grid-template-columns: minmax(250px, 22rem) minmax(300px, 1fr) minmax(330px, 27rem);
+   grid-template-areas: "queue rooms details";
+   gap: 12px;
+   padding: 12px;
+}
+#queue-panel { grid-area: queue; }
+#rooms-panel { grid-area: rooms; }
+#details-panel { grid-area: details; }
+
+/* A laptop too narrow for three columns: rooms go under the queue, and the
+   details pane keeps its full height beside both. */
+@media (max-width: 1100px) {
+   .eb-event {
+      grid-template-columns: minmax(240px, 1fr) minmax(320px, 1fr);
+      grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
+      grid-template-areas: "queue details" "rooms details";
+   }
+}
+
+/* A phone or tablet in portrait: one column, and the page scrolls. */
+@media (max-width: 700px) {
+   body.eb-app { overflow: auto; height: auto; }
+   .eb-appbar { flex-wrap: wrap; gap: 8px; }
+   .eb-appbar-end { margin-left: 0; }
+   .eb-event {
+      grid-template-columns: 1fr;
+      grid-template-rows: none;
+      grid-template-areas: "queue" "details" "rooms";
+   }
+   .eb-panel { max-height: 80vh; }
+}
+
+.eb-panel {
+   min-height: 0;
+   min-width: 0;
+   display: flex;
+   flex-direction: column;
+   background: var(--eb-surface);
+   border: 1px solid var(--eb-line);
+   border-radius: var(--eb-radius);
+}
+.eb-panel-head {
+   flex: 0 0 auto;
+   display: flex;
+   align-items: center;
+   gap: 8px;
+   padding: 12px 12px 8px;
+}
+.eb-panel-head select { margin-left: auto; }
+.eb-panel-tools { flex: 0 0 auto; padding: 0 12px 8px; }
+.eb-panel-scroll {
+   flex: 1 1 auto;
+   min-height: 0;
+   overflow: auto;
+   padding: 0 12px 12px;
+}
+
+/* -------------------------------------------------------------- youth list */
+.eb-group {
+   padding: 10px 4px 4px;
+   font-size: 12.5px;
+   font-weight: 600;
+   color: var(--eb-text-2);
+}
+.eb-group-empty { margin: 2px 4px 6px; }
+
+.eb-queue-item {
+   position: relative;
+   display: flex;
+   align-items: flex-start;
+   gap: 8px;
+   padding: 6px 8px 6px 12px;
+   border-radius: var(--eb-radius-sm);
+   cursor: pointer;
+}
+.eb-queue-item:hover { background: var(--eb-hover); }
+.eb-queue-item.selected { background: var(--eb-pressed); }
+.eb-queue-item.selected::before {
+   content: "";
+   position: absolute;
+   left: 2px; top: 8px; bottom: 8px;
+   width: 3px;
+   border-radius: 2px;
+   background: var(--eb-accent);
+}
+.eb-queue-main, .eb-member-main {
+   flex: 1 1 auto;
+   min-width: 0;
+   display: flex;
+   flex-direction: column;
+}
+.eb-queue-name { font-weight: 500; }
+.eb-queue-side {
+   flex: 0 0 auto;
+   display: flex;
+   flex-direction: column;
+   align-items: flex-end;
+   gap: 2px;
+}
+
+/* ------------------------------------------------------------ status pills */
+.eb-pill {
+   display: inline-flex;
+   align-items: center;
+   gap: 5px;
+   padding: 1px 8px;
+   border-radius: 999px;
+   font-size: 12.5px;
+   font-weight: 500;
+   white-space: nowrap;
+   background: var(--eb-neutral-bg);
+   color: var(--eb-neutral-fg);
+}
+.eb-pill-seated { background: var(--eb-warn-bg); color: var(--eb-warn-fg); }
+.eb-pill-inprogress { background: var(--eb-accent-soft); color: var(--eb-accent-fg); }
+.eb-pill-completed { background: var(--eb-ok-bg); color: var(--eb-ok-fg); }
+
+/* -------------------------------------------------------------- room cards */
+.eb-room-grid {
+   display: grid;
+   grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+   gap: 8px;
+}
+.eb-room {
+   display: flex;
+   flex-direction: column;
+   align-items: stretch;
+   gap: 2px;
+   min-height: 112px;
+   padding: 10px 12px;
+   text-align: left;
+   white-space: normal;
+   background: var(--eb-surface-alt);
+   border: 1px solid var(--eb-line);
+   border-radius: var(--eb-radius-sm);
+}
+.eb-room:hover { background: var(--eb-hover); }
+.eb-room.selected { border-color: var(--eb-accent); box-shadow: inset 0 0 0 1px var(--eb-accent); }
+.eb-room.target { border-style: dashed; border-color: var(--eb-accent); }
+.eb-room-warn { border-left: 4px solid var(--eb-warn-fg); }
+.eb-room-over { border-left: 4px solid var(--eb-error-fg); }
+.eb-room-head { display: flex; align-items: baseline; gap: 8px; }
+.eb-room-name { font-weight: 600; flex: 1 1 auto; }
+.eb-room-youth { margin-top: 6px; font-weight: 500; }
+.eb-room-members { display: flex; flex-direction: column; font-size: 12.5px; color: var(--eb-text-2); }
+.eb-room-members .eb-chair { color: var(--eb-text); }
+.eb-room-members .eb-icon { margin-right: 4px; }
+.eb-room-free { margin-top: 6px; color: var(--eb-text-2); }
+.eb-room.target .eb-room-free { color: var(--eb-accent-fg); font-weight: 500; }
+
+.eb-timer {
+   display: inline-flex;
+   align-items: center;
+   gap: 4px;
+   font-weight: 600;
+   font-size: 12.5px;
+   white-space: nowrap;
+}
+.eb-timer-warn { color: var(--eb-warn-fg); background: var(--eb-warn-bg); padding: 0 6px; border-radius: 999px; }
+.eb-timer-over { color: var(--eb-error-fg); background: var(--eb-error-bg); padding: 0 6px; border-radius: 999px; }
+
+/* ----------------------------------------------------------- details pane */
+.eb-details { padding-top: 16px; }
+.eb-details h3 { margin: 16px 0 6px; }
+.eb-details-empty {
+   height: 100%;
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   text-align: center;
+   color: var(--eb-text-2);
+   padding: 24px;
+}
+.eb-details-head h2 { font-size: 20px; }
+.eb-details-head .eb-hint { margin: 2px 0 6px; }
+.eb-section-head { display: flex; align-items: center; gap: 6px; margin: 16px 0 6px; }
+.eb-section-head h3 { margin: 0; }
+.eb-section-gap { margin-top: 20px; }
+.eb-details .eb-hint { margin: 0 0 8px; }
+
+.eb-member-list, .eb-adult-list, .eb-rules { list-style: none; margin: 0; padding: 0; }
+.eb-member, .eb-adult {
+   display: flex;
+   align-items: center;
+   gap: 8px;
+   padding: 6px 8px;
+   border-radius: var(--eb-radius-sm);
+}
+.eb-member-list .eb-member {
+   border: 1px solid var(--eb-line);
+   background: var(--eb-surface-alt);
+   margin-bottom: 4px;
+}
+.eb-member-main .eb-icon { margin-right: 4px; color: var(--eb-accent-fg); }
+.eb-adult:hover { background: var(--eb-hover); }
+.eb-adult.eb-unavailable .eb-member-main > span:first-child { color: var(--eb-text-2); }
+.eb-adult-list { margin-top: 6px; }
+.eb-member-list > .eb-hint, .eb-adult-list > .eb-hint { padding: 4px 2px; }
+
+.eb-rules { margin: 6px 0 2px; }
+.eb-rule {
+   display: flex;
+   align-items: flex-start;
+   gap: 6px;
+   padding: 3px 0;
+   font-size: 13px;
+}
+.eb-rule .eb-icon { margin-top: 3px; }
+.eb-rule-error { color: var(--eb-error-fg); }
+.eb-rule-warn { color: var(--eb-warn-fg); }
+.eb-rule-ok { color: var(--eb-ok-fg); }
+
+.eb-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0 4px; }
+
+.eb-facts { display: grid; grid-template-columns: max-content 1fr; gap: 4px 12px; margin: 12px 0; }
+.eb-facts dt { color: var(--eb-text-2); }
+.eb-facts dd { margin: 0; }
+
+/* --------------------------------------------- persistent messages (D-14) */
+.eb-messages:empty, .eb-messages:not(:has(> :not([hidden]))) { display: none; }
+.eb-messages { margin: 0 12px 8px; }
+.eb-details .eb-messages { margin: 10px 0 4px; }
+.eb-messages-page { margin: 8px 12px 0; }
+.eb-message {
+   display: flex;
+   align-items: flex-start;
+   gap: 8px;
+   padding: 8px 10px;
+   border-radius: var(--eb-radius-sm);
+   border: 1px solid transparent;
+}
+.eb-message-error { background: var(--eb-error-bg); color: var(--eb-error-fg); border-color: color-mix(in srgb, var(--eb-error-fg) 30%, transparent); }
+.eb-message-ok { background: var(--eb-surface-alt); border-color: var(--eb-line); }
+.eb-message-body { flex: 1 1 auto; }
+.eb-message-actions { display: flex; align-items: center; gap: 4px; flex: 0 0 auto; }
+.eb-message-undo { min-height: 26px; padding: 2px 10px; }
+.eb-message-dismiss {
+   min-height: 26px; width: 26px; padding: 0;
+   justify-content: center;
+   border-color: transparent;
+   background: transparent;
+   color: inherit;
+   font-size: 16px;
+}
+
+/* ------------------------------------------------ dialogs (P-4) and menus (P-1) */
+dialog.eb-dialog {
+   min-width: 320px;
+   max-width: min(520px, calc(100vw - 32px));
+   padding: 0;
+   border: 1px solid var(--eb-line);
+   border-radius: var(--eb-radius);
+   background: var(--eb-surface);
+   color: var(--eb-text);
+   box-shadow: var(--eb-shadow);
+}
+dialog.eb-dialog::backdrop { background: rgba(0, 0, 0, 0.35); }
+.eb-dialog-title { padding: 20px 24px 0; font-size: 18px; }
+.eb-dialog-body { padding: 12px 24px; }
+.eb-dialog-body select, .eb-dialog-body input, .eb-dialog-body textarea { margin-top: 4px; max-width: 100%; }
+.eb-dialog-buttons {
+   display: flex;
+   justify-content: flex-end;
+   gap: 8px;
+   padding: 16px 24px;
+   background: var(--eb-surface-alt);
+   border-top: 1px solid var(--eb-line);
+   border-radius: 0 0 var(--eb-radius) var(--eb-radius);
+}
+.eb-dialog-buttons button { min-width: 88px; justify-content: center; }
+
+.eb-context-menu {
+   position: fixed;
+   inset: auto;
+   margin: 0;
+   padding: 4px;
+   min-width: 180px;
+   border: 1px solid var(--eb-line);
+   border-radius: var(--eb-radius);
+   background: var(--eb-surface);
+   color: var(--eb-text);
+   box-shadow: var(--eb-shadow);
+}
+.eb-context-menu button {
+   display: flex;
+   width: 100%;
+   border: none;
+   background: none;
+   min-height: 30px;
+}
+.eb-context-menu button:hover, .eb-context-menu button:focus-visible { background: var(--eb-hover); }
+
+/* ---------------------------------------------- high contrast (D-13, D-16) */
+@media (forced-colors: active) {
+   .eb-pill, .eb-timer-warn, .eb-timer-over, .eb-room, .eb-member { border: 1px solid CanvasText; }
+   .eb-queue-item.selected, .eb-room.selected { outline: 2px solid Highlight; }
+   .eb-queue-item.selected::before { background: Highlight; }
+}

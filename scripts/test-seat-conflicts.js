@@ -437,6 +437,49 @@ p = proposeBoard(queueScout("S", "Troop1001", "Final"), [
 check("coming for any board does not outrank keeping a chair free",
    p.memberIds, ["L1", "L2"]);
 
+console.log("== fill the rest keeps the operator's picks (D-12) ==");
+var fillBoard = seat.fillBoard;
+var fillPool = [
+   poolAdult("FC", "Troop9001", "Chair", "Member"),
+   poolAdult("M1", "Troop9002", "Member", "Member"),
+   poolAdult("M2", "Troop9003", "Member", "Member"),
+   poolAdult("M3", "Troop9004", "Member", "Member"),
+   poolAdult("SU", "Troop1001", "Member", "Member")      // the scout's own unit
+];
+var f = fillBoard(queueScout("S", "Troop1001", "Final"), fillPool, ["M3"], []);
+check("a picked member with no chair gets a chair added", f.chairId, "FC");
+check("then members up to three, never re-adding the pick", f.memberIds, ["M1"]);
+check("and nothing is short", f.problems, []);
+
+f = fillBoard(queueScout("S", "Troop1001", "Final"), fillPool, ["FC"], []);
+check("a picked chair is kept as the chair: no chair added", f.chairId, null);
+check("two members added beside the picked chair", f.memberIds, ["M1", "M2"]);
+
+f = fillBoard(queueScout("S", "Troop1001", "Final"), fillPool, ["FC", "M1", "M2"], []);
+check("a full board adds nobody", [f.chairId, f.memberIds, f.problems], [null, [], []]);
+
+f = fillBoard(queueScout("S", "Troop1001", "Final"), fillPool, ["M1", "M2", "M3"], []);
+check("three members and no chair: a chair is still added", f.chairId, "FC");
+check("and no more members", f.memberIds, []);
+
+f = fillBoard(queueScout("S", "Troop1001", "Final"), [
+   poolAdult("M1", "Troop9002", "Member", "Member"),
+   poolAdult("M2", "Troop9003", "Member", "Member")
+], ["M1"], []);
+// As in the Windows FillBoard: with no chair to add, the chair's seat is
+// counted as a member seat too, so it asks for one more than it finds.
+check("no chair free: says so, and fills the members it can",
+   [f.chairId, f.memberIds, f.problems],
+   [null, ["M2"], ["No Final Chairs Available.", "Only 1 Final Members Available"]]);
+
+f = fillBoard(queueScout("S", "Troop1001", "Final"), [
+   poolAdult("FC", "Troop9001", "Chair", "Member"),
+   poolAdult("SU", "Troop1001", "Member", "Member"),
+   poolAdult("BZ", "Troop9005", "Member", "Member", "101")
+], ["FC"], []);
+check("never adds the scout's own unit or someone already on a board",
+   [f.memberIds, f.problems], [[], ["Only 0 Final Members Available"]]);
+
 console.log("== linking an adult to a scout from the scheduler ==");
 
 var withSupportLink = seat.withSupportLink;

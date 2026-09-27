@@ -42,6 +42,8 @@ describe_page() {
         era="a mid-2026 build (it still says 'Review Board')"
     elif grep -q "Verify" "$1"; then
         era="a build that still had the Verify step"
+    elif grep -q "scheduler_grid.js" "$1"; then
+        era="a build with the four-panel grid layout, before the Event page"
     fi
     local lines
     lines=$(diff "$1" "$REF" 2>/dev/null | grep -c '^[<>]')
@@ -211,7 +213,7 @@ if command -v lsof >/dev/null 2>&1; then
         curl -s --max-time 3 "http://127.0.0.1:$p/scheduler.html" -o "$TMP/port-$p.html" 2>/dev/null
         [ -s "$TMP/port-$p.html" ] || continue
         # Only schedulers: any Java process with a listening socket lands here.
-        grep -q "scheduler_grid.js\|dhtmlx" "$TMP/port-$p.html" || continue
+        grep -q "scheduler_event.js\|scheduler_grid.js\|dhtmlx" "$TMP/port-$p.html" || continue
         found_any=1
         desc=$(describe_page "$TMP/port-$p.html"); rc=$?
         echo "   http://127.0.0.1:$p  →  $desc"

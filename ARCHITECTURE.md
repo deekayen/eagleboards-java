@@ -171,6 +171,6 @@ personal information about minors and are never committed — see
 
 1. `EagleBoardScheduler.main()` and the constructor — the wiring
 2. `eb-data.js` — the client/server contract in one screen
-3. `scheduler.html` plus `scheduler_scout_grid.js` — the operator's workflow
+3. `scheduler.html` plus `scheduler_event.js` — the operator's workflow
 4. One `process_*.js` — how a single lifecycle action travels end to end
 5. `.github/workflows/build.yml` — what "correct" is defined as here

@@ -5,22 +5,22 @@
 // ------------------------------------------------------------------------
 
 function ProcessCompleteBoard(s_id) {
-   var s_last = schedulerScoutGrid.getColumnValue(s_id, "Last");
-   var s_first = schedulerScoutGrid.getColumnValue(s_id, "First");
-   var s_status = schedulerScoutGrid.getColumnValue(s_id, "Status");
+   var s_last = youthStore.getColumnValue(s_id, "Last");
+   var s_first = youthStore.getColumnValue(s_id, "First");
+   var s_status = youthStore.getColumnValue(s_id, "Status");
 
    if (s_status == "Completed") {
-      ebAlert("Complete Error", s_first + " " + s_last + " has already completed his board ", "scout");
+      ebAlert("Complete error", s_first + " " + s_last + " has already completed their board.", "scout");
       return;
    } else if (s_status == "InProgress") {
-      ebModalForm("Complete Board: " + s_first + " " + s_last,
-         "<label>Board Result:<br/><select name='Result'>"
+      ebModalForm("Complete board: " + s_first + " " + s_last,
+         "<label>Result<br/><select name='Result'>"
          + "<option value='Approved' selected>Approved</option>"
          + "<option value='Adjourned'>Adjourned</option>"
-         + "<option value='NotApproved'>NotApproved</option>"
+         + "<option value='NotApproved'>Not approved</option>"
          + "</select></label><br/><br/>"
-         + "<label>Notes:<br/><textarea name='Notes' rows='4' style='width: 300px;'></textarea></label>",
-         [{ name: "Complete", label: "Complete" }, { name: "Cancel", label: "Cancel" }],
+         + "<label>Notes<br/><textarea name='Notes' rows='4' style='width: 300px;'></textarea></label>",
+         [{ name: "Cancel", label: "Cancel" }, { name: "Complete", label: "Complete" }],
          function (name, body) {
             if (name == "Complete") {
                var result = body.querySelector("select[name='Result']").value;
@@ -37,14 +37,14 @@ function ProcessCompleteBoard(s_id) {
             }
          });
    } else {
-      ebAlert("Complete Error", s_first + " " + s_last + " has not been seated yet.", "scout");
+      ebAlert("Complete error", s_first + " " + s_last + " has not been seated yet.", "scout");
       return;
    }
 }
 
 function SendCompleteRequest(s_id, result, notes) {
-   var s_last = schedulerScoutGrid.getColumnValue(s_id, "Last");
-   var s_first = schedulerScoutGrid.getColumnValue(s_id, "First");
+   var s_last = youthStore.getColumnValue(s_id, "Last");
+   var s_first = youthStore.getColumnValue(s_id, "First");
 
    ebAction("/complete-board", {
       ScoutID: s_id,
@@ -53,17 +53,19 @@ function SendCompleteRequest(s_id, result, notes) {
    })
       .then(function (res) {
          if (res.ok) {
-            // Status shows Completed already (D-14); SCHEDULER_locateAdults
-            // below shows who to bring in, which is the useful message here,
-            // with Undo (O-2) added to that same message.
-            SCHEDULER_locateAdults(s_id, true, "Undo");
+            // Status shows Completed already (D-14); the message offers Undo
+            // (O-2) and says who came with the youth, to hear the result.
+            var label = (result === "NotApproved") ? "Not approved" : result;
+            var found = SCHEDULER_locateText(s_id, true);
+            ebMessage("Completed", ebEscapeHtml(s_first + " " + s_last) + ": " + label + "."
+               + (found ? "<br/>" + found : ""), "scout", "Undo");
          } else {
-            ebAlert("Complete Error",
+            ebAlert("Complete error",
                s_first + " " + s_last + " complete failed.<br/> " + res.text, "scout");
          }
       })
       .catch(function () {
-         ebAlert("Complete Error", s_first + " " + s_last + " Complete Failed.", "scout");
+         ebAlert("Complete error", s_first + " " + s_last + " Complete Failed.", "scout");
       })
       .then(function () {
          setTimeout(function () {

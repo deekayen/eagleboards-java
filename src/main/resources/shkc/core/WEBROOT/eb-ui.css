@@ -71,25 +71,6 @@
    --eb-line:     #b6b0a4;   /* panel/input borders */
    --eb-line-subtle: #e6e2da; /* hairline row dividers */
    --eb-heading:  var(--eb-olive);  /* headings, links, olive-as-text buttons */
-   --eb-row-text: #000000;  /* status-row text (not body text -- see D-13 rows) */
-
-   /* D-13 status rows. "Hi" = selected. Completed reuses --eb-page-bg
-      itself (light mode's #ffffff already equalled it) so a Completed row
-      never shows a tint of its own, same as today. */
-   --eb-status-registered-bg:          #ffcccc;
-   --eb-status-registered-bg-selected: #ff6666;
-   --eb-status-verified-bg:            #ffffcc;
-   --eb-status-verified-bg-selected:   #ffff66;
-   --eb-status-seated-bg:              #ccffff;
-   --eb-status-seated-bg-selected:     #66ffff;
-   --eb-status-inprogress-bg:          #ccffcc;
-   --eb-status-inprogress-bg-selected: #66ff66;
-   --eb-status-completed-bg:           var(--eb-page-bg);
-   --eb-status-completed-bg-selected:  #eeeeee;
-   --eb-status-postponed-bg:           #909090;
-   --eb-status-postponed-bg-selected:  #9f7f7f;
-
-   /* Adult-grid availability text (not a D-13 status; see scheduler_adult_grid.js). */
    --eb-red-text: var(--eb-red);   /* 5.63:1 on white, same red as the buttons */
 }
 
@@ -107,27 +88,8 @@
       --eb-dark-gray: #E9E9E4;     /* 14.97:1 on --eb-page-bg, 12.78:1 on --eb-surface */
       --eb-warm-gray: #a8aaa4;     /* 7.77:1 on --eb-page-bg, 6.63:1 on --eb-surface */
       --eb-heading: #8FB89A;       /* 7.76:1 on --eb-page-bg, 7.03:1 on --eb-surface */
-      --eb-tan: #3d3a2e;           /* paired with --eb-row-text below: 9.35:1 */
-      --eb-row-text: #E9E9E4;
+      --eb-tan: #3d3a2e;           /* 9.35:1 under --eb-dark-gray */
       --eb-red-text: #f0919b;      /* 8.02:1 on --eb-page-bg */
-
-      --eb-status-registered-bg:          #4a1f1f;  /* 11.44:1 */
-      --eb-status-registered-bg-selected: #6b2b2b;  /* 8.60:1 */
-      --eb-status-verified-bg:            #4a4520;  /* 7.97:1 */
-      --eb-status-verified-bg-selected:   #6b642e;  /* 4.94:1 */
-      --eb-status-seated-bg:              #1f3d3d;  /* 9.61:1 */
-      --eb-status-seated-bg-selected:     #2b5757;  /* 6.62:1 */
-      --eb-status-inprogress-bg:          #1f3d24;  /* 9.84:1 */
-      --eb-status-inprogress-bg-selected: #2b5732;  /* 6.86:1 */
-      /* Redeclared, not just inherited: custom-property inheritance passes
-         down the already-substituted value, so a descendant that does not
-         redeclare --eb-status-completed-bg would keep the light :root
-         value (var(--eb-page-bg) resolved against the LIGHT --eb-page-bg)
-         instead of picking up this block's dark one. */
-      --eb-status-completed-bg:           var(--eb-page-bg);
-      --eb-status-completed-bg-selected:  #1e2018;  /* 13.52:1 */
-      --eb-status-postponed-bg:           #5a5a5a;  /* 5.66:1 */
-      --eb-status-postponed-bg-selected:  #6e5656;  /* 5.51:1 */
    }
 }
 
@@ -396,63 +358,6 @@ body.eb-operator .tabulator input[type=checkbox] {
    height: 18px;
    cursor: pointer;
 }
-
-/* Room cards keep cornsilk from the original for recognisability, but gain a
-   real border and an olive selected state. Background moved here from
-   scheduler.html's inline style so it can vary with the theme. */
-body.eb-operator .eb-room-card {
-   border-color: var(--eb-line);
-   color: var(--eb-dark-gray);
-   background: var(--eb-surface);
-}
-body.eb-operator .eb-room-card.selected {
-   background: var(--eb-tan);
-   border-color: var(--eb-olive);
-   box-shadow: inset 3px 0 0 var(--eb-olive);
-}
-
-/* ---- D-13: youth/board status is text plus an icon, never color alone --
- * status2Class/SCHEDULER_statusIconHtml (scheduler_config.js) apply these.
- * Each status's default background has a dark-mode value above; a
- * config.properties color for an older file overrides it via the custom
- * property SCHEDULER_styleRowByStatus sets, which these rules read first.
- * ------------------------------------------------------------------- */
-body.eb-operator .eb-status-cell {
-   display: inline-flex;
-   align-items: center;
-}
-body.eb-operator .eb-status-icon {
-   width: 11px;
-   height: 11px;
-   margin-right: 5px;
-   flex: 0 0 auto;
-}
-body.eb-operator .tabulator-row.eb-status-registered { background: var(--eb-status-override, var(--eb-status-registered-bg)); }
-body.eb-operator .tabulator-row.eb-status-registered.eb-row-selected { background: var(--eb-status-override-selected, var(--eb-status-registered-bg-selected)); }
-body.eb-operator .tabulator-row.eb-status-verified { background: var(--eb-status-override, var(--eb-status-verified-bg)); }
-body.eb-operator .tabulator-row.eb-status-verified.eb-row-selected { background: var(--eb-status-override-selected, var(--eb-status-verified-bg-selected)); }
-body.eb-operator .tabulator-row.eb-status-seated { background: var(--eb-status-override, var(--eb-status-seated-bg)); }
-body.eb-operator .tabulator-row.eb-status-seated.eb-row-selected { background: var(--eb-status-override-selected, var(--eb-status-seated-bg-selected)); }
-body.eb-operator .tabulator-row.eb-status-inprogress { background: var(--eb-status-override, var(--eb-status-inprogress-bg)); }
-body.eb-operator .tabulator-row.eb-status-inprogress.eb-row-selected { background: var(--eb-status-override-selected, var(--eb-status-inprogress-bg-selected)); }
-body.eb-operator .tabulator-row.eb-status-completed { background: var(--eb-status-override, var(--eb-status-completed-bg)); }
-body.eb-operator .tabulator-row.eb-status-completed.eb-row-selected { background: var(--eb-status-override-selected, var(--eb-status-completed-bg-selected)); }
-body.eb-operator .tabulator-row.eb-status-postponed { background: var(--eb-status-override, var(--eb-status-postponed-bg)); }
-body.eb-operator .tabulator-row.eb-status-postponed.eb-row-selected { background: var(--eb-status-override-selected, var(--eb-status-postponed-bg-selected)); }
-/* Every status class above sets its own background, so the row text needs
-   its own color rather than the grid's default cell color once a status
-   class is present. */
-body.eb-operator .tabulator-row[class*="eb-status-"] .tabulator-cell { color: var(--eb-row-text); }
-body.eb-operator .tabulator-row.eb-row-selected { text-decoration: underline; }
-
-/* ---- adult-grid availability (see scheduler_adult_grid.js) ---- */
-body.eb-operator .eb-adult-gone .tabulator-cell { color: var(--eb-warm-gray); }
-body.eb-operator .eb-adult-committed .tabulator-cell { color: var(--eb-red-text); }
-body.eb-operator .eb-adult-selected {
-   background: var(--eb-tan);
-   text-decoration: underline;
-}
-body.eb-operator .eb-adult-selected .tabulator-cell { color: var(--eb-dark-gray); }
 
 /* Native <dialog> (P-4). The backdrop and centering are the browser's;
    only its color needs stating. */

@@ -590,6 +590,16 @@
             gridsByTab[tab].reloadQuiet();
          });
 
+         // Open the tab the URL names, so the scheduler's Results and People
+         // links (/admin#boards, /admin#adults) land on the right table.
+         // Once that tab's table is built: a redraw before then throws.
+         var openTab = document.querySelector("#tabbar button[data-tab='" + location.hash.slice(1) + "']");
+         if (openTab) {
+            gridsByTab[openTab.getAttribute("data-tab")].table.on("tableBuilt", function () {
+               openTab.click();
+            });
+         }
+
          // ---- Auto-refresh ----
          // Poll the visible tab so new check-ins appear without anyone pressing
          // Refresh. The interval is RefreshTimeSecs from config.properties, the
