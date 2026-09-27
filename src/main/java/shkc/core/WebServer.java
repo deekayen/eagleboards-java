@@ -241,7 +241,9 @@ public class WebServer {
                if (handler != null) {
                   EagleBoardScheduler.verbose("FOUND: " + target + "." + command);
                   handler.handle(target, request, response);
-                  if (WebServer.this._changeFeed != null && "POST".equalsIgnoreCase(request.getMethod())) {
+                  // The check-in pages' /api/ lookups are POSTs that change nothing.
+                  if (WebServer.this._changeFeed != null && "POST".equalsIgnoreCase(request.getMethod())
+                        && !target.startsWith("/api/")) {
                      WebServer.this._changeFeed.changed();
                   }
                } else if (!WebServer.this.sendResponseFile(WebServer.this._htmlDirectory, target, response)) {

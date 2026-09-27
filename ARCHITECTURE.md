@@ -98,13 +98,13 @@ The operator's Event page is plain DOM, laid out like the Windows version's
 Event page (shared SPEC.md O-3). The Admin tables use
 [Tabulator](https://tabulator.info/) (MIT), which replaced the original GPL
 dhtmlxSuite. The operator pages share `eb-app.css`, which follows the system's
-light/dark appearance, font and accent color; the check-in pages keep the
-Scouting palette in `eb-ui.css`.
+light/dark appearance, font and accent color. The check-in pages are shared by
+every version: they come from `eagleboards-shared/checkin` (SPEC.md D-18),
+pinned by `checkin-pages.lock`, and built to WCAG 2.2 AA.
 
 | File | Role |
 | --- | --- |
-| `index.html` | check-in station landing page; live registered lists |
-| `youth_register.html`, `adult_register.html` | check-in forms |
+| `index.html`, `youth_register.html`, `adult_register.html`, `checkin.css`, `checkin.js` | the check-in pages; shared, copied from `eagleboards-shared/checkin`, never edited here |
 | `scheduler.html` + `scheduler_event.js` | the Event page: youth queue, room cards, details pane |
 | `admin.html` | Results and People: tabular admin over every record type |
 | `configure.html` | Settings |
@@ -126,6 +126,13 @@ answers, and the pages re-read what they show when one arrives; room timers
 tick on the minute from the last read. The check-in index still refreshes its
 lists on the `RefreshTimeSecs` setting, because the Windows version serves the
 same page.
+
+The check-in pages call `/api/checked-in`, `/api/scout-choices`,
+`/api/youth-lookup` and `/api/adult-lookup` (`CheckInApi`), the same API every
+version serves: names and units for the lists, and for an email lookup only the
+fields that form fills in. No birthdate is ever served (D-7): `/register-youth`
+discards one, and the `-cells` and `-autofill` endpoints blank one already on
+file.
 
 `/checkin-address` lists the addresses the tablets can reach the server at
 (`CheckInAddress`), and `/checkin-qr?url=` draws one of them as an SVG QR code

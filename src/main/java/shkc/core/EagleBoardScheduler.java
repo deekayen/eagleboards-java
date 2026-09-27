@@ -22,7 +22,9 @@ import java.util.logging.Logger;
 import java.util.logging.SimpleFormatter;
 
 public class EagleBoardScheduler {
-   private static final String[] SCOUT_REG_FIELDS = new String[]{"First", "Last", "DOB", "Unit", "UnitType", "Email", "Phone", "Leader"};
+   // No DOB (SPEC.md D-7): signing in again never writes a birthdate, and
+   // leaves one already on file untouched (O-5).
+   private static final String[] SCOUT_REG_FIELDS = new String[]{"First", "Last", "Unit", "UnitType", "Email", "Phone", "Leader"};
    private static final String[] ADULT_REG_FIELDS = new String[]{"First", "Last", "Unit", "UnitType", "Email", "Phone", "ProjectReview", "FinalBoard"};
    private SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd");
    private static boolean _verbose = false;
@@ -311,6 +313,9 @@ public class EagleBoardScheduler {
       this._server.addHandler("/restore-board", new EagleBoardScheduler.RestoreBoardHandler());
       this._server.addHandler("/change-board-members", new EagleBoardScheduler.ChangeBoardMembersHandler());
       this._server.addHandler("/rename-room", new EagleBoardScheduler.RenameRoomHandler());
+      // The shared check-in pages' calls (eagleboards-shared/checkin).
+      new CheckInApi(this.LOCK, this._scoutRecords, this._scoutsScheduledRecords, this._adultRecords,
+         this._adultHistoryRecords, this._configRecords).register(this._server);
       this._server.addHandler("/checkin-address", new CheckInAddress.AddressHandler());
       this._server.addHandler("/checkin-qr", new CheckInAddress.QrHandler());
       // Every POST above may change what a page shows; /events tells the
@@ -422,7 +427,8 @@ public class EagleBoardScheduler {
                contentType = "text/json";
                List jsonMatches = this._records.get(this._lookupField, lookupValue);
                if (jsonMatches.size() > 0) {
-                  ((DataRecord)jsonMatches.get(0)).toJSON(out);
+                  // Never the birthdate (SPEC.md D-7).
+                  ((DataRecord)jsonMatches.get(0)).toJSON(out, CheckInApi.withoutBirthdate(this._records.getColumns()));
                }
             } else {
                contentType = "text/xml";
@@ -432,7 +438,7 @@ public class EagleBoardScheduler {
                   DataRecord xmlRecord = (DataRecord)xmlMatches.get(0);
                   boolean firstColumn = true;
 
-                  for (String column : this._records.getColumns()) {
+                  for (String column : CheckInApi.withoutBirthdate(this._records.getColumns())) {
                      if (!firstColumn) {
                         out.append("\n");
                      }
@@ -745,6 +751,12 @@ public class EagleBoardScheduler {
             String contentType = "text/xml";
             String[] columns = EagleBoardScheduler.this.getFields(colsParam, this._records.getColumns());
             String[] extraColumns = EagleBoardScheduler.this.getFields(dataParam, null);
+            // SPEC.md D-7 / O-5: a birthdate already on file stays there but is
+            // never served. The values are read through these copies, where DOB
+            // names a column that holds nothing; `columns` keeps the real names
+            // for the CSV header, so every column still lines up.
+            String[] valueColumns = CheckInApi.withholdBirthdate(columns);
+            String[] valueExtraColumns = CheckInApi.withholdBirthdate(extraColumns);
             StringBuffer out = new StringBuffer();
             if (format.equals("data")) {
                contentType = "text/xml";
@@ -754,11 +766,11 @@ public class EagleBoardScheduler {
                   if (filterValues != null && filterColumn != null) {
                      String cellValue = record.get(filterColumn);
                      if (cellValue != null && cellValue.length() > 0 && filterValues.indexOf(cellValue) >= 0) {
-                        record.toString(out, columns, extraColumns, format);
+                        record.toString(out, valueColumns, valueExtraColumns, format);
                         out.append("\n");
                      }
                   } else {
-                     record.toString(out, columns, extraColumns, format);
+                     record.toString(out, valueColumns, valueExtraColumns, format);
                      out.append("\n");
                   }
                }
@@ -783,11 +795,11 @@ public class EagleBoardScheduler {
                   if (filterValues != null && filterColumn != null) {
                      String csvCellValue = csvRecord.get(filterColumn);
                      if (csvCellValue != null && csvCellValue.length() > 0 && filterValues.indexOf(csvCellValue) >= 0) {
-                        csvRecord.toString(out, columns, null, format);
+                        csvRecord.toString(out, valueColumns, null, format);
                         out.append("\n");
                      }
                   } else {
-                     csvRecord.toString(out, columns, null, format);
+                     csvRecord.toString(out, valueColumns, null, format);
                      out.append("\n");
                   }
                }
@@ -799,11 +811,11 @@ public class EagleBoardScheduler {
                   if (filterValues != null && filterColumn != null) {
                      String rowCellValue = rowRecord.get(filterColumn);
                      if (rowCellValue != null && rowCellValue.length() > 0 && filterValues.indexOf(rowCellValue) >= 0) {
-                        rowRecord.toCells(out, columns, extraColumns);
+                        rowRecord.toCells(out, valueColumns, valueExtraColumns);
                         out.append("\n");
                      }
                   } else {
-                     rowRecord.toCells(out, columns, extraColumns);
+                     rowRecord.toCells(out, valueColumns, valueExtraColumns);
                      out.append("\n");
                   }
                }
@@ -1042,6 +1054,9 @@ public class EagleBoardScheduler {
             }
 
             ScoutRecord scout = new ScoutRecord(request.getParameterMap());
+            // SPEC.md D-7: no birthdate is asked for or kept. An older cached
+            // sign-in page may still send one; it is discarded here.
+            scout.setValue("DOB", "");
             ScoutRecord existingScout = EagleBoardScheduler.this._scoutRecords.get(scout.getID());
             if (existingScout != null) {
                EagleBoardScheduler.verbose("UPDATING EXISTING SCOUT RECORD: " + existingScout);

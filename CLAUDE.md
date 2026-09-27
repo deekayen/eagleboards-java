@@ -27,8 +27,19 @@ original source was received) and then modernized. See `PROVENANCE.md`.
   the board, all visible at once. The Admin tables still use **Tabulator**
   (MIT), which replaced the original GPL dhtmlx; they really are
   spreadsheets. Admin, Settings and Help share `eb-app.css` and the same top
-  bar. The check-in pages keep `eb-ui.css`: they are served identically by
-  the Windows version, so change them there too (or in the shared repo).
+  bar.
+- **The check-in pages are shared** (SPEC.md D-18): `index.html`,
+  `youth_register.html`, `adult_register.html`, `checkin.css` and
+  `checkin.js` in `WEBROOT/` are copies of `eagleboards-shared/checkin`,
+  pinned by `checkin-pages.lock`. **Never edit them here**; CI fails if they
+  differ from the pinned commit. Change them in the shared repo (WCAG 2.2 AA:
+  run its `check-contrast.js` and an axe scan), then copy all five and update
+  the lock. They call `CheckInApi` (`/api/*`), the API all three versions
+  serve.
+- **No birthdate** (SPEC.md D-7, O-5): nothing asks for, keeps, shows or
+  exports one. `/register-youth` discards a `DOB` from an old cached page, and
+  the `-cells` and `-autofill` endpoints blank one already on file rather than
+  drop the column, so files still move between versions.
 - **Nothing polls** (SPEC.md D-15). `/events` (`ChangeFeed`) streams a message
   after every POST a handler answers; the Event and Admin pages re-read then.
   Keep every change to the data a POST, and never a read: a GET that changed

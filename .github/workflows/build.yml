@@ -51,6 +51,24 @@ jobs:
             cat decompiled-names.txt
             exit 1
           fi
+      - name: Check-in pages match eagleboards-shared (SPEC.md D-18)
+        shell: bash
+        # The check-in pages are designed once, in eagleboards-shared/checkin,
+        # and every version serves them unchanged. checkin-pages.lock pins the
+        # commit; a copy edited here instead of there fails the build. CRs are
+        # stripped first, since a Windows checkout may convert line endings.
+        run: |
+          SHA=$(tr -d '[:space:]' < checkin-pages.lock)
+          for f in index.html youth_register.html adult_register.html checkin.css checkin.js; do
+            curl -sfL --retry 3 "https://raw.githubusercontent.com/deekayen/eagleboards-shared/$SHA/checkin/$f" -o "shared-$f" \
+              || { echo "FAIL: could not fetch checkin/$f at eagleboards-shared@$SHA"; exit 1; }
+            if ! cmp -s <(tr -d '\r' < "shared-$f") <(tr -d '\r' < "src/main/resources/shkc/core/WEBROOT/$f"); then
+              echo "FAIL: WEBROOT/$f differs from eagleboards-shared@$SHA."
+              echo "      Edit it in eagleboards-shared/checkin, copy all five files here, and update checkin-pages.lock."
+              exit 1
+            fi
+          done
+          echo "check-in pages match eagleboards-shared@$SHA"
       - name: Board composition rules (same-unit conflict detection)
         shell: bash
         # The scheduler must flag board members from the scout's own unit --
