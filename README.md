@@ -182,6 +182,18 @@ Those files hold names, phone numbers, emails, and birthdates of adults **and
 minors**. Treat them the way you would treat a paper roster: keep them on that
 machine, do not email them, and do not put them anywhere shared.
 
+## Support this project
+
+The scheduler is free, and built and kept up by a volunteer. If it helps your
+district's board events, you can chip in:
+[GitHub Sponsors](https://github.com/sponsors/deekayen) ·
+[Ko-fi](https://ko-fi.com/deekayen) ·
+[Liberapay](https://liberapay.com/deekayen) ·
+[PayPal](https://paypal.me/deekayen) ·
+[Venmo](https://venmo.com/drdnorman) ·
+[Buy Me a Coffee](https://buymeacoff.ee/deekayen).
+The same links are on the scheduler's Settings page.
+
 ## For whoever set this up
 
 | Document | What it covers |

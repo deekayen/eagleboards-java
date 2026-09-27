@@ -558,6 +558,24 @@ dialog.eb-dialog::backdrop { background: rgba(0, 0, 0, 0.35); }
    margin-bottom: 16px;
 }
 
+/* The funding links (Settings, Help): a row of link buttons. */
+.eb-support-links { display: flex; flex-wrap: wrap; gap: 8px; list-style: none; margin: 8px 0 0; padding: 0; }
+.eb-page .eb-support-links { padding: 0; }
+.eb-page .eb-support-links li { margin: 0; }
+.eb-support-links a {
+   display: inline-flex;
+   align-items: center;
+   min-height: 30px;
+   padding: 4px 12px;
+   border: 1px solid var(--eb-line-strong);
+   border-radius: var(--eb-radius-sm);
+   background: var(--eb-surface);
+   color: var(--eb-text);
+   text-decoration: none;
+}
+.eb-support-links a:hover { background: var(--eb-surface-alt); }
+.eb-support-links a::after { content: "\2197"; margin-left: 6px; color: var(--eb-text-2); }
+
 /* Forms (Settings) */
 .eb-field {
    display: grid;
