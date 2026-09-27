@@ -167,16 +167,16 @@ jobs:
           kill $SRV
           wait $SRV 2>/dev/null || true
           echo "board lifecycle passed on ${{ matrix.os }}"
-      - name: Board evening (14 scouts, 12 rooms, 30 adults, 5 chairs)
+      - name: Board event (14 scouts, 12 rooms, 30 adults, 5 chairs)
         shell: bash
-        # A whole evening at the district's real shape, deliberately short of
+        # A whole event at the district's real shape, deliberately short of
         # chairs so boards queue behind the five people who may chair one.
         # Covers what no single-board check can: adults committed to one room
         # and released when the review completes, the rules holding for
         # requests that never went through our UI, and postpone/reset handing
         # the room and the members back. Synthetic names, spare port, throwaway
         # data dir -- never the real Master_AdultHistory.csv.
-        run: bash scripts/test-board-evening.sh
+        run: bash scripts/test-board-event.sh
       - name: Windows launcher (run.bat picks the newest jar, warns on shadowed WEBROOT, starts quiet)
         if: matrix.os == 'windows-latest'
         shell: cmd

@@ -8,7 +8,7 @@
 - [ ] CI green on Linux amd64, Windows amd64, Linux arm64, and macOS
 - [ ] Tried it in a browser against synthetic data on a spare port
 - [ ] Fixed a crash? Added a regression assertion to the CI smoke test
-- [ ] Changed how a board is seated, run or torn down? Added a case to `scripts/test-board-evening.sh`
+- [ ] Changed how a board is seated, run or torn down? Added a case to `scripts/test-board-event.sh`
 
 ## Data safety
 

@@ -1349,7 +1349,7 @@ public class EagleBoardScheduler {
    // the Admin tables. The room keeps its ID; the youth and adults in it move
    // to the new name with it, so a board in progress is not stranded looking
    // for a room that no longer matches -- which is what an Admin-table edit of
-   // the Room column does (section 13 of the evening test). The Windows and
+   // the Room column does (section 13 of the event test). The Windows and
    // Mac versions rename the same way.
    public class RenameRoomHandler extends EagleBoardScheduler.CoreBoardHandler {
       @Override

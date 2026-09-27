@@ -192,11 +192,11 @@ fast feedback loop:
 
 ```sh
 node scripts/test-seat-conflicts.js     # the composition rules, as pure functions
-bash scripts/test-board-evening.sh      # a whole evening against a real server
+bash scripts/test-board-event.sh        # a whole event against a real server
 ```
 
 Neither needs network access or any installed package, and both refuse to touch
-real data: the evening test seeds a throwaway directory with synthetic names on
+real data: the event test seeds a throwaway directory with synthetic names on
 a spare port. **Never copy live event data in to make a test look busier.**
 
 `scripts/verify-parity.sh` also exists. It boots the inherited 2019 binary
@@ -225,7 +225,7 @@ looks like a pass**, because a tool that quietly produces nothing empties out
   interpreter name that works everywhere — Debian and Raspberry Pi OS have
   `python3` and no bare `python`. Do not reintroduce a Python dependency.
 - **Bash 3.2 on macOS.** The runners still ship it, so no `mapfile`, no
-  `declare -A`, no `${var,,}`. `test-board-evening.sh` uses positional
+  `declare -A`, no `${var,,}`. `test-board-event.sh` uses positional
   parameters instead of arrays for exactly this reason.
 - **BSD vs GNU tools** (macOS): `mktemp -d` needs an explicit template, `\+` is
   not a repetition operator in BSD `sed` (use `sed -E` and `+`), `wc -l` pads
@@ -262,7 +262,7 @@ looks like a pass**, because a tool that quietly produces nothing empties out
   signature in it.
 - **Server endpoints are the contract.** The UI rework froze every endpoint and
   wire format. Prefer client-only changes; if you must touch the server, add a
-  case to `scripts/test-board-evening.sh` covering it.
+  case to `scripts/test-board-event.sh` covering it.
 - **Handlers must not crash the server.** All request handling sits inside a
   `Throwable` net in `WebServer.service` that logs and returns a clean 500 for
   that one request. Still, null-guard your inputs: `getParameter` can return

@@ -88,7 +88,7 @@ tab. Edit the Result directly. For the wrong scout, set their Status back to
 `Registered` and clear Result, Chair and Members, then give the reviewed
 scout the result. Seat Board accepts a `Registered` scout whose Room is
 still `N/A` from the mistaken Complete. Section 18 of
-`test-board-evening.sh` covers both corrections and checks that the Admin
+`test-board-event.sh` covers both corrections and checks that the Admin
 page only offers statuses the app acts on.
 
 ## Build, run, verify
@@ -98,8 +98,8 @@ page only offers statuses the app acts on.
   popup automatically when there's no display, e.g. a headless Pi).
 - Board composition rules: `node scripts/test-seat-conflicts.js` (headless, no
   framework, no network). Runs in CI on all four platforms.
-- Whole board evening: `bash scripts/test-board-evening.sh` — boots the jar on a
-  spare port against a throwaway data dir and runs a full evening at the
+- Whole board event: `bash scripts/test-board-event.sh` — boots the jar on a
+  spare port against a throwaway data dir and runs a full event at the
   district's real shape (14 scouts, 12 rooms, 30 adults, and only **5** adults
   qualified to chair anything, so boards queue behind the chairs). It covers
   what the pure-function tests cannot: adults committed to one room and released
@@ -111,7 +111,7 @@ page only offers statuses the app acts on.
   **Copy every new scenario to the other two versions:** the Windows port
   (`deekayen/eagleboards-windows`) runs this same script, and the Mac
   version (`deekayen/eagleboards-macos`) mirrors it in
-  `BoardEveningTests.swift`.
+  `BoardEventTests.swift`.
 
 **Prefer pushing over re-running the suite locally.** `build.yml` already runs
 the build, the structural check, both test scripts, the runtime smoke test, the
@@ -129,7 +129,7 @@ push be the verification.
    board lifecycle, checks the Windows launcher, checks the live SignUpGenius
    API (Linux/push, `SUG_KEY` secret), and guards specific past bugs. **Add a
    regression assertion when you fix a crash**, and a case in
-   `test-board-evening.sh` when you change how a board is seated, run or torn
+   `test-board-event.sh` when you change how a board is seated, run or torn
    down — a rule with no test is a rule that comes back.
 2. **Never commit PII or secrets.** Participant data (all CSV/XLS, dated
    `YYYY-MM-DD/` folders, `Master_AdultHistory*`, `LOGIN_INFO*`) and the
@@ -155,7 +155,7 @@ push be the verification.
   and fails the build (the "No decompiled variable names" step in `build.yml`).
 - **Server endpoints are the contract.** The UI rework kept every endpoint and
   wire format frozen; prefer client-only changes. If you must change the
-  server, add a case to `scripts/test-board-evening.sh` covering it.
+  server, add a case to `scripts/test-board-event.sh` covering it.
 - **Handlers must not crash the server.** All request handling is wrapped in a
   `Throwable` safety net in `WebServer.service` that logs a stack trace and
   returns a clean 500 for that one request. Still, null-guard handler inputs
@@ -187,7 +187,7 @@ push be the verification.
 - **Renaming a room** from the Event page goes through `/rename-room`, which
   moves the youth and adults in it to the new name (the room keeps its ID).
   Editing the Room column on the Admin page does not, and strands a board in
-  progress (evening test section 13). A name of `N/A` or with a comma is
+  progress (event test section 13). A name of `N/A` or with a comma is
   refused, as in the Windows and Mac versions.
 - **Board composition rules** live in `process_seat.js` for the operator's sake
   (it explains and, where allowed, offers an override) **and again in
@@ -244,7 +244,7 @@ push be the verification.
   Age is attested by the "I am 21+" button on the sign-in page, and the
   parent/relative rule is handled by unit matching, so neither needs a field on
   `AdultRecord`. Keep the pure rules pure and tested (`test-seat-conflicts.js`)
-  and the server's behavior tested too (`test-board-evening.sh`).
+  and the server's behavior tested too (`test-board-event.sh`).
 - **Config lives in `config.properties`** (JDK `java.util.Properties`,
   `key=value`, `#` comments) as one CONFIG record, loaded into `ConfigRecord`
   (columns must be listed in `ConfigRecord.COLUMNS` to be served via

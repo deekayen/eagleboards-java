@@ -134,12 +134,12 @@
          // result recorded against the wrong scout is undone: it puts them back
          // in the queue for their real board. This list once offered "Waiting",
          // which no part of the app recognises, so choosing it stranded the
-         // scout where nothing could seat them. test-board-evening.sh checks
+         // scout where nothing could seat them. test-board-event.sh checks
          // every value here is one the server acts on.
          var STATUSES = ["Registered", "InProgress", "Completed", "Postponed"];
          // A board's decision, exactly the three the Complete dialog offers. Not
          // "Postponed": that is the Status of a scout sent away before any board
-         // met them, and such a scout has no Result. test-board-evening.sh checks
+         // met them, and such a scout has no Result. test-board-event.sh checks
          // this list against what /complete-board accepts.
          var RESULTS = ["Approved", "Adjourned", "NotApproved"];
          var ROLES = ["Chair", "Member", "Unavailable"];

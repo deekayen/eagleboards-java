@@ -307,15 +307,15 @@ p = proposeBoard(queueScout("S", "Troop1001", "Final"), [
 check("with too few members it proposes what there is, and says so",
    [p.chairId, p.memberIds, p.problems], ["FC", ["M1"], ["Only 1 Final Members Available"]]);
 
-console.log("== a whole evening: five chairs, five boards at once ==");
+console.log("== a whole event: five chairs, five boards at once ==");
 
-// The shape of scripts/test-board-evening.sh: 9 Final and 5 Project scouts,
+// The shape of scripts/test-board-event.sh: 9 Final and 5 Project scouts,
 // 30 adults of whom only five chair anything -- one either kind, two Final
 // only, two Project only (and those two are plain Members of a Final board).
 // Proposing boards down the queue must reach the chair cap of five. Picking
 // in sign-in order gave the first Final board both project chairs as its
-// members, and the evening stalled at three.
-var evening = [
+// members, and the event stalled at three.
+var pool = [
    poolAdult("FC1", "Troop2001", "Chair", "Chair"),
    poolAdult("FC2", "Troop2002", "Chair", "Member"),
    poolAdult("FC3", "Troop2003", "Chair", "Member"),
@@ -323,13 +323,13 @@ var evening = [
    poolAdult("PC2", "Troop2005", "Member", "Chair")
 ];
 for (var n = 6; n <= 25; n++) {
-   evening.push(poolAdult("M" + n, "Troop" + (2000 + n), "Member", "Member"));
+   pool.push(poolAdult("M" + n, "Troop" + (2000 + n), "Member", "Member"));
 }
-evening.push(poolAdult("U26", "Troop2026", "Member", "Unavailable"));
-evening.push(poolAdult("U27", "Troop2027", "Member", "Unavailable"));
-evening.push(poolAdult("U28", "Troop1001", "Unavailable", "Member"));
-evening.push(poolAdult("U29", "Troop1002", "Unavailable", "Member"));
-evening.push(poolAdult("U30", "Troop1003", "Unavailable", "Member"));
+pool.push(poolAdult("U26", "Troop2026", "Member", "Unavailable"));
+pool.push(poolAdult("U27", "Troop2027", "Member", "Unavailable"));
+pool.push(poolAdult("U28", "Troop1001", "Unavailable", "Member"));
+pool.push(poolAdult("U29", "Troop1002", "Unavailable", "Member"));
+pool.push(poolAdult("U30", "Troop1003", "Unavailable", "Member"));
 
 var queue = [];
 for (var q = 1; q <= 14; q++) {
@@ -340,12 +340,12 @@ var boards = { Final: 0, Project: 0 };
 var seatedIds = {};
 for (var s = 0; s < queue.length; s++) {
    var stillWaiting = queue.filter(function (t) { return t !== queue[s] && !seatedIds[t.id]; });
-   var proposal = proposeBoard(queue[s], evening, stillWaiting);
+   var proposal = proposeBoard(queue[s], pool, stillWaiting);
    if (proposal.problems.length === 0) {
       seatedIds[queue[s].id] = true;
       boards[queue[s].btype]++;
       [proposal.chairId].concat(proposal.memberIds).forEach(function (id) {
-         evening.forEach(function (a) {
+         pool.forEach(function (a) {
             if (a.id === id) {
                a.room = "R" + s;
             }

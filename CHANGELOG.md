@@ -100,7 +100,7 @@ The size and unit rules are pure functions with no server round trip, covered by
 time are **also enforced by the server**, because the browser is the normal way
 in and not the only one: a board seated past the UI is one nobody finds out
 about until they read the result of a review that should not have happened.
-`scripts/test-board-evening.sh` runs a whole evening against those rules. Both
+`scripts/test-board-event.sh` runs a whole event against those rules. Both
 run in CI on all three platforms.
 
 **Other workflow changes**

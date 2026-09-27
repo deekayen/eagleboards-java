@@ -1135,7 +1135,7 @@ function renameRoomDialog() {
 }
 
 // Switch a room between final boards and project reviews. A board already
-// in it is not disturbed (evening test section 17).
+// in it is not disturbed (event test section 17).
 function switchRoomType(room) {
    var type = room.BoardType === "Project" ? "Final" : "Project";
    ebSaveRow("/room-update", "updated", room.id, { BoardType: type })
