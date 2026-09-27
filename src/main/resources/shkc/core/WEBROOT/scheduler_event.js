@@ -358,6 +358,32 @@ var ICON_ERROR = "<circle cx='6' cy='6' r='4.8' fill='none' stroke='currentColor
 var ICON_OK = "<path d='M2.2 6.3l2.4 2.4 5.2-5.6' fill='none' stroke='currentColor' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/>";
 var ICON_REMOVE = "<path d='M3 3l6 6M9 3 3 9' stroke='currentColor' stroke-width='1.4' stroke-linecap='round'/>";
 
+// The marks after an adult's name (SPEC.md D-20): Wood Badge, and a warning
+// when they are in the youth's own unit. Each says what it means on hover and
+// to a screen reader. The pentagon is eagleboards-shared's
+// artwork/wood-badge.svg, in its own colors in light and dark.
+var WOOD_BADGE_MARK = "<svg class='eb-mark-wb' viewBox='0 0 100 100' aria-hidden='true' focusable='false'>"
+   + "<path fill='#ffffff' d='M50,20.3L81.09,42.9L69.22,79.45L30.78,79.45L18.91,42.9Z'/>"
+   + "<path fill='#21306b' d='M52.43,4.76L95.13,35.79L78.67,41.13L52.43,22.07Z'/>"
+   + "<path fill='#bf2136' d='M96.63,40.4L80.32,90.6L70.14,76.6L80.17,45.75Z'/>"
+   + "<path fill='#000000' d='M76.39,93.45L23.61,93.45L33.78,79.45L66.22,79.45Z'/>"
+   + "<path fill='#1f6633' d='M19.68,90.6L3.37,40.4L19.83,45.75L29.86,76.6Z'/>"
+   + "<path fill='#f2b81a' d='M4.87,35.79L47.57,4.76L47.57,22.07L21.33,41.13Z'/>"
+   + "<circle fill='#000000' cx='50' cy='53' r='12'/></svg>";
+
+function adultMarks(a, s) {
+   var marks = "";
+   if (a.WoodBadge === "Y") {
+      marks += "<span class='eb-mark' role='img' aria-label='Wood Badge' title='Counting today toward a Wood Badge ticket item'>"
+         + WOOD_BADGE_MARK + "</span>";
+   }
+   if (s.UnitName && a.UnitName === s.UnitName) {
+      marks += "<span class='eb-mark eb-mark-unit' role='img' aria-label='Same unit' title='Same unit as " + h(fullName(s)) + "'>"
+         + icon(ICON_WARN) + "</span>";
+   }
+   return marks;
+}
+
 function timerIcon(state) {
    return icon(state === "over" ? ICON_ALARM : state === "warn" ? ICON_TIMER : ICON_STOPWATCH);
 }
@@ -382,9 +408,6 @@ function adultDetail(a, btype) {
       parts.push("Member");
    } else if (role === "Unavailable") {
       parts.push("No thanks to " + (btype === "Project" ? "project reviews" : "final boards"));
-   }
-   if (a.WoodBadge === "Y") {
-      parts.push("Wood Badge");
    }
    return parts.filter(function (p) { return !!p; }).join(" · ");
 }
@@ -433,8 +456,9 @@ function render() {
 }
 
 // ----------------------------------------------------------------- queue
+// Every youth, in three stacked groups, and nothing to pick before one can be
+// found (SPEC.md O-3): Find looks through all of them.
 function renderQueue() {
-   var show = el("queue-show").value;
    var find = el("queue-find").value.trim().toLowerCase();
    var matches = function (s) {
       if (!find) {
@@ -445,23 +469,15 @@ function renderQueue() {
    };
 
    var groups = [
-      { key: "waiting", title: "Waiting", test: function (s) { return isWaiting(s.Status); },
+      { title: "Waiting", test: function (s) { return isWaiting(s.Status); },
         sort: function (a, b) { return sort_regnum(a.RegNum, b.RegNum); } },
-      { key: "onboard", title: "On a board", test: function (s) { return isOnBoard(s.Status); },
+      { title: "On a board", test: function (s) { return isOnBoard(s.Status); },
         sort: function (a, b) { return String(a.Room).localeCompare(String(b.Room), undefined, { numeric: true }); } },
-      { key: "finished", title: "Finished", test: function (s) { return isFinished(s.Status); },
+      { title: "Finished", test: function (s) { return isFinished(s.Status); },
         sort: function (a, b) { return a.LastUpdateTime < b.LastUpdateTime ? 1 : (a.LastUpdateTime > b.LastUpdateTime ? -1 : 0); } }
    ];
-   var visible = {
-      active: ["waiting", "onboard"], waiting: ["waiting"], onboard: ["onboard"],
-      finished: ["finished"], all: ["waiting", "onboard", "finished"]
-   }[show] || ["waiting", "onboard"];
-
    var html = "";
    groups.forEach(function (g) {
-      if (visible.indexOf(g.key) < 0) {
-         return;
-      }
       var rows = youthStore.rows.filter(g.test).filter(matches).sort(g.sort);
       html += "<div class='eb-group' role='presentation'>" + h(g.title) + " (" + rows.length + ")</div>";
       if (rows.length === 0) {
@@ -638,10 +654,9 @@ function renderBuilder(s) {
          return;
       }
       var canChair = roleFor(a, btype) === "Chair";
-      var sameUnit = s.UnitName && a.UnitName === s.UnitName;
       list += "<li class='eb-member' data-id='" + h(id) + "'>"
-         + "<span class='eb-member-main'><span>" + h(fullName(a)) + "</span>"
-         + "<span class='eb-hint'>" + h(adultDetail(a, btype)) + (sameUnit ? " · <span class='eb-warn-text'>Same unit</span>" : "") + "</span></span>"
+         + "<span class='eb-member-main'><span>" + h(fullName(a)) + adultMarks(a, s) + "</span>"
+         + "<span class='eb-hint'>" + h(adultDetail(a, btype)) + "</span></span>"
          + (canChair ? "<label class='eb-check' title='This member chairs the board'><input type='radio' name='d-chair' value='"
             + h(id) + "'" + (id === boardBuilder.chairId ? " checked" : "") + "/> Chair</label>" : "")
          + "<button type='button' class='eb-icon-button' data-remove='" + h(id) + "' title='Remove from this board' aria-label='Remove "
@@ -697,7 +712,7 @@ function builderRules(s) {
 
    if (picked.length > 0 && !boardBuilder.chairId) {
       rules.push({ kind: "error", text: "No one here may chair a " + ebBoardTypeLabel(btype).toLowerCase()
-         + ". Add a chair, or promote someone on People." });
+         + ". Add a chair, or promote someone on the Admin tables' Adults tab." });
    }
 
    var members = picked.map(function (a) { return { id: a.id, uname: a.UnitName, last: a.Last, first: a.First }; });
@@ -774,13 +789,11 @@ function renderAdultList(s) {
    var html = rows.map(function (a) {
       var free = isFreeHere(a);
       var available = free && roleFor(a, btype) !== "Unavailable";
-      var sameUnit = s.UnitName && a.UnitName === s.UnitName;
       var where = a.Room === ownRoom ? " · Leaving this board"
          : free ? "" : " · " + (a.Room === "N/A" ? "Gone home" : "Room " + a.Room);
       return "<li class='eb-adult" + (available ? "" : " eb-unavailable") + "' data-id='" + h(a.id) + "'>"
-         + "<span class='eb-member-main'><span>" + h(fullName(a)) + "</span>"
-         + "<span class='eb-hint'>" + h(adultDetail(a, btype) + where)
-         + (sameUnit ? " · <span class='eb-warn-text'>Same unit</span>" : "") + "</span></span>"
+         + "<span class='eb-member-main'><span>" + h(fullName(a)) + adultMarks(a, s) + "</span>"
+         + "<span class='eb-hint'>" + h(adultDetail(a, btype) + where) + "</span></span>"
          + "<button type='button' data-add='" + h(a.id) + "'" + (available ? "" : " disabled") + " aria-label='Add " + h(fullName(a)) + "'>Add</button>"
          + "</li>";
    }).join("");
@@ -798,7 +811,7 @@ function renderActive(s) {
    members.sort(function (a, b) { return (a.id === s.BoardChairID ? -1 : b.id === s.BoardChairID ? 1 : byName(a, b)); });
    el("d-active-members").innerHTML = members.map(function (a) {
       var chair = a.id === s.BoardChairID;
-      return "<li class='eb-member'><span class='eb-member-main'><span>" + (chair ? icon(ICON_CHAIR) : "") + h(fullName(a)) + "</span>"
+      return "<li class='eb-member'><span class='eb-member-main'><span>" + (chair ? icon(ICON_CHAIR) : "") + h(fullName(a)) + adultMarks(a, s) + "</span>"
          + "<span class='eb-hint'>" + h(ebUnitLabel(a.UnitName)) + (chair ? " · <span class='eb-accent-text'>Chairing this board</span>" : "")
          + "</span></span></li>";
    }).join("") || "<li class='eb-hint'>No members recorded.</li>";
@@ -1387,7 +1400,6 @@ function showCheckinQr() {
 }
 
 // ---------------------------------------------------------------- events
-el("queue-show").addEventListener("change", renderQueue);
 el("queue-find").addEventListener("input", renderQueue);
 
 el("queue-list").addEventListener("click", function (ev) {

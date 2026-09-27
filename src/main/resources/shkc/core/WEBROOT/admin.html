@@ -24,15 +24,15 @@
       </style>
    </head>
    <!-- Every record, editable as a table: where a result is corrected, an
-        adult promoted to chair, or a mistaken identity put right. The Event
-        page's Results and People links open the Boards and Adults tabs. -->
+        adult promoted to chair, or a mistaken identity put right. One link,
+        Admin tables, reaches it from every page (SPEC.md P-6); /admin#boards
+        and /admin#adults still open those tabs. -->
    <body class="eb-app">
       <header class="eb-appbar">
          <span class="eb-brand">Eagle Boards</span>
          <nav class="eb-nav" aria-label="Pages">
             <a href="/scheduler">Event</a>
-            <a href="/admin#boards" id="nav-results" title="Every board and its result; correct a result here">Results</a>
-            <a href="/admin#adults" id="nav-people" title="The adults signed in at this event">People</a>
+            <a href="/admin" aria-current="page" title="Every record as an editable table: correct a result, change someone's roles">Admin tables</a>
             <a href="/configure" title="Room timers and other settings">Settings</a>
             <a href="/help" title="How to run an event">Help</a>
          </nav>
@@ -521,7 +521,6 @@
             for (var p = 0; p < panels.length; p++) {
                panels[p].classList.toggle("active", panels[p].id === "panel-" + tab);
             }
-            markNav(tab);
             // A reload, or the Back button, comes back to this tab.
             history.replaceState(null, "", "#" + tab);
             // Tabulator needs a redraw after its container becomes visible.
@@ -530,8 +529,8 @@
             gridsByTab[tab].reloadQuiet();
          });
 
-         // Open the tab the URL names, so the scheduler's Results and People
-         // links (/admin#boards, /admin#adults) land on the right table.
+         // Open the tab the URL names (/admin#boards, /admin#adults), so a
+         // link from the Event page lands on the right table.
          // Once that tab's table is built: a redraw before then throws.
          var openTab = document.querySelector("#tabbar button[data-tab='" + location.hash.slice(1) + "']");
          if (openTab) {
@@ -540,22 +539,7 @@
             });
          }
 
-         // Results for the board tables, People for the adults, in the nav.
-         function markNav(tab) {
-            var results = tab === "boards" || tab === "scouts" || tab === "scheduled";
-            var people = tab === "adults" || tab === "history";
-            [["nav-results", results], ["nav-people", people]].forEach(function (link) {
-               var a = document.getElementById(link[0]);
-               if (link[1]) {
-                  a.setAttribute("aria-current", "page");
-               } else {
-                  a.removeAttribute("aria-current");
-               }
-            });
-         }
-         markNav(location.hash.slice(1) || "boards");
-
-         // Results and People while already here only change the hash.
+         // A link to another tab while already here only changes the hash.
          window.addEventListener("hashchange", function () {
             var button = document.querySelector("#tabbar button[data-tab='" + location.hash.slice(1) + "']");
             if (button && !button.classList.contains("active")) {

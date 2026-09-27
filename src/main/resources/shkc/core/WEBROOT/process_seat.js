@@ -652,7 +652,7 @@ function ProcessSeatBoard(s_id) {
          + leader_names
          + "<br/><br/>Select a member whose <b>" + role_col
          + "</b> role is <b>Chair</b>, or, if someone here should be chairing,"
-         + " promote them on the Admin page (Adults tab) by setting their <b>"
+         + " promote them on the Admin tables' Adults tab by setting their <b>"
          + role_col + "</b> role to <b>Chair</b> first.</p>", "scout");
       return false;
    };

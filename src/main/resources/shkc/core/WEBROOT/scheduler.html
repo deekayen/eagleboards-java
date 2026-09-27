@@ -18,16 +18,17 @@
    </head>
    <!-- The live-operations view (SPEC.md O-3): the youth queue, the room
         cards and the details pane always visible together, so a room's
-        timer is never out of sight while working the queue. Results,
-        People and Settings are separate pages. The layout follows the
-        Windows version's Event page; see scheduler_event.js for behavior. -->
+        timer is never out of sight while working the queue. Every youth is
+        in the one list, stacked Waiting, On a board, Finished, with nothing
+        to pick before a youth can be found. Admin tables and Settings are
+        separate pages (P-6). The layout follows the Windows version's Event
+        page; see scheduler_event.js for behavior. -->
    <body class="eb-app">
       <header class="eb-appbar">
          <span class="eb-brand">Eagle Boards</span>
          <nav class="eb-nav" aria-label="Pages">
             <a href="/scheduler" aria-current="page">Event</a>
-            <a href="/admin#boards" title="Every board and its result; correct a result here">Results</a>
-            <a href="/admin#adults" title="The adults signed in at this event">People</a>
+            <a href="/admin" title="Every record as an editable table: correct a result, change someone's roles">Admin tables</a>
             <a href="/configure" title="Room timers and other settings">Settings</a>
             <a href="/help" title="How to run an event">Help</a>
          </nav>
@@ -48,14 +49,6 @@
          <section class="eb-panel" id="queue-panel" aria-labelledby="queue-title">
             <div class="eb-panel-head">
                <h2 id="queue-title">Youth</h2>
-               <label class="eb-visually-hidden" for="queue-show">Show</label>
-               <select id="queue-show" title="Narrow the list to one group">
-                  <option value="active" selected>Active</option>
-                  <option value="waiting">Waiting</option>
-                  <option value="onboard">On a board</option>
-                  <option value="finished">Finished</option>
-                  <option value="all">Everyone</option>
-               </select>
             </div>
             <div class="eb-panel-tools">
                <input type="search" id="queue-find" placeholder="Find a youth"
@@ -164,7 +157,7 @@
                   <div id="d-finished" hidden>
                      <dl class="eb-facts" id="d-facts"></dl>
                      <p class="eb-hint">To correct a result or a mistaken identity, edit the board on
-                        <a href="/admin#boards">Results</a>.</p>
+                        the <a href="/admin#boards">Admin tables</a>' Boards tab.</p>
                   </div>
 
                   <section class="eb-section-gap" aria-labelledby="d-support-title">

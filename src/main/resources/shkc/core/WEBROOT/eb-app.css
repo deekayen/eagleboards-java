@@ -451,6 +451,15 @@ input[type=search], #d-room { width: 100%; }
    margin-bottom: 4px;
 }
 .eb-member-main .eb-icon { margin-right: 4px; color: var(--eb-accent-fg); }
+/* The marks after an adult's name (SPEC.md D-20): the Wood Badge pentagon in
+   its own colors, and the same-unit warning. */
+.eb-mark {
+   display: inline-flex;
+   margin-left: 5px;
+   vertical-align: -2px;
+}
+.eb-mark-wb { width: 15px; height: 15px; }
+.eb-member-main .eb-mark-unit .eb-icon { width: 13px; height: 13px; margin-right: 0; color: var(--eb-warn-fg); }
 .eb-adult:hover { background: var(--eb-hover); }
 .eb-adult.eb-unavailable .eb-member-main > span:first-child { color: var(--eb-text-2); }
 .eb-adult-list { margin-top: 6px; }
@@ -741,4 +750,5 @@ button.eb-danger { color: var(--eb-error-fg); }
    .eb-timer-over { forced-color-adjust: none; background: Highlight; color: HighlightText; border-color: HighlightText; }
    .eb-queue-item.selected, .eb-room.selected { outline: 2px solid Highlight; }
    .eb-queue-item.selected::before { background: Highlight; }
+   .eb-mark-wb { forced-color-adjust: none; }
 }

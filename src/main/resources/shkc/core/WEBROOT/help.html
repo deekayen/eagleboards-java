@@ -12,8 +12,7 @@
          <span class="eb-brand">Eagle Boards</span>
          <nav class="eb-nav" aria-label="Pages">
             <a href="/scheduler">Event</a>
-            <a href="/admin#boards" title="Every board and its result; correct a result here">Results</a>
-            <a href="/admin#adults" title="The adults signed in at this event">People</a>
+            <a href="/admin" title="Every record as an editable table: correct a result, change someone's roles">Admin tables</a>
             <a href="/configure" title="Room timers and other settings">Settings</a>
             <a href="/help" aria-current="page">Help</a>
          </nav>
@@ -30,7 +29,7 @@
             <li><a href="#Status">Status</a></li>
             <li><a href="#Process">A board, step by step</a></li>
             <li><a href="#Timers">Room timers</a></li>
-            <li><a href="#Admin">Results and People</a></li>
+            <li><a href="#Admin">Admin tables</a></li>
             <li><a href="#Settings">Settings</a></li>
             <li><a href="#Support">Support this project</a></li>
          </ul>
@@ -51,16 +50,16 @@
             <li><code>/</code>: the check-in page for the tablets at the door</li>
             <li><code>/youth_register</code> and <code>/adult_register</code>: youth and adult sign-in</li>
             <li><code>/scheduler</code>: the Event page, where boards are built and run</li>
-            <li><code>/admin</code>: Results and People, every record as an editable table</li>
+            <li><code>/admin</code>: the Admin tables, every record as an editable table</li>
             <li><code>/configure</code>: Settings</li>
          </ul>
          <p>The Event page's footer shows the address the tablets use, and <b>QR code</b> shows it large enough
-            for a tablet's camera. The Event, Results and People pages update the moment something changes;
+            for a tablet's camera. The Event page and the Admin tables update the moment something changes;
             there is nothing to refresh. The check-in page shows who has signed in each time it opens.</p>
 
          <h2 id="Rooms">Rooms</h2>
          <ol>
-            <li>On the Event page, press <b>Add room</b>, or use the Rooms tab on the Admin page.</li>
+            <li>On the Event page, press <b>Add room</b>, or use the Rooms tab on the Admin tables.</li>
             <li>Rooms are for final boards or for project reviews.</li>
             <li>To hold several project reviews in one room, add a room entry for each, such as 200A and
                200B, both for project reviews.</li>
@@ -90,13 +89,17 @@
                come back another month.</li>
             <li><b>Seating.</b> Once the paperwork is in order:
                <ol>
-                  <li>Select the youth in the Youth list. Their board is built in the details pane on the right.</li>
+                  <li>Select the youth in the Youth list. It holds everyone who has signed in, in three groups:
+                     Waiting, On a board, then Finished. <b>Find a youth</b> looks through all three. Their board is
+                     built in the details pane on the right.</li>
                   <li>The scheduler proposes a board: a room, a chair and the right number of members.
                      It picks with the whole waiting line in mind: it keeps adults who can chair free for
                      the boards still to come, and uses adults whose troop rules them out for youth still
                      waiting. If there aren't enough adults to do that it still proposes the best board it can.</li>
                   <li>Under Board members, the rules are checked as you go: too few or too many members,
-                     nobody who may chair, someone from the youth's own unit, or no free room.</li>
+                     nobody who may chair, someone from the youth's own unit, or no free room. Beside an adult's
+                     name, the Wood Badge mark (a banded pentagon) shows someone counting the event toward a Wood
+                     Badge ticket item, and a warning triangle someone from the youth's own unit.</li>
                   <li>To choose someone yourself, remove who you don't want (&times;) and press <b>Add</b> beside
                      an adult under Add members. <b>Fill the rest</b> then completes the board around the people you
                      chose; <b>Start over</b> proposes a whole new board. Tick <b>Show everyone</b> to see adults on
@@ -131,7 +134,7 @@
             </li>
             <li><b>Undo.</b> Every step, member change, room move, and Link or Disable can be taken back with the
                <b>Undo</b> button in the message that follows it, or Ctrl+Z. Reset and Postpone ask first instead.</li>
-            <li><b>Correcting a result.</b> On Results (the Admin page's Boards tab), change the Result. If the
+            <li><b>Correcting a result.</b> On the Admin tables' Boards tab, change the Result. If the
                result was recorded against the wrong youth, give the youth who was actually reviewed the status
                Completed, the Result, Chair and Members, and set the other youth's status back to Registered with
                the Result, Chair and Members cleared. They can then be seated for their own board.</li>
@@ -146,13 +149,13 @@
             in lightness, not only in color. A tooltip says what each means. They are a prompt to check on the
             room, not a limit: nothing stops a board that needs longer. Set the times on the Settings page.</p>
 
-         <h2 id="Admin">Results and People</h2>
-         <p>The Admin page holds every record as an editable table:</p>
+         <h2 id="Admin">Admin tables</h2>
+         <p>The Admin tables hold every record as an editable table:</p>
          <ul>
-            <li><b>Boards</b> (Results): every youth's board and result; correct a result here.</li>
+            <li><b>Boards</b>: every youth's board and result; correct a result here.</li>
             <li><b>Youth</b>: the youth signed in, and their details.</li>
             <li><b>Youth scheduled</b>: the youth who signed up ahead of time.</li>
-            <li><b>Adults</b> (People): the adults signed in. Promote someone to chair here.</li>
+            <li><b>Adults</b>: the adults signed in. Promote someone to chair here.</li>
             <li><b>Adult history</b>: the adults remembered from earlier events, for auto-fill.</li>
             <li><b>Rooms</b>: add and remove rooms.</li>
          </ul>

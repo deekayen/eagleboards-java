@@ -53,8 +53,7 @@ top of every page reaches the rest:
 | In the top bar | Address | What it is for |
 | --- | --- | --- |
 | **Event** | the address + `/scheduler` | The youth, the rooms, and building and running each board |
-| **Results** | the address + `/admin#boards` | Every youth's board and result, as an editable table |
-| **People** | the address + `/admin#adults` | The adults who signed in; promote someone to chair here |
+| **Admin tables** | the address + `/admin` | Every record as an editable table: correct a result, promote someone to chair |
 | **Settings** | the address + `/configure` | The room timer times |
 | **Help** | the address + `/help` | This manual, in short, inside the program |
 | **Check-in page** | the address by itself | What the tablet at the door shows |
@@ -82,8 +81,8 @@ board.
 Select a room card to act on it: **Rename** renames it (a board already in it
 carries on under the new name), **Move** moves its board to another room or
 swaps two boards, and **Remove** takes out an empty room. Right-click a room to
-switch it between final boards and project reviews. The **Rooms** tab under
-Results holds the same list as a table.
+switch it between final boards and project reviews. The **Rooms** tab on the
+Admin tables holds the same list as a table.
 
 ## The event, step by step
 
@@ -111,9 +110,9 @@ have served before are recognized by email and the form fills itself in.
 
 Each youth appears in the **Youth** list on the Event page the moment they sign
 in, numbered `P1, P2…` if they reserved and `W1, W2…` if they walked in. The
-list shows the **Active** youth, waiting or on a board. The menu above it
-switches to **Waiting**, **On a board**, **Finished** or **Everyone**, and
-**Find a youth** narrows it by name, unit or room.
+list holds everyone, in three groups, each with its count: **Waiting** (in
+sign-in order), **On a board** (by room) and **Finished** (the most recent
+first). **Find a youth** narrows all three by name, unit or room.
 
 ### 2. Check the paperwork
 
@@ -145,6 +144,10 @@ You can change any of it:
   this kind of board can be marked.
 - **A different room:** choose it under **Room**, or click a free room card.
 
+Beside an adult's name, the Wood Badge mark (a banded pentagon) shows someone
+counting the event toward a Wood Badge ticket item, and a warning triangle
+someone from the youth's own unit. Hover over either to see what it means.
+
 The rules are checked as you go, under **Board members**:
 
 | What it sees | What happens |
@@ -152,7 +155,7 @@ The rules are checked as you go, under **Board members**:
 | Fewer than 3 members on a final board (2 on a project review) | Refused. Add more adults. |
 | More members than needed | Asks you to confirm. This is fine. |
 | More than 6 members | Refused. National rules cap a board at six. |
-| Nobody who may chair this kind of board | Refused. Promote someone on the People page, or add a qualified chair. |
+| Nobody who may chair this kind of board | Refused. Promote someone on the Admin tables' Adults tab, or add a qualified chair. |
 | Adults from the youth's own unit | Warns you and names them. You may override it. |
 | **Every** member from the youth's own unit | Refused. At least one member must come from outside the unit, and there is no override. |
 | A final board put in a project room, or the reverse | Asks you to confirm. |
@@ -228,14 +231,14 @@ nothing stops a board that needs longer.
 These come from the *Guide to Advancement*, and you can change them on the
 Settings page.
 
-## Results and People
+## Admin tables
 
-**Results** and **People** hold every record as an editable table, in tabs:
+The **Admin tables** hold every record as an editable table, in tabs:
 Boards, Youth, Youth scheduled (the SignUpGenius reservations), Adults, Adult
 history (adults remembered from earlier events, for auto-fill), and Rooms.
 Click a cell to change it.
 
-![The Results page's Boards tab: every youth with their board type, unit, status, result, chair, members and notes](docs/images/results.png)
+![The Admin tables' Boards tab: every youth with their board type, unit, status, result, chair, members and notes](docs/images/results.png)
 
 **Correcting a result.** On the Boards tab, change the Result. If the result was
 recorded against the wrong youth, give the youth who was actually reviewed the
@@ -243,7 +246,7 @@ status Completed, the Result, Chair and Members, and set the other youth's
 status back to Registered with the Result, Chair and Members cleared. They can
 then be seated for their own board.
 
-**Making someone a chair.** On the People page's Adults tab, change their Final
+**Making someone a chair.** On the Admin tables' Adults tab, change their Final
 or Project role to Chair.
 
 ## Settings
@@ -256,8 +259,7 @@ the defaults come from.
 ## When something goes wrong
 
 **A youth is not in the list.** They have not signed in yet, or they signed in
-as an adult by mistake. Check the Youth tab under Results, and the menu above
-the Youth list: it may be showing only some of them.
+as an adult by mistake. Check the Youth tab on the Admin tables.
 
 **No board proposed, or no room offered.** Every room of that type is busy, or
 too few adults have signed in and said they will serve on that kind of board.
