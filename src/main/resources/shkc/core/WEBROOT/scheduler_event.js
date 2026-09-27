@@ -108,6 +108,17 @@ function fullName(row) {
    return (row.First + " " + row.Last).trim();
 }
 
+// Values read back from the data files carry their escapes (SPEC.md D-1): a
+// comma is stored as "~", so a list saved as "A,B" comes back after a restart
+// as "A~B". Show a value with its commas, and split a list on either.
+function shown(value) {
+   return (value || "").replace(/~/g, ",");
+}
+
+function names(list) {
+   return (list || "").split(/[,~]/).map(function (n) { return n.trim(); }).filter(Boolean);
+}
+
 function roleFor(adult, btype) {
    return btype === "Project" ? adult.ProjectReview : adult.FinalBoard;
 }
@@ -500,7 +511,7 @@ function renderRooms() {
       }
       var body;
       if (s) {
-         var members = (r.Leaders || "").split(",").map(function (n) { return n.trim(); }).filter(Boolean);
+         var members = names(r.Leaders);
          body = "<span class='eb-room-youth'>" + h(fullName(s)) + "</span>"
             + "<span class='eb-room-members'>" + members.map(function (n) {
                var chair = s.BoardChair && n === s.BoardChair.trim();
@@ -784,10 +795,10 @@ function renderFinished(s) {
    var facts = [];
    if (s.Status === "Completed") {
       facts.push(["Result", s.Result === "NotApproved" ? "Not approved" : (s.Result || "None recorded")]);
-      facts.push(["Chair", s.BoardChair]);
-      facts.push(["Members", (s.BoardMembers || "").split(",").map(function (n) { return n.trim(); }).filter(Boolean).join(", ")]);
+      facts.push(["Chair", shown(s.BoardChair)]);
+      facts.push(["Members", names(s.BoardMembers).join(", ")]);
       if (s.Notes) {
-         facts.push(["Notes", s.Notes]);
+         facts.push(["Notes", shown(s.Notes)]);
       }
    } else {
       facts.push(["Postponed", "Sent away before a board, usually because the paperwork wasn't in order."]);

@@ -144,10 +144,23 @@
          var RESULTS = ["Approved", "Adjourned", "NotApproved"];
          var ROLES = ["Chair", "Member", "Unavailable"];
 
+         // Values read back from the data files carry their escapes (SPEC.md
+         // D-1): a comma is stored as "~". Cells show it as a comma; editing
+         // one still works on the value as stored.
+         function shownText(cell) {
+            return ebEscapeHtml(String(cell.getValue() == null ? "" : cell.getValue()).replace(/~/g, ","));
+         }
+
+         // A list of names, joined with "," in memory or "~" once saved.
+         function shownList(cell) {
+            return ebEscapeHtml(String(cell.getValue() == null ? "" : cell.getValue()).split(/[,~]/)
+               .map(function (n) { return n.trim(); }).filter(Boolean).join(", "));
+         }
+
          function textCol(title, field, width, extra) {
             var col = {
                title: title, field: field, editor: "input",
-               headerFilter: "input"
+               headerFilter: "input", formatter: shownText
             };
             if (width) { col.width = width; }
             for (var k in (extra || {})) { col[k] = extra[k]; }
@@ -318,7 +331,7 @@
                selectCol("Status", "Status", 90, STATUSES),
                selectCol("Result", "Result", 90, RESULTS),
                textCol("Chair", "BoardChair", 120),
-               textCol("Members", "BoardMembers", 180),
+               textCol("Members", "BoardMembers", 180, { formatter: shownList }),
                textCol("Notes", "Notes", null, { editor: "textarea" })
             ]
          });
@@ -425,7 +438,7 @@
                { title: "Room", field: "Room", width: 90, hozAlign: "center", sorter: "number" },
                selectCol("BoardType", "BoardType", 130, BOARD_TYPES),
                { title: "Youth", field: "Scout", width: 260 },
-               { title: "Leaders", field: "Leaders" }
+               { title: "Leaders", field: "Leaders", formatter: shownList }
             ]
          });
 
