@@ -53,7 +53,7 @@
       <div class="eb-tabpanel active" id="panel-boards">
          <div class="eb-toolbar">
             <button id="boards-refresh">Refresh</button>
-            <a class="eb-button" href="/youth-cells?cols=Last,First,Phone,Email,BoardType,UnitType,Unit,Leader,Status,Result,BoardChair,BoardMembers,Notes&amp;fmt=csv&amp;filename=Report.csv">Save CSV</a>
+            <a class="eb-button" href="/youth-cells?cols=Last,First,Email,BoardType,UnitType,Unit,Leader,Status,Result,BoardChair,BoardMembers,Notes&amp;fmt=csv&amp;filename=Report.csv">Save CSV</a>
             <span class="eb-sep"></span>
             <button id="boards-delete" class="eb-danger">Delete</button>
          </div>
@@ -63,7 +63,7 @@
       <div class="eb-tabpanel" id="panel-scouts">
          <div class="eb-toolbar">
             <button id="scouts-refresh">Refresh</button>
-            <a class="eb-button" href="/youth-cells?cols=RegTime,Last,First,UnitType,Unit,Leader,Email,Phone,BoardType,Room,Status,Result&amp;fmt=csv&amp;filename=Youth.csv">Save CSV</a>
+            <a class="eb-button" href="/youth-cells?cols=RegTime,Last,First,UnitType,Unit,Leader,Email,BoardType,Room,Status,Result&amp;fmt=csv&amp;filename=Youth.csv">Save CSV</a>
             <span class="eb-sep"></span>
             <button id="scouts-delete" class="eb-danger">Delete</button>
          </div>
@@ -73,7 +73,7 @@
       <div class="eb-tabpanel" id="panel-scheduled">
          <div class="eb-toolbar">
             <button id="scheduled-refresh">Refresh</button>
-            <a class="eb-button" href="/youth-scheduled-cells?cols=Last,First,UnitType,Unit,Leader,Email,Phone,BoardType&amp;fmt=csv&amp;filename=Youth.csv">Save CSV</a>
+            <a class="eb-button" href="/youth-scheduled-cells?cols=Last,First,UnitType,Unit,Leader,Email,BoardType&amp;fmt=csv&amp;filename=Youth.csv">Save CSV</a>
             <span class="eb-sep"></span>
             <button id="scheduled-delete" class="eb-danger">Delete</button>
          </div>
@@ -299,7 +299,7 @@
          }
 
          // ---- Boards tab (full scout record incl. board results) ----
-         var boardsCols = ["Last", "First", "Phone", "Email", "BoardType", "UnitType", "Unit", "Leader", "Status", "Result", "BoardChair", "BoardMembers", "Notes"];
+         var boardsCols = ["Last", "First", "Email", "BoardType", "UnitType", "Unit", "Leader", "Status", "Result", "BoardChair", "BoardMembers", "Notes"];
          var boards = makeGrid({
             el: "#grid-boards",
             cellsPath: "/youth-cells",
@@ -310,7 +310,6 @@
             columns: [
                textCol("Last", "Last", 100),
                textCol("First", "First", 100),
-               textCol("Phone", "Phone", 100),
                textCol("Email", "Email", 130),
                selectCol("Board", "BoardType", 80, BOARD_TYPES),
                selectCol("UnitType", "UnitType", 90, UNIT_TYPES),
@@ -325,7 +324,7 @@
          });
 
          // ---- Youth tab (registered youth) ----
-         var scoutsCols = ["RegTime", "Last", "First", "UnitType", "Unit", "Leader", "Email", "Phone", "BoardType", "Room", "Status", "Result"];
+         var scoutsCols = ["RegTime", "Last", "First", "UnitType", "Unit", "Leader", "Email", "BoardType", "Room", "Status", "Result"];
          var scouts = makeGrid({
             el: "#grid-scouts",
             cellsPath: "/youth-cells",
@@ -341,7 +340,6 @@
                textCol("Unit", "Unit", 60),
                textCol("Leader", "Leader", 130),
                textCol("Email", "Email"),
-               textCol("Phone", "Phone", 120),
                selectCol("Board", "BoardType", 85, BOARD_TYPES),
                textCol("Room", "Room", 75),
                selectCol("Status", "Status", 100, STATUSES),
@@ -350,7 +348,7 @@
          });
 
          // ---- Youth Scheduled tab ----
-         var scheduledCols = ["Last", "First", "UnitType", "Unit", "Leader", "Email", "Phone", "BoardType"];
+         var scheduledCols = ["Last", "First", "UnitType", "Unit", "Leader", "Email", "BoardType"];
          var scheduled = makeGrid({
             el: "#grid-scheduled",
             cellsPath: "/youth-scheduled-cells",
@@ -365,7 +363,6 @@
                textCol("Unit", "Unit", 65),
                textCol("Leader", "Leader", 120),
                textCol("Email", "Email"),
-               textCol("Phone", "Phone", 120),
                selectCol("Board", "BoardType", 100, BOARD_TYPES)
             ]
          });

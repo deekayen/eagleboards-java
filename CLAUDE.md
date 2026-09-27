@@ -40,6 +40,10 @@ original source was received) and then modernized. See `PROVENANCE.md`.
   exports one. `/register-youth` discards a `DOB` from an old cached page, and
   the `-cells` and `-autofill` endpoints blank one already on file rather than
   drop the column, so files still move between versions.
+- **No youth phone number** (SPEC.md D-8): the same, for a youth's `Phone`,
+  which the pre-registration imports no longer bring in either. Only the youth
+  files (`isYouthFile`) withhold it; the adult files share those handlers and
+  still serve an adult's number.
 - **Nothing polls** (SPEC.md D-15). `/events` (`ChangeFeed`) streams a message
   after every POST a handler answers; the Event and Admin pages re-read then.
   Keep every change to the data a POST, and never a read: a GET that changed

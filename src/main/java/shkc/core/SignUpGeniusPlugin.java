@@ -94,7 +94,7 @@ public class SignUpGeniusPlugin {
                ScoutRecord scout = this._scoutsScheduledRecords.createNew();
                this._firstNameConverter.convert(scout, "", firstName);
                this._lastNameConverter.convert(scout, "", lastName);
-               this._phoneConverter.convert(scout, "", phone);
+               // No phone number for a youth (SPEC.md D-8); an adult's is kept above.
                this._boardTypeConverter.convert(scout, "", item);
                this._unitConverter.convert(scout, "", unit);
                this._leaderConverter.convert(scout, "", leader);

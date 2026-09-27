@@ -3,6 +3,9 @@ package shkc.core;
 import java.util.Map;
 
 public class ScoutRecord extends PersonRecord {
+   // The youth file's columns (SPEC.md D-1). Phone and DOB stay, so files
+   // still move between versions, though a new youth's are written empty and
+   // one already on file is never served (D-7, D-8).
    public static final String[] COLUMNS = new String[]{
       "Type",
       "ID",

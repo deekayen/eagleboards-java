@@ -178,9 +178,11 @@ shortcut. Work already recorded is saved.
 Everything is written to files on the computer running the program, in a folder
 named for tonight's date. Nothing is sent anywhere.
 
-Those files hold names, phone numbers, emails, and birthdates of adults **and
-minors**. Treat them the way you would treat a paper roster: keep them on that
-machine, do not email them, and do not put them anywhere shared.
+Those files hold the names and emails of adults **and minors**, and the
+adults' phone numbers. The program no longer asks a youth for a birthdate or a
+phone number, but files from older versions may still hold them. Treat these
+files the way you would treat a paper roster: keep them on that machine, do not
+email them, and do not put them anywhere shared.
 
 ## Support this project
 

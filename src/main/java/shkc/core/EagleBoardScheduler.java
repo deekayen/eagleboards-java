@@ -23,8 +23,9 @@ import java.util.logging.SimpleFormatter;
 
 public class EagleBoardScheduler {
    // No DOB (SPEC.md D-7): signing in again never writes a birthdate, and
-   // leaves one already on file untouched (O-5).
-   private static final String[] SCOUT_REG_FIELDS = new String[]{"First", "Last", "Unit", "UnitType", "Email", "Phone", "Leader"};
+   // leaves one already on file untouched (O-5). No Phone either (D-8): a
+   // youth's number already on file is left alone the same way.
+   private static final String[] SCOUT_REG_FIELDS = new String[]{"First", "Last", "Unit", "UnitType", "Email", "Leader"};
    private static final String[] ADULT_REG_FIELDS = new String[]{"First", "Last", "Unit", "UnitType", "Email", "Phone", "ProjectReview", "FinalBoard"};
    private SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd");
    private static boolean _verbose = false;
@@ -332,6 +333,13 @@ public class EagleBoardScheduler {
       this._server.start();
    }
 
+   // scouts.csv and scouts_scheduled.csv, whose phone numbers are never
+   // served (SPEC.md D-8). The read handlers serve the adult files too, and
+   // an adult's number still goes out.
+   private boolean isYouthFile(DataRecordFile<?> records) {
+      return records == this._scoutRecords || records == this._scoutsScheduledRecords;
+   }
+
    private String[] getFields(String csvList, String[] defaults) {
       if (csvList != null && csvList.length() != 0) {
          StringTokenizer tokens = new StringTokenizer(csvList, ",+ []", false);
@@ -404,6 +412,11 @@ public class EagleBoardScheduler {
          String lookupValue = request.getParameter(this._lookupField);
          String contentType = "text/json";
          StringBuffer out = new StringBuffer();
+         // Never the birthdate (SPEC.md D-7), nor a youth's phone number (D-8).
+         String[] servedColumns = CheckInApi.withoutBirthdate(this._records.getColumns());
+         if (EagleBoardScheduler.this.isYouthFile(this._records)) {
+            servedColumns = CheckInApi.withoutYouthPhone(servedColumns);
+         }
          if ("list".equals(op) || lookupValue == null) {
             contentType = "text/json";
             out.append("{ options: [\n");
@@ -427,8 +440,7 @@ public class EagleBoardScheduler {
                contentType = "text/json";
                List jsonMatches = this._records.get(this._lookupField, lookupValue);
                if (jsonMatches.size() > 0) {
-                  // Never the birthdate (SPEC.md D-7).
-                  ((DataRecord)jsonMatches.get(0)).toJSON(out, CheckInApi.withoutBirthdate(this._records.getColumns()));
+                  ((DataRecord)jsonMatches.get(0)).toJSON(out, servedColumns);
                }
             } else {
                contentType = "text/xml";
@@ -438,7 +450,7 @@ public class EagleBoardScheduler {
                   DataRecord xmlRecord = (DataRecord)xmlMatches.get(0);
                   boolean firstColumn = true;
 
-                  for (String column : CheckInApi.withoutBirthdate(this._records.getColumns())) {
+                  for (String column : servedColumns) {
                      if (!firstColumn) {
                         out.append("\n");
                      }
@@ -757,6 +769,18 @@ public class EagleBoardScheduler {
             // for the CSV header, so every column still lines up.
             String[] valueColumns = CheckInApi.withholdBirthdate(columns);
             String[] valueExtraColumns = CheckInApi.withholdBirthdate(extraColumns);
+            // SPEC.md D-8: a youth's phone number is kept and withheld the same
+            // way. This handler serves the adult files too, and theirs go out.
+            boolean youthFile = EagleBoardScheduler.this.isYouthFile(this._records);
+            if (youthFile) {
+               valueColumns = CheckInApi.withholdYouthPhone(valueColumns);
+               valueExtraColumns = CheckInApi.withholdYouthPhone(valueExtraColumns);
+            }
+            // Nor may a filter on a withheld column tell which rows hold what.
+            if (filterColumn != null) {
+               String[] filterValueColumn = CheckInApi.withholdBirthdate(new String[]{filterColumn});
+               filterColumn = (youthFile ? CheckInApi.withholdYouthPhone(filterValueColumn) : filterValueColumn)[0];
+            }
             StringBuffer out = new StringBuffer();
             if (format.equals("data")) {
                contentType = "text/xml";
@@ -1057,6 +1081,8 @@ public class EagleBoardScheduler {
             // SPEC.md D-7: no birthdate is asked for or kept. An older cached
             // sign-in page may still send one; it is discarded here.
             scout.setValue("DOB", "");
+            // SPEC.md D-8: nor a youth's phone number, discarded the same way.
+            scout.setValue("Phone", "");
             ScoutRecord existingScout = EagleBoardScheduler.this._scoutRecords.get(scout.getID());
             if (existingScout != null) {
                EagleBoardScheduler.verbose("UPDATING EXISTING SCOUT RECORD: " + existingScout);

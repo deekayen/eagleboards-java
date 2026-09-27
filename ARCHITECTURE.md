@@ -132,7 +132,9 @@ The check-in pages call `/api/checked-in`, `/api/scout-choices`,
 version serves: names and units for the lists, and for an email lookup only the
 fields that form fills in. No birthdate is ever served (D-7): `/register-youth`
 discards one, and the `-cells` and `-autofill` endpoints blank one already on
-file.
+file. A youth's phone number goes the same way (D-8), and is not imported from
+a pre-registration either; the youth file keeps the `Phone` column, and the
+adult files still serve theirs.
 
 `/checkin-address` lists the addresses the tablets can reach the server at
 (`CheckInAddress`), and `/checkin-qr?url=` draws one of them as an SVG QR code
@@ -174,8 +176,8 @@ filled-slots report.
 Entries whose `item` text contains "adult" become `AdultRecord`s merged into
 `Master_AdultHistory.csv` **by email** — matched records get their phone
 updated, unmatched ones are added. Everything else becomes a pre-registered
-`ScoutRecord` in `scouts_scheduled.csv`, which is what powers email autofill at
-the check-in station.
+`ScoutRecord` in `scouts_scheduled.csv`, without a phone number (D-8), which is
+what powers email autofill at the check-in station.
 
 Two behaviors that surprise people: the filter is by **calendar month**, not by
 day, so two board nights in one month both import; and a duplicate email in the

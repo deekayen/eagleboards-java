@@ -600,12 +600,15 @@ compare_status GET "/config-autofill?Name=DEFAULT&fmt=json"
 note "$count GET paths compared + 3 status-only paths"
 
 echo "== 3. write endpoints =="
+# Sent as an older cached sign-in page would, with a DOB and a Phone. The
+# rebuilt keeps neither for a youth (SPEC.md D-7, D-8); 3a checks that.
 compare_renamed POST /register-scout /register-youth "Last=Parity&First=Test&Email=parity@example.org&Phone=555-000-0001&UnitType=Troop&Unit=9999&UnitName=T9999&DOB=2008-01-01&BoardType=EagleBoard&Leader=Leader+Parity"
 compare POST /register-adult "Last=Boardmember&First=Check&Email=board@example.org&Phone=555-000-0002&UnitType=Troop&Unit=9999&UnitName=T9999&ProjectReview=Member&FinalBoard=Member"
 # Explicit cols excluding the dropped AdultScoutRatio column (the rebuilt no
-# longer tracks it, so a no-cols cells call would differ from the original).
-compare_renamed GET "/scout-cells?cols=RegNum,Last,First,Email,Phone,BoardType,Status" \
-                    "/youth-cells?cols=RegNum,Last,First,Email,Phone,BoardType,Status"
+# longer tracks it, so a no-cols cells call would differ from the original),
+# and Phone, which the rebuilt never serves for a youth (D-8).
+compare_renamed GET "/scout-cells?cols=RegNum,Last,First,Email,BoardType,Status" \
+                    "/youth-cells?cols=RegNum,Last,First,Email,BoardType,Status"
 compare GET /adult-cells
 compare POST /room-update  '!nativeeditor_status=inserted&gr_id=1&c0=1&c1=Room+101&c2=&c3='
 compare GET /room-cells
@@ -615,8 +618,8 @@ compare POST /seat-board   "RoomID=1&ScoutID=BOGUS&ChairID=B&MemberIDs=C"
 compare POST /room-change  "RmID1=&RmID2="
 note "write/error endpoints compared"
 
-# Normalize a data CSV before comparing, for the two columns that differ from
-# the original on purpose. No-op on files that have neither. Naive comma split
+# Normalize a data CSV before comparing, for the columns that differ from the
+# original on purpose. No-op on files that have none of them. Naive comma split
 # is safe: the fields written during a parity run contain no embedded commas.
 #
 #   AdultScoutRatio  dropped by header name -- the rebuilt no longer tracks it,
@@ -629,6 +632,10 @@ note "write/error endpoints compared"
 #                    the whole word ("Troop9999"); this maps it back to "T9999"
 #                    so the unit number and the type's initial are still
 #                    compared rather than the column being skipped.
+#   DOB, Phone       blanked on both sides in the youth files (the ones with a
+#                    DOB column; the adult files keep Phone). The rebuilt keeps
+#                    neither for a youth (SPEC.md D-7, D-8), and 3a checks that
+#                    on its own.
 #
 # awk, not python3. On Windows/MSYS2 `python3` resolves to the Microsoft Store
 # app-execution-alias stub, which prints a notice, exits 0 and writes NOTHING
@@ -640,9 +647,15 @@ csvnorm() {
         for (i = 1; i <= NF; i++) {
             if ($i == "AdultScoutRatio") drop = i
             if ($i == "UnitName")        un   = i
+            if ($i == "DOB")             dob  = i
+            if ($i == "Phone")           ph   = i
         }
     }
     {
+        if (dob > 0 && NR > 1) {
+            $dob = ""
+            if (ph > 0) $ph = ""
+        }
         if (un > 0 && NR > 1 && $un != "") {
             head = $un
             sub(/[^A-Za-z].*$/, "", head)          # leading alphabetic run
@@ -674,6 +687,17 @@ for f in $(cd parity/A && find testrun -type f ! -name '.DS_Store' 2>/dev/null; 
     fi
 done
 note "data files compared"
+# What csvnorm blanked, checked on the rebuilt side alone: the youth signed in
+# above sent a DOB and a Phone, and neither was kept (SPEC.md D-7, D-8).
+kept=$(awk -F, '
+    NR == 1 { for (i = 1; i <= NF; i++) { if ($i == "DOB") dob = i; if ($i == "Phone") ph = i } }
+    NR > 1 && $2 == "SCOUT:Parity:Test:9999" { print $dob "|" $ph }
+' parity/B/testrun/scouts.csv 2>/dev/null)
+if [ "$kept" = "|" ]; then
+    note "no birthdate or phone number kept for a youth"
+else
+    fail "a youth's birthdate or phone number was kept (DOB|Phone = '$kept')"
+fi
 
 echo "== 4. startup logs =="
 # Normalized: sandbox path A/B, port, times, object identity hashes, and

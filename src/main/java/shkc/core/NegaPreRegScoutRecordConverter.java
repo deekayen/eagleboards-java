@@ -7,16 +7,26 @@ import java.util.StringTokenizer;
 public class NegaPreRegScoutRecordConverter extends DataFileConverter<ScoutRecord> {
    private static Map<String, String> COLUMN_MAP = new HashMap<>();
 
+   // SPEC.md D-8: no youth's phone number is imported. "Scouts Contact Number"
+   // stays among the columns the sheet must have, since that is how the file
+   // is recognized, but nothing reads it any more.
    public NegaPreRegScoutRecordConverter(DataRecordFile<ScoutRecord> dataFile) {
       super(dataFile, COLUMN_MAP, new String[]{"Email", "First Name", "Last Name", "Scouts Contact Number", "Scoutmasters Name", "Unit Number"});
       this.addConverter("First Name", new NegaPreRegScoutRecordConverter.FirstNameConverter());
       this.addConverter("Last Name", new NegaPreRegScoutRecordConverter.LastNameConverter());
-      this.addConverter("Scouts Contact Number", new NegaPreRegScoutRecordConverter.PhoneConverter());
       this.addConverter("request_status", new NegaPreRegScoutRecordConverter.StatusConverter());
       this.addConverter("Item", new NegaPreRegScoutRecordConverter.BoardTypeConverter());
       this.addConverter("Unit Number", new NegaPreRegScoutRecordConverter.UnitConverter());
       this.addConverter("Scoutmasters Name", new NegaPreRegScoutRecordConverter.LeaderConverter());
       this.addConverter("Life-to-Eagle Coach", new NegaPreRegScoutRecordConverter.LeaderConverter());
+   }
+
+   // And any other column that would land in Phone, whatever the sheet calls
+   // it, is dropped before the record is kept.
+   @Override
+   public void procesNewRecord(ScoutRecord record) {
+      record.setValue("Phone", "");
+      super.procesNewRecord(record);
    }
 
    public static String cvtname(String name) {
@@ -31,7 +41,6 @@ public class NegaPreRegScoutRecordConverter extends DataFileConverter<ScoutRecor
    static {
       COLUMN_MAP.put("Email", "Email");
       COLUMN_MAP.put("id", "");
-      COLUMN_MAP.put("Scouts Contact Number", "phone");
       COLUMN_MAP.put("ScoutMasters Name", "Scoutmaster");
    }
 
@@ -131,6 +140,7 @@ public class NegaPreRegScoutRecordConverter extends DataFileConverter<ScoutRecor
       }
    }
 
+   // For adults only now (SignUpGeniusPlugin); a youth's number is not kept.
    public static class PhoneConverter implements DataFileConverter.FieldConverter {
       @Override
       public boolean convert(DataRecord record, String column, String value) {

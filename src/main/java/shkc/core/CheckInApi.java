@@ -18,11 +18,11 @@ import java.util.Map;
 //   POST /api/adult-lookup   email=... -> the adult history it matches, or {}
 //
 // Each answer carries only what its page shows, so a tablet at the door never
-// holds a phone number or an email that is not the signer's own, and no
-// birthdate at all (SPEC.md D-7). The older -cells and -autofill endpoints
-// stay for the operator pages and older cached copies.
+// holds a phone number or an email that is not the signer's own, no birthdate
+// at all (SPEC.md D-7), and no youth's phone number (D-8). The older -cells
+// and -autofill endpoints stay for the operator pages and older cached copies.
 public class CheckInApi {
-   private static final String[] YOUTH_PREFILL = {"ID", "Last", "First", "Phone", "UnitType", "Unit", "BoardType", "Leader"};
+   private static final String[] YOUTH_PREFILL = {"ID", "Last", "First", "UnitType", "Unit", "BoardType", "Leader"};
    private static final String[] ADULT_PREFILL = {"ID", "Last", "First", "Phone", "UnitType", "Unit", "FinalBoard", "ProjectReview"};
 
    private final Object _lock;
@@ -56,22 +56,41 @@ public class CheckInApi {
    // (D-7). The first form swaps DOB for a column that holds nothing, so rows
    // keep their shape; the second drops it, for answers keyed by name.
    static String[] withholdBirthdate(String[] columns) {
+      return withhold(columns, "DOB");
+   }
+
+   static String[] withoutBirthdate(String[] columns) {
+      return without(columns, "DOB");
+   }
+
+   // A youth's phone number goes the same way (SPEC.md D-8): one already on
+   // file stays there but is never served, in the same two forms. Only for
+   // the youth files; an adult's number is still served.
+   static String[] withholdYouthPhone(String[] columns) {
+      return withhold(columns, "Phone");
+   }
+
+   static String[] withoutYouthPhone(String[] columns) {
+      return without(columns, "Phone");
+   }
+
+   private static String[] withhold(String[] columns, String withheld) {
       if (columns == null) {
          return null;
       }
       String[] out = columns.clone();
       for (int i = 0; i < out.length; i++) {
-         if ("DOB".equals(out[i])) {
-            out[i] = "DOB (withheld)";
+         if (withheld.equals(out[i])) {
+            out[i] = withheld + " (withheld)";
          }
       }
       return out;
    }
 
-   static String[] withoutBirthdate(String[] columns) {
+   private static String[] without(String[] columns, String withheld) {
       List<String> out = new ArrayList<>();
       for (String column : columns) {
-         if (!"DOB".equals(column)) {
+         if (!withheld.equals(column)) {
             out.add(column);
          }
       }

@@ -7,7 +7,7 @@ before your first commit.
 
 | Data | Where it lives | Why it matters |
 | --- | --- | --- |
-| Scout names, DOB, unit, contact details | `scouts.csv`, dated `YYYY-MM-DD/` folders, board-results spreadsheets | Personal information about minors |
+| Scout names, emails, unit; a DOB or phone number from older files (no longer collected: SPEC.md D-7, D-8) | `scouts.csv`, `scouts_scheduled.csv`, dated `YYYY-MM-DD/` folders, board-results spreadsheets | Personal information about minors |
 | Adult names, emails, phones | `adults.csv`, `Master_AdultHistory.csv` | Personal information; the history file is cumulative across years |
 | SignUpGenius API key | `.env`, the inherited jar, legacy `RunScheduler.*` | Grants API access to the district's signups |
 | `LOGIN_INFO*` | operator machines | Credentials |
