@@ -177,6 +177,13 @@ jobs:
         # the room and the members back. Synthetic names, spare port, throwaway
         # data dir -- never the real Master_AdultHistory.csv.
         run: bash scripts/test-board-event.sh
+      - name: First run (no adult history yet; a failed start exits non-zero)
+        shell: bash
+        # SPEC.md D-9. A new install has no Master_AdultHistory.csv, and no
+        # release ships one, but run.sh and run.bat both pass -a naming it:
+        # the program must start a new, empty one, and a start that fails
+        # must end the process with a non-zero code.
+        run: bash scripts/test-first-run.sh
       - name: Windows launcher (run.bat picks the newest jar, warns on shadowed WEBROOT, starts quiet)
         if: matrix.os == 'windows-latest'
         shell: cmd

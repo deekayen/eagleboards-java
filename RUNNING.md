@@ -57,6 +57,12 @@ java -jar target/eagleboardscheduler-*.jar \
 Two windows appear: a console and a small grey window showing the URL to open on
 the check-in station.
 
+The first time, there is no `Master_AdultHistory.csv` yet: the program starts a
+new, empty one and prints its full path, so check that the path is where you
+meant it to be. Every adult who signs in is added to it, and later events
+recognize them. If the program cannot start, it prints why and exits with a
+non-zero code, closing the URL window.
+
 ### Screens
 
 | Screen | URL | Who uses it |

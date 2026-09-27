@@ -204,6 +204,9 @@ public class EagleBoardScheduler {
       } catch (Exception startupFailure) {
          startupFailure.printStackTrace();
          System.err.println("\n\n  ERROR: " + startupFailure.getMessage() + "\n\n");
+         // SPEC.md D-9: end the process, so a script sees the failure and the
+         // -w window listing URLs for a server that never started goes with it.
+         System.exit(1);
       }
    }
 
@@ -222,12 +225,15 @@ public class EagleBoardScheduler {
 
       if (adultHistoryPath != null) {
          this._adultHistoryFile = new File(adultHistoryPath);
-         if (!this._adultHistoryFile.exists()) {
-            throw new Exception("error: adult history file '" + adultHistoryPath + "' does not exist.");
-         }
       } else {
          this._adultHistoryFile = new File(this._dataRoot, "adult_history.csv");
       }
+
+      // SPEC.md D-9: a new install has no adult history, and no release ships
+      // one (it would hold participant data), so a missing one is started
+      // empty below rather than refused. The full path is printed, so a
+      // mistyped -a shows up as a new history in an unexpected place.
+      boolean newAdultHistory = !this._adultHistoryFile.exists();
 
       if (configFileName != null) {
          this._configFile = new File(configFileName);
@@ -258,6 +264,12 @@ public class EagleBoardScheduler {
       this._adultRecords = new DataRecordFile<>(this._adultFile, new AdultRecord.Factory());
       this._roomRecords = new DataRecordFile<>(this._roomFile, new RoomRecord.Factory());
       this._adultHistoryRecords = new DataRecordFile<>(this._adultHistoryFile, new AdultRecord.Factory());
+      if (newAdultHistory) {
+         // DataRecordFile made it empty; the header row makes it a history
+         // every version reads as holding nobody yet.
+         this._adultHistoryRecords.store();
+         System.out.println("\n   Started a new, empty adult history: " + this._adultHistoryFile.getAbsolutePath() + "\n");
+      }
       this._scoutsScheduledRecords = new DataRecordFile<>(this._scoutsScheduledFile, new ScoutRecord.Factory());
       if (this._configRecords.get("DEFAULT") == null) {
          ConfigRecord defaultConfig = this._configRecords.addNew("DEFAULT", true);
