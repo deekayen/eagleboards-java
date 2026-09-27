@@ -11,7 +11,7 @@ and for you, is a web page served from that one computer.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/images/event-dark.png">
-  <img src="docs/images/event.png" alt="The Event page mid-event: the Youth list with three waiting and four on a board; room cards with Arthur Eldred's final board in room 101 flagged red at 49 minutes and Rob Corddry's project review in 200A flagged yellow at 28 minutes; and the details pane showing Arthur Eldred's board, chaired by Neil Armstrong, ready to complete">
+  <img src="docs/images/event.png" alt="The Event page mid-event: the Youth list with three waiting and four on a board; room cards with Arthur Eldred's final board in room 101 overdue at 49 minutes (an alarm clock on a pink-red fill) and Rob Corddry's project review in 200A running long at 28 minutes (a timer clock on an orange tint); and the details pane showing Arthur Eldred's board, chaired by Neil Armstrong, ready to complete">
 </picture>
 
 **If you are here to run an event, this page is the whole manual.** The
