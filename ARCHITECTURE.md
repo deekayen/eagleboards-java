@@ -123,9 +123,9 @@ pseudo-JSON with unquoted keys for autofill lists, form-encoded POSTs with a
 The Event and Admin pages never poll. `/events` (`ChangeFeed`) is a
 server-sent event stream that sends a message after every POST a handler
 answers, and the pages re-read what they show when one arrives; room timers
-tick on the minute from the last read. The check-in index still refreshes its
-lists on the `RefreshTimeSecs` setting, because the Windows version serves the
-same page.
+tick on the minute from the last read. The check-in pages don't refresh on
+their own at all: the welcome page's lists load when it opens, which it does
+after every sign-in. `RefreshTimeSecs` is no longer read by anything.
 
 The check-in pages call `/api/checked-in`, `/api/scout-choices`,
 `/api/youth-lookup` and `/api/adult-lookup` (`CheckInApi`), the same API every

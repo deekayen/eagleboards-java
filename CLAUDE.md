@@ -43,8 +43,9 @@ original source was received) and then modernized. See `PROVENANCE.md`.
 - **Nothing polls** (SPEC.md D-15). `/events` (`ChangeFeed`) streams a message
   after every POST a handler answers; the Event and Admin pages re-read then.
   Keep every change to the data a POST, and never a read: a GET that changed
-  data would go unannounced. `RefreshTimeSecs` now only drives the check-in
-  page's lists.
+  data would go unannounced. The check-in pages don't poll either: their lists
+  load when the welcome page opens. `RefreshTimeSecs` stays in the config file
+  for older builds but nothing reads it.
 - Optional Swing popup (`PopupDialog`, only with `-w`) shows the check-in URL.
 - Optional **SignUpGenius** import (`SignUpGeniusPlugin`, Jackson JSON).
 

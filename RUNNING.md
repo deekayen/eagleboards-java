@@ -71,9 +71,9 @@ The board lifecycle is **Registered → Verified → Seated → InProgress →
 Completed** (or Postponed), with a result of Approved, Adjourned, or
 NotApproved. `Seated` means the members are in the room with the paperwork and
 the scout is still outside; `Start Review` moves it to `InProgress`. The
-check-in, admin, and scheduler screens refresh themselves on the
-`RefreshTimeSecs` interval, so new arrivals appear without anyone pressing
-Refresh.
+Event page and the Admin tables update the moment anything changes, so new
+arrivals appear without anyone pressing Refresh. The check-in page shows who
+has signed in each time it opens.
 
 ## Command-line options
 
@@ -98,7 +98,7 @@ Refresh.
 
 | Key | Meaning |
 | --- | --- |
-| `RefreshTimeSecs` | How often the check-in, admin, and scheduler screens poll |
+| `RefreshTimeSecs` | No longer used: nothing polls. Kept so older builds can read the file |
 | `ConveneRedMins` | Minutes since **Seat Board** before the room card turns red. Red only, no yellow: it caps the convening phase rather than pacing it |
 | `ProjectYellowMins`, `ProjectRedMins` | Minutes since **Start Review** before a project review's room card turns yellow, then red |
 | `FinalYellowMins`, `FinalRedMins` | The same, for final boards |

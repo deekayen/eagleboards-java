@@ -44,8 +44,8 @@ function ebParseLooseJSON(text) {
 // defaults kept). The page waits on this before its first render, so the
 // room timers never flash the default thresholds.
 //
-// RefreshTimeSecs is not read here: the Event page listens on /events
-// instead of polling (D-15). The check-in page still uses it.
+// RefreshTimeSecs is not read: the Event page listens on /events instead of
+// polling (D-15), and the check-in pages load their lists when they open.
 //
 // The status colors (RegisteredColor..PostponedHiColor) are no longer read:
 // status colors come from the theme (SPEC.md D-13), and an older file that

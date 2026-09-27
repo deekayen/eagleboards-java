@@ -47,14 +47,6 @@
                   <input type="number" min="0" id="ProjectRedMins" name="ProjectRedMins" value="40" required/></div>
             </section>
 
-            <section class="eb-card" aria-labelledby="checkin-title">
-               <h2 id="checkin-title">Check-in page</h2>
-               <div class="eb-field"><label for="RefreshTimeSecs">Refresh the signed-in lists every (seconds)
-                     <span class="eb-hint">The lists on the tablets at the door. The Event, Results and People
-                        pages update the moment anything changes and don't use this.</span></label>
-                  <input type="number" min="1" id="RefreshTimeSecs" name="RefreshTimeSecs" value="10" required/></div>
-            </section>
-
             <input type="hidden" name="Type" value="CONFIG"/>
             <input type="hidden" name="ID" value="DEFAULT"/>
             <input type="hidden" name="Name" value="DEFAULT"/>
@@ -145,7 +137,10 @@
          // Every setting on the page. ConveneRedMins was once left out of this
          // list, so the form always showed its default and Save wrote that
          // default over whatever was stored.
-         var TIME_FIELDS = ["RefreshTimeSecs", "ConveneRedMins", "ProjectYellowMins", "ProjectRedMins",
+         // RefreshTimeSecs is not on this page: nothing refreshes on a timer any
+         // more, the check-in pages included. It stays in config.properties for
+         // older builds; saving here writes its default.
+         var TIME_FIELDS = ["ConveneRedMins", "ProjectYellowMins", "ProjectRedMins",
             "FinalYellowMins", "FinalRedMins"];
 
          // populate from the stored DEFAULT config record
