@@ -443,8 +443,77 @@ function fillBoard(scout, adults, pickedIds, waiting) {
 }
 
 // Node (unit tests) picks this up; browsers ignore it and use the global.
+// Find a person's room (SPEC.md D-21): everyone signed in whose name has
+// `query` in it, ignoring case, youth then adults, each by last name, with
+// the room they're in or where they are instead, in words. The same rules
+// and test cases as the Windows version's SchedulerLogic.FindPeople and the
+// Mac's PersonFind. youth: rows with id, First, Last, Status, Room; adults:
+// rows with id, First, Last, Room ("N/A" once gone home). An empty query
+// finds no one.
+function findPeople(query, youth, adults) {
+   query = String(query || "").trim().toLowerCase();
+   if (!query) {
+      return [];
+   }
+   function named(row) {
+      return (row.First + " " + row.Last).toLowerCase().indexOf(query) >= 0;
+   }
+   function byName(a, b) {
+      var last = a.Last.localeCompare(b.Last, undefined, { sensitivity: "base" });
+      return last !== 0 ? last : a.First.localeCompare(b.First, undefined, { sensitivity: "base" });
+   }
+   function place(row, isYouth, room, where) {
+      return { id: row.id, name: (row.First + " " + row.Last).trim(), isYouth: isYouth, room: room, where: where };
+   }
+   var found = youth.filter(named).sort(byName).map(function (s) {
+      if ((s.Status === "Seated" || s.Status === "InProgress") && s.Room && s.Room !== "N/A") {
+         return place(s, true, s.Room, "is in room " + s.Room);
+      }
+      return place(s, true, null, s.Status === "Completed" ? "has finished"
+         : s.Status === "Postponed" ? "was postponed" : "is waiting");
+   });
+   return found.concat(adults.filter(named).sort(byName).map(function (a) {
+      if (a.Room === "N/A") {
+         return place(a, false, null, "has gone home");
+      }
+      return a.Room ? place(a, false, a.Room, "is in room " + a.Room) : place(a, false, null, "isn't on a board");
+   }));
+}
+
+// The room names a find narrows the cards to: those holding someone it found,
+// and any room whose name has the query in it. Null for an empty query, which
+// shows every room.
+function roomsFound(query, found, roomNames) {
+   query = String(query || "").trim().toLowerCase();
+   if (!query) {
+      return null;
+   }
+   var names = {};
+   found.forEach(function (p) { if (p.room) { names[p.room] = true; } });
+   roomNames.forEach(function (name) { if (String(name).toLowerCase().indexOf(query) >= 0) { names[name] = true; } });
+   return Object.keys(names);
+}
+
+// What the find says beside the rooms: where those it found in no room are,
+// four at most and then how many more; or that it matched no one. "" when
+// there is nothing to say.
+function personFindNote(found, rooms) {
+   if (rooms === null) {
+      return "";
+   }
+   var elsewhere = found.filter(function (p) { return !p.room; });
+   if (rooms.length === 0 && elsewhere.length === 0) {
+      return "No one by that name has signed in.";
+   }
+   var said = elsewhere.slice(0, 4).map(function (p) { return p.name + " " + p.where + "."; }).join(" ");
+   return elsewhere.length > 4 ? said + " And " + (elsewhere.length - 4) + " more." : said;
+}
+
 if (typeof module !== "undefined" && module.exports) {
    module.exports = {
+      findPeople: findPeople,
+      roomsFound: roomsFound,
+      personFindNote: personFindNote,
       proposeBoard: proposeBoard,
       fillBoard: fillBoard,
       withSupportLink: withSupportLink,

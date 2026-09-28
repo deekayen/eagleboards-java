@@ -48,6 +48,7 @@
          <button data-tab="adults" role="tab">Adults</button>
          <button data-tab="history" role="tab">Adult history CSV</button>
          <button data-tab="rooms" role="tab">Rooms</button>
+         <button data-tab="proposals" role="tab" title="Project proposals approved at earlier events, for a youth who comes without the signed page">Approved proposals</button>
       </div>
 
       <div class="eb-tabpanel active" id="panel-boards">
@@ -117,6 +118,17 @@
             <button id="rooms-remove" class="eb-danger">Remove</button>
          </div>
          <div class="eb-grid" id="grid-rooms"></div>
+      </div>
+
+      <!-- SPEC.md D-22: read only, with no Save CSV or Delete. A mistake is
+           corrected in the earlier event itself. -->
+      <div class="eb-tabpanel" id="panel-proposals">
+         <div class="eb-toolbar">
+            <button id="proposals-refresh">Refresh</button>
+            <span class="eb-sep"></span>
+            <span id="proposals-summary" role="status"></span>
+         </div>
+         <div class="eb-grid" id="grid-proposals"></div>
       </div>
       </section>
       </main>
@@ -662,10 +674,51 @@
                });
          });
 
+         // ---- Approved proposals tab (SPEC.md D-22) ----
+         // Every project proposal approved at an earlier event in the data
+         // folder, however long ago, read from /approved-proposals-cells each
+         // time the tab is shown. The line above says which events were read,
+         // and names any that couldn't be.
+         var proposalsCols = ["Last", "First", "UnitName", "Event", "BoardChair", "BoardMembers", "Notes"];
+         function spacedUnit(cell) {
+            return ebEscapeHtml(String(cell.getValue() || "").replace(/^([A-Za-z]+)(\d)/, "$1 $2"));
+         }
+         var proposals = makeGrid({
+            el: "#grid-proposals",
+            cellsPath: "/approved-proposals-cells",
+            cols: proposalsCols,
+            refreshBtn: "proposals-refresh",
+            columns: [
+               roCol("Last", "Last", 130, { formatter: shownText }),
+               roCol("First", "First", 120, { formatter: shownText }),
+               roCol("Unit", "UnitName", 110, { formatter: spacedUnit }),
+               roCol("Approved", "Event", 110, { hozAlign: "center" }),
+               roCol("Chair", "BoardChair", 150, { formatter: shownText }),
+               roCol("Other members", "BoardMembers", 220, { formatter: shownList }),
+               roCol("Notes", "Notes", null, { formatter: shownText })
+            ]
+         });
+
+         function loadProposalsSummary() {
+            fetch("/approved-proposals-cells?cols=Last").then(function (r) { return r.text(); }).then(function (text) {
+               var rows = ebParseXML(text).getElementsByTagName("rows")[0];
+               var read = rows ? parseInt(rows.getAttribute("read"), 10) : 0;
+               var said = !read ? "No earlier events in this data folder."
+                  : read === 1 ? "Read 1 earlier event, on " + rows.getAttribute("from") + "."
+                  : "Read " + read + " earlier events, from " + rows.getAttribute("from") + " to " + rows.getAttribute("to") + ".";
+               var unreadable = rows ? rows.getAttribute("unreadable") : "";
+               if (unreadable) {
+                  said += " Could not read " + unreadable.split("|").join("; ") + ".";
+               }
+               document.getElementById("proposals-summary").textContent = said;
+            });
+         }
+         document.getElementById("proposals-refresh").addEventListener("click", loadProposalsSummary);
+
          // ---- Tab switching ----
          var gridsByTab = {
             boards: boards, scouts: scouts, scheduled: scheduled,
-            adults: adults, history: adultHistory, rooms: rooms
+            adults: adults, history: adultHistory, rooms: rooms, proposals: proposals
          };
 
          document.getElementById("tabbar").addEventListener("click", function (ev) {
@@ -688,6 +741,9 @@
             gridsByTab[tab].table.redraw(true);
             // Switching tabs should show current data, not whatever was last polled.
             gridsByTab[tab].reloadQuiet();
+            if (tab === "proposals") {
+               loadProposalsSummary();
+            }
          });
 
          // Open the tab the URL names (/admin#boards, /admin#adults), so a
@@ -720,9 +776,12 @@
             return tab ? gridsByTab[tab] : null;
          }
 
+         // Approved proposals come from earlier events, which don't change
+         // during this one: they are read when the tab is shown, not on every
+         // change here (D-15, D-22).
          new EventSource("/events").onmessage = function () {
             var grid = activeGrid();
-            if (grid && !grid.isEditing()) {
+            if (grid && grid !== proposals && !grid.isEditing()) {
                grid.reloadQuiet();
             }
          };

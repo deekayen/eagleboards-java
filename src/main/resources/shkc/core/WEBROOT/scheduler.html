@@ -50,10 +50,6 @@
             <div class="eb-panel-head">
                <h2 id="queue-title">Youth</h2>
             </div>
-            <div class="eb-panel-tools">
-               <input type="search" id="queue-find" placeholder="Find a youth"
-                      aria-label="Find a youth" title="Find a youth by name, unit or room"/>
-            </div>
             <div class="eb-panel-scroll" id="queue-list" role="listbox" aria-labelledby="queue-title"></div>
          </section>
 
@@ -66,6 +62,13 @@
                <button type="button" id="room-move" title="Move the selected room's board to another room, or swap two boards">Move</button>
                <button type="button" id="room-rename" title="Rename the selected room. Anyone on its board moves with it.">Rename</button>
                <button type="button" id="room-remove" title="Remove the selected room">Remove</button>
+            </div>
+            <!-- D-21: which room is this person in? A youth or an adult. -->
+            <div class="eb-panel-tools">
+               <input type="search" id="person-find" placeholder="Find a person"
+                      aria-label="Find a person" aria-describedby="person-find-note"
+                      title="Find which room someone is in, a youth or an adult, by name; or a room by its name. Enter opens it, Esc clears, Ctrl+F comes back here."/>
+               <p class="eb-hint" id="person-find-note" role="status" aria-live="polite"></p>
             </div>
             <div class="eb-messages" id="room-messages"></div>
             <div class="eb-panel-scroll">

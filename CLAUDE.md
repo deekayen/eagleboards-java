@@ -99,6 +99,15 @@ edits (section 26). **Add adult…** and **Sign in for today** post to
 `/register-adult`, the tablet's own sign-in, with the history record's ID
 when filled in from it (section 27).
 
+**Find a person** (SPEC.md D-21) sits under the Rooms heading, not over the
+Youth list: `findPeople`, `roomsFound` and `personFindNote` in
+`process_seat.js`, with the Windows and Mac test cases in
+`test-seat-conflicts.js`. **Approved proposals** (D-22):
+`/approved-proposals-cells` reads every dated folder beside the event's
+(`_dataRoot`'s parent) dated before it, each time it is asked, never
+creating a file there, and answers as `/youth-cells` does with only its
+columns; the admin page's tab shows it read-only (event test section 28).
+
 **Correcting a result.** Wrong result clicked: edit the Result on the Admin
 page's **Boards** tab. A result recorded against the wrong scout (mistaken
 identity): Undo on the Event page, straight away, since the Admin page no

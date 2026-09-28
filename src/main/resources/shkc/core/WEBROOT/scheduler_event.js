@@ -457,16 +457,9 @@ function render() {
 
 // ----------------------------------------------------------------- queue
 // Every youth, in three stacked groups, and nothing to pick before one can be
-// found (SPEC.md O-3): Find looks through all of them.
+// found (SPEC.md O-3). The list has no find of its own: it is short enough to
+// read, and Find a person, over the rooms, says where anyone is (D-21).
 function renderQueue() {
-   var find = el("queue-find").value.trim().toLowerCase();
-   var matches = function (s) {
-      if (!find) {
-         return true;
-      }
-      return (s.First + " " + s.Last + " " + s.Last + " " + s.UnitName + " " + ebUnitLabel(s.UnitName)
-         + " " + s.Room + " " + s.RegNum).toLowerCase().indexOf(find) >= 0;
-   };
 
    var groups = [
       { title: "Waiting", test: function (s) { return isWaiting(s.Status); },
@@ -478,10 +471,10 @@ function renderQueue() {
    ];
    var html = "";
    groups.forEach(function (g) {
-      var rows = youthStore.rows.filter(g.test).filter(matches).sort(g.sort);
+      var rows = youthStore.rows.filter(g.test).sort(g.sort);
       html += "<div class='eb-group' role='presentation'>" + h(g.title) + " (" + rows.length + ")</div>";
       if (rows.length === 0) {
-         html += "<p class='eb-hint eb-group-empty'>" + (find ? "No one matches." : "No one.") + "</p>";
+         html += "<p class='eb-hint eb-group-empty'>No one.</p>";
       }
       rows.forEach(function (s) {
          var sub = [s.RegNum, ebUnitLabel(s.UnitName)];
@@ -522,10 +515,26 @@ function renderQueue() {
 }
 
 // ----------------------------------------------------------------- rooms
+// Find a person (SPEC.md D-21): who the box finds, the rooms it narrows the
+// cards to (null: every room), and what it says about those in no room.
+function personFind() {
+   var query = el("person-find").value;
+   var found = findPeople(query, youthStore.rows, adultStore.rows);
+   var rooms = roomsFound(query, found, roomStore.rows.map(function (r) { return r.Room; }));
+   return { found: found, rooms: rooms, note: personFindNote(found, rooms) };
+}
+
 function renderRooms() {
    var html = "";
-   var rooms = roomStore.rows.slice().sort(byRoomName);
-   if (rooms.length === 0) {
+   var find = personFind();
+   var rooms = roomStore.rows.slice().sort(byRoomName).filter(function (r) {
+      return find.rooms === null || find.rooms.indexOf(r.Room) >= 0;
+   });
+   if (el("person-find-note").textContent !== find.note) {
+      el("person-find-note").textContent = find.note;
+   }
+   el("person-find-note").hidden = !find.note;
+   if (roomStore.rows.length === 0) {
       html = "<p class='eb-hint'>No rooms yet. Add room adds the first.</p>";
    }
    rooms.forEach(function (r) {
@@ -1400,7 +1409,29 @@ function showCheckinQr() {
 }
 
 // ---------------------------------------------------------------- events
-el("queue-find").addEventListener("input", renderQueue);
+el("person-find").addEventListener("input", renderRooms);
+
+// Enter opens the first room found, or the youth found if in no room; Esc
+// clears (D-21).
+el("person-find").addEventListener("keydown", function (ev) {
+   if (ev.key === "Escape" && el("person-find").value) {
+      ev.preventDefault();
+      el("person-find").value = "";
+      renderRooms();
+   } else if (ev.key === "Enter" && !(ev.ctrlKey || ev.metaKey)) {
+      ev.preventDefault();
+      var find = personFind();
+      var room = find.rooms && roomStore.rows.slice().sort(byRoomName).filter(function (r) {
+         return find.rooms.indexOf(r.Room) >= 0;
+      })[0];
+      var youth = find.found.filter(function (p) { return p.isYouth; })[0];
+      if (room) {
+         selectRoom(room.id);
+      } else if (youth) {
+         selectYouth(youth.id);
+      }
+   }
+});
 
 el("queue-list").addEventListener("click", function (ev) {
    var item = ev.target.closest(".eb-queue-item");
@@ -1554,7 +1585,12 @@ document.addEventListener("keydown", function (ev) {
    if (!mod || document.querySelector("dialog[open]")) {
       return;
    }
-   if (ev.key === "Enter") {
+   if ((ev.key === "f" || ev.key === "F") && !ev.shiftKey && !ev.altKey) {
+      // D-21: Ctrl+F (Cmd+F) goes to Find a person.
+      ev.preventDefault();
+      el("person-find").focus();
+      el("person-find").select();
+   } else if (ev.key === "Enter") {
       ev.preventDefault();
       runPrimary();
    } else if ((ev.key === "z" || ev.key === "Z") && !ev.shiftKey) {

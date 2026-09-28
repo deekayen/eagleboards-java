@@ -313,6 +313,7 @@ public class EagleBoardScheduler {
       this._server.addHandler("/adult-cells", new EagleBoardScheduler.AdultCellsHandler());
       this._server.addHandler("/adult-history-cells", new EagleBoardScheduler.AdultHistoryCellsHandler());
       this._server.addHandler("/room-cells", new EagleBoardScheduler.RoomCellsHandler());
+      this._server.addHandler("/approved-proposals-cells", new EagleBoardScheduler.ApprovedProposalsCellsHandler());
       this._server.addHandler("/youth-update", new EagleBoardScheduler.ScoutUpdateHandler());
       this._server.addHandler("/youth-scheduled-update", new EagleBoardScheduler.ScoutsScheduledUpdateHandler());
       this._server.addHandler("/adult-update", new EagleBoardScheduler.AdultUpdateHandler());
@@ -381,6 +382,104 @@ public class EagleBoardScheduler {
 
    static {
       System.setProperty("java.awt.headless", "false");
+   }
+
+   /**
+    * SPEC.md D-22: every project proposal approved at an earlier event, for a
+    * youth who comes to their board of review without the signed page. Each
+    * time it is asked it reads every dated folder beside this event's, dated
+    * before it however long ago, and answers as /youth-cells does with only
+    * COLUMNS, the event's date as Event and the board's other members (the
+    * chair left out) as BoardMembers. Never a birthdate, phone number or
+    * email (D-7, D-8). The rows element also says which events were read
+    * (read, from, to) and names any that couldn't be (unreadable, "|"
+    * separated). Nothing in an earlier folder is written: a missing youth
+    * file is not created.
+    */
+   public class ApprovedProposalsCellsHandler implements WebServer.WebHandler {
+      static final String[] COLUMNS = {"Last", "First", "UnitName", "Event", "BoardChair", "BoardMembers", "Notes"};
+
+      @Override
+      public void handle(String target, HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException {
+         File root = EagleBoardScheduler.this._dataRoot.getAbsoluteFile().getParentFile();
+         String thisEvent = EagleBoardScheduler.this._dataRoot.getName();
+         if (!thisEvent.matches("\\d{4}-\\d{2}-\\d{2}")) {
+            thisEvent = new SimpleDateFormat("yyyy-MM-dd").format(new Date());
+         }
+         List<String> events = new ArrayList<>();
+         File[] folders = root == null ? null : root.listFiles();
+         for (File folder : folders == null ? new File[0] : folders) {
+            if (folder.isDirectory() && folder.getName().matches("\\d{4}-\\d{2}-\\d{2}") && folder.getName().compareTo(thisEvent) < 0) {
+               events.add(folder.getName());
+            }
+         }
+         java.util.Collections.sort(events);
+
+         List<String[]> approvals = new ArrayList<>();
+         List<String> read = new ArrayList<>();
+         List<String> unreadable = new ArrayList<>();
+         for (String event : events) {
+            File youthFile = new File(new File(root, event), "scouts.csv");
+            try {
+               if (youthFile.exists()) {
+                  for (ScoutRecord youth : new DataRecordFile<ScoutRecord>(youthFile, new ScoutRecord.Factory()).getRecords()) {
+                     if ("Project".equals(youth.getValue("BoardType")) && "Approved".equals(youth.getValue("Result"))) {
+                        approvals.add(this.row(youth, event));
+                     }
+                  }
+               }
+               read.add(event);
+            } catch (IOException | RuntimeException cannotRead) {
+               unreadable.add(event + ": " + cannotRead.getMessage());
+            }
+         }
+         // By last name, then first, then the oldest approval first.
+         approvals.sort((a, b) -> {
+            int last = a[1].compareToIgnoreCase(b[1]);
+            int first = a[2].compareToIgnoreCase(b[2]);
+            return last != 0 ? last : (first != 0 ? first : a[4].compareTo(b[4]));
+         });
+
+         String[] columns = EagleBoardScheduler.this.getFields(request.getParameter("cols"), COLUMNS);
+         StringBuffer out = new StringBuffer("<?xml version=\"1.0\" encoding=\"UTF-8\"?><rows read=\"").append(read.size()).append("\"");
+         if (!read.isEmpty()) {
+            out.append(" from=\"").append(read.get(0)).append("\" to=\"").append(read.get(read.size() - 1)).append("\"");
+         }
+         out.append(" unreadable=\"").append(xml(String.join("|", unreadable))).append("\">");
+         for (String[] approval : approvals) {
+            out.append("<row id=\"").append(xml(approval[0])).append("\">");
+            for (String column : columns) {
+               int index = Arrays.asList(COLUMNS).indexOf(column);
+               out.append("<cell>").append(index < 0 ? "" : xml(approval[index + 1])).append("</cell>");
+            }
+            out.append("</row>\n");
+         }
+         out.append("</rows>");
+         byte[] body = out.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8);
+         response.setContentType("text/xml; charset=UTF-8");
+         response.setContentLength(body.length);
+         response.getOutputStream().write(body);
+         response.setStatus(200);
+      }
+
+      // The row's ID (event and youth), then COLUMNS in order.
+      private String[] row(ScoutRecord youth, String event) {
+         String chair = youth.getValue("BoardChair").trim();
+         List<String> others = new ArrayList<>();
+         for (String name : youth.getValue("BoardMembers").split("[,~]")) {
+            if (!name.trim().isEmpty() && !name.trim().equals(chair)) {
+               others.add(name.trim());
+            }
+         }
+         return new String[]{
+            event + "|" + youth.getID(), youth.getValue("Last"), youth.getValue("First"), youth.getValue("UnitName"),
+            event, chair, String.join("~", others), youth.getValue("Notes")
+         };
+      }
+
+      private String xml(String text) {
+         return text == null ? "" : text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("\"", "&quot;");
+      }
    }
 
    public class AdultCellsHandler extends EagleBoardScheduler.DataRecordCellsHandler<AdultRecord> {

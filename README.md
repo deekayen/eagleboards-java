@@ -112,7 +112,12 @@ Each youth appears in the **Youth** list on the Event page the moment they sign
 in, numbered `P1, P2…` if they reserved and `W1, W2…` if they walked in. The
 list holds everyone, in three groups, each with its count: **Waiting** (in
 sign-in order), **On a board** (by room) and **Finished** (the most recent
-first). **Find a youth** narrows all three by name, unit or room.
+first). The list has no find of its own: **Find a person**, under the Rooms
+heading (Ctrl+F), says which room anyone is in, youth or adult. The room cards
+narrow to the rooms holding a match, or a room by that name, and a line says
+where anyone found in no room is (*is waiting*, *isn't on a board*, *has gone
+home*, *has finished*, *was postponed*). Enter opens the first room found, or
+the youth; Esc clears it.
 
 ### 2. Check the paperwork
 
@@ -247,6 +252,11 @@ which take and free a room and its members.
 **Correcting a result.** On the Boards tab, change the Result. If the result was
 recorded against the wrong youth, press **Undo** on the Event page straight
 away: the tables no longer change a youth's status.
+
+**A youth without their signed proposal page.** The **Approved proposals** tab
+lists every project proposal approved at an earlier event in this data folder,
+however long ago: who, their unit, when, the chair and the other members. It
+is read only; a mistake is corrected in the earlier event itself.
 
 **Making someone a chair.** On the Admin tables' Adults tab, change their Final
 or Project role to Chair. An adult's name, unit, contact and roles change in the

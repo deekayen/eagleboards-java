@@ -71,6 +71,12 @@ Registered → Seated → InProgress → Completed / Postponed
   leaving a youth "seated" with no room and no board, and the server now
   refuses a sitting status, or a change to a board that is sitting, whoever
   asks.
+- **Find a person** (D-21), under the Rooms heading, says which room anyone is
+  in, youth or adult, or where they are instead; the Youth list's own find is
+  gone.
+- **Approved proposals** (D-22): a read-only admin tab listing every project
+  proposal approved at an earlier event in the data folder, however long ago,
+  for a youth who comes to their board without the signed page.
 - **An adult can be signed in by hand.** Add adult… on the admin page's Adults
   tab, filled in from the adult history, or Sign in for today on the history
   tab, go through the tablet's own sign-in. An adult's name, unit, contact and
