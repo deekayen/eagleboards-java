@@ -389,15 +389,15 @@ public class EagleBoardScheduler {
     * youth who comes to their board of review without the signed page. Each
     * time it is asked it reads every dated folder beside this event's, dated
     * before it however long ago, and answers as /youth-cells does with only
-    * COLUMNS, the event's date as Event and the board's other members (the
-    * chair left out) as BoardMembers. Never a birthdate, phone number or
-    * email (D-7, D-8). The rows element also says which events were read
-    * (read, from, to) and names any that couldn't be (unreadable, "|"
-    * separated). Nothing in an earlier folder is written: a missing youth
-    * file is not created.
+    * COLUMNS, the Windows version's (EarlierEvents.ApprovalRecord), the
+    * event's date as Event. Never a birthdate, phone number or email (D-7,
+    * D-8). A folder with no youth file held no event, and none is created
+    * there: nothing in an earlier folder is written. The rows element also
+    * says which events were read (read, from, to) and names any that
+    * couldn't be (unreadable, "|" separated).
     */
    public class ApprovedProposalsCellsHandler implements WebServer.WebHandler {
-      static final String[] COLUMNS = {"Last", "First", "UnitName", "Event", "BoardChair", "BoardMembers", "Notes"};
+      static final String[] COLUMNS = {"Event", "Last", "First", "UnitType", "Unit", "BoardChair", "BoardMembers", "Notes"};
 
       @Override
       public void handle(String target, HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException {
@@ -420,12 +420,13 @@ public class EagleBoardScheduler {
          List<String> unreadable = new ArrayList<>();
          for (String event : events) {
             File youthFile = new File(new File(root, event), "scouts.csv");
+            if (!youthFile.exists()) {
+               continue;
+            }
             try {
-               if (youthFile.exists()) {
-                  for (ScoutRecord youth : new DataRecordFile<ScoutRecord>(youthFile, new ScoutRecord.Factory()).getRecords()) {
-                     if ("Project".equals(youth.getValue("BoardType")) && "Approved".equals(youth.getValue("Result"))) {
-                        approvals.add(this.row(youth, event));
-                     }
+               for (ScoutRecord youth : new DataRecordFile<ScoutRecord>(youthFile, new ScoutRecord.Factory()).getRecords()) {
+                  if ("Project".equals(youth.getValue("BoardType")) && "Approved".equals(youth.getValue("Result"))) {
+                     approvals.add(this.row(youth, event));
                   }
                }
                read.add(event);
@@ -435,9 +436,9 @@ public class EagleBoardScheduler {
          }
          // By last name, then first, then the oldest approval first.
          approvals.sort((a, b) -> {
-            int last = a[1].compareToIgnoreCase(b[1]);
-            int first = a[2].compareToIgnoreCase(b[2]);
-            return last != 0 ? last : (first != 0 ? first : a[4].compareTo(b[4]));
+            int last = a[2].compareToIgnoreCase(b[2]);
+            int first = a[3].compareToIgnoreCase(b[3]);
+            return last != 0 ? last : (first != 0 ? first : a[1].compareTo(b[1]));
          });
 
          String[] columns = EagleBoardScheduler.this.getFields(request.getParameter("cols"), COLUMNS);
@@ -462,18 +463,12 @@ public class EagleBoardScheduler {
          response.setStatus(200);
       }
 
-      // The row's ID (event and youth), then COLUMNS in order.
+      // The row's ID (event and youth), then COLUMNS in order, as the file
+      // holds them.
       private String[] row(ScoutRecord youth, String event) {
-         String chair = youth.getValue("BoardChair").trim();
-         List<String> others = new ArrayList<>();
-         for (String name : youth.getValue("BoardMembers").split("[,~]")) {
-            if (!name.trim().isEmpty() && !name.trim().equals(chair)) {
-               others.add(name.trim());
-            }
-         }
          return new String[]{
-            event + "|" + youth.getID(), youth.getValue("Last"), youth.getValue("First"), youth.getValue("UnitName"),
-            event, chair, String.join("~", others), youth.getValue("Notes")
+            event + "|" + youth.getID(), event, youth.getValue("Last"), youth.getValue("First"), youth.getValue("UnitType"),
+            youth.getValue("Unit"), youth.getValue("BoardChair"), youth.getValue("BoardMembers"), youth.getValue("Notes")
          };
       }
 

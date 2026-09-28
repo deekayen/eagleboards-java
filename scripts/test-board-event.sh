@@ -1302,7 +1302,7 @@ youth_header='Type,ID,RegNum,Last,First,Email,Phone,UnitType,Unit,UnitName,DOB,B
 earlier_row() { # <last> <first> <unit> <type> <result> [notes]
     echo "SCOUT,SCOUT:$1:$2:$3,W1,$1,$2,$2@example.org,555-0199,Troop,$3,Troop$3,1/2/2010,$4,,,,,N/A,Completed,$5,Chris Chair,ADULT:Chair:Chris:1,Chris Chair~Morgan Member,ADULT:Chair:Chris:1~ADULT:Member:Morgan:2,${6:-}"
 }
-proposals() { curl -s "$B/approved-proposals-cells?cols=Last,First,UnitName,Event,BoardChair,BoardMembers,Notes"; }
+proposals() { curl -s "$B/approved-proposals-cells?cols=Last,First,UnitType,Unit,Event,BoardChair,BoardMembers,Notes"; }
 case "$(proposals)" in
     *'read="0"'*) ok "with no earlier events, none are read" ;;
     *) bad "approved proposals read an earlier event that isn't there" ;;
@@ -1317,16 +1317,16 @@ FOUND=$(proposals)
 chk "only earlier events' approved proposals, by last name" \
     "$(echo "$FOUND" | grep -o '<row id="[^"]*"><cell>[^<]*' | sed 's/.*<cell>//' | tr '\n' ' ')" "Brook Quill "
 case "$FOUND" in
-    *'read="3" from="2019-05-28" to="2025-08-26"'*) ok "every earlier event is read, however long ago" ;;
+    *'read="2" from="2019-05-28" to="2025-08-26"'*) ok "every earlier event is read, however long ago; a folder with no youth file held none" ;;
     *) bad "the events read are wrong: $(echo "$FOUND" | head -c 200)" ;;
 esac
 case "$FOUND" in
     *'unreadable="2025-07-22: '*) ok "a folder whose youth file can't be read is named" ;;
     *) bad "an unreadable folder was not named" ;;
 esac
-chk "with the event's date, the chair and the other members" \
+chk "with the event's date, the chair and the board, as the file holds them" \
     "$(echo "$FOUND" | grep -o '<cell>Quill</cell>.*</row>' | sed 's/<\/cell><cell>/|/g; s/<[^>]*>//g')" \
-    "Quill|Ada|Troop3701|2019-05-28|Chris Chair|Morgan Member|Park benches~ phase one"
+    "Quill|Ada|Troop|3701|2019-05-28|Chris Chair|Chris Chair~Morgan Member|Park benches~ phase one"
 chk "never an email, a phone number or a birthdate" "$(echo "$FOUND" | grep -c '@example.org\|555-0199\|1/2/2010')" "0"
 chk "nothing is written in an earlier folder" "$(ls "$WORK/2020-01-01" | wc -l | tr -d ' ')" "0"
 { echo "$youth_header"; earlier_row Brook Ben 3702 Project Approved; earlier_row Cove Cal 3707 Project Approved; } \

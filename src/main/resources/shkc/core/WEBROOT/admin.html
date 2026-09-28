@@ -679,9 +679,16 @@
          // folder, however long ago, read from /approved-proposals-cells each
          // time the tab is shown. The line above says which events were read,
          // and names any that couldn't be.
-         var proposalsCols = ["Last", "First", "UnitName", "Event", "BoardChair", "BoardMembers", "Notes"];
-         function spacedUnit(cell) {
-            return ebEscapeHtml(String(cell.getValue() || "").replace(/^([A-Za-z]+)(\d)/, "$1 $2"));
+         var proposalsCols = ["Event", "Last", "First", "UnitType", "Unit", "BoardChair", "BoardMembers", "Notes"];
+         function proposalUnit(cell) {
+            var d = cell.getRow().getData();
+            return ebEscapeHtml((d.UnitType + " " + d.Unit).trim());
+         }
+         // The board's other members: the chair is in a column of their own.
+         function otherMembers(cell) {
+            var chair = String(cell.getRow().getData().BoardChair || "").trim();
+            return ebEscapeHtml(String(cell.getValue() || "").split(/[,~]/)
+               .map(function (n) { return n.trim(); }).filter(function (n) { return n && n !== chair; }).join(", "));
          }
          var proposals = makeGrid({
             el: "#grid-proposals",
@@ -691,10 +698,10 @@
             columns: [
                roCol("Last", "Last", 130, { formatter: shownText }),
                roCol("First", "First", 120, { formatter: shownText }),
-               roCol("Unit", "UnitName", 110, { formatter: spacedUnit }),
+               roCol("Unit", "Unit", 110, { formatter: proposalUnit }),
                roCol("Approved", "Event", 110, { hozAlign: "center" }),
                roCol("Chair", "BoardChair", 150, { formatter: shownText }),
-               roCol("Other members", "BoardMembers", 220, { formatter: shownList }),
+               roCol("Other members", "BoardMembers", 220, { formatter: otherMembers }),
                roCol("Notes", "Notes", null, { formatter: shownText })
             ]
          });
@@ -703,9 +710,10 @@
             fetch("/approved-proposals-cells?cols=Last").then(function (r) { return r.text(); }).then(function (text) {
                var rows = ebParseXML(text).getElementsByTagName("rows")[0];
                var read = rows ? parseInt(rows.getAttribute("read"), 10) : 0;
+               // The Windows version's words (EarlierEvents.ApprovedProposals.About).
                var said = !read ? "No earlier events in this data folder."
-                  : read === 1 ? "Read 1 earlier event, on " + rows.getAttribute("from") + "."
-                  : "Read " + read + " earlier events, from " + rows.getAttribute("from") + " to " + rows.getAttribute("to") + ".";
+                  : read === 1 ? "Read from 1 earlier event, " + rows.getAttribute("from") + "."
+                  : "Read from " + read + " earlier events, " + rows.getAttribute("from") + " to " + rows.getAttribute("to") + ".";
                var unreadable = rows ? rows.getAttribute("unreadable") : "";
                if (unreadable) {
                   said += " Could not read " + unreadable.split("|").join("; ") + ".";
