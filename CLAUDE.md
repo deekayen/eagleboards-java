@@ -82,12 +82,14 @@ the Result. A postponed scout is not waiting to come back that night, and a
 postponed scout has no Result. The Admin page therefore offers `Postponed`
 as a Status only, never as a Result, and `/complete-board` refuses it.
 
-**A table never seats, starts or ends a board** (SPEC.md P-6). The Admin
-page's Status list is Registered, Completed and Postponed, and a board that
-is Seated or InProgress keeps its status there until Reset or Complete.
-`ScoutUpdateHandler.refusal` refuses both through `/youth-update` too,
-whoever posts it (event test section 25): a scout set Seated from a table
-had no room and no members.
+**A table never changes a scout's status** (SPEC.md P-6). The Admin page
+shows Status read-only; it changes only through the Event page's steps,
+which take and free a room and its members. `ScoutUpdateHandler.refusal`
+also refuses Seated, InProgress and a sitting board's status through
+`/youth-update`, whoever posts it (event test section 25): a scout set
+Seated from a table had no room and no members. `/youth-update` still takes
+Registered, Completed or Postponed on the record, which section 18's
+correction moves; nothing on the Admin page offers them.
 
 **An adult's facts are shared, and the history is read-only** (P-6). Name,
 unit, contact and roles (`ADULT_REG_FIELDS`) edited on the Adults tab reach
@@ -97,14 +99,15 @@ edits (section 26). **Add adult…** and **Sign in for today** post to
 `/register-adult`, the tablet's own sign-in, with the history record's ID
 when filled in from it (section 27).
 
-**Correcting a result.** Wrong result clicked, or a result recorded against
-the wrong scout (mistaken identity): fix it on the Admin page's **Boards**
-tab. Edit the Result directly. For the wrong scout, set their Status back to
-`Registered` and clear Result, Chair and Members, then give the reviewed
-scout the result. Seat Board accepts a `Registered` scout whose Room is
-still `N/A` from the mistaken Complete. Section 18 of
-`test-board-event.sh` covers both corrections and checks that the Admin
-page only offers statuses the app acts on.
+**Correcting a result.** Wrong result clicked: edit the Result on the Admin
+page's **Boards** tab. A result recorded against the wrong scout (mistaken
+identity): Undo on the Event page, straight away, since the Admin page no
+longer changes a status. The record-level move -- the wrong scout back to
+`Registered` with Result, Chair and Members cleared, the reviewed scout
+given the result -- still works through `/youth-update`, and Seat Board
+accepts a `Registered` scout whose Room is still `N/A` from the mistaken
+Complete. Section 18 of `test-board-event.sh` covers both corrections and
+checks that the Admin page offers no status to choose.
 
 ## Build, run, verify
 

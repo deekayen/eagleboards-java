@@ -820,24 +820,17 @@ admin_edit() { # <scout-id> <field> <value>
 }
 result_of() { awk -F, -v i="$1" 'NR>1 && $2==i {print $19}' "$SCOUTS"; }
 
-# Every status the Admin page offers must be one the app acts on. It once
-# offered "Waiting", which nothing recognised, so choosing it -- the obvious
-# way to send a scout back to the queue -- left them where nothing could seat
-# them.
-admin_statuses=$(awk -F'[][]' '/var STATUSES/ {print $2}' \
-    "$ROOT/src/main/resources/shkc/core/WEBROOT/admin.html" | tr -d '" ' | tr , ' ')
-unknown=""
-for s in $admin_statuses; do
-    case "$s" in
-        Registered|Seated|InProgress|Completed|Postponed) ;;
-        *) unknown="$unknown $s" ;;
-    esac
-done
-chk "the Admin page offers only statuses the app knows" "${unknown# }" ""
-case " $admin_statuses " in
-    *" Registered "*) ok "and offers Registered, to undo a result on the wrong scout" ;;
-    *) bad "the Admin page cannot set a scout back to Registered" ;;
-esac
+# The Admin page offers no status to choose: a scout's status changes only
+# through the Event page's steps, which take and free a room and its members,
+# so a status typed into a table can't leave them held (SPEC.md P-6). It once
+# offered "Waiting", which nothing recognised, and later InProgress, which
+# left a scout "in review" with no room. /youth-update still takes Registered,
+# Completed or Postponed, which the corrections below make on the record.
+if grep -q 'var STATUSES' "$ROOT/src/main/resources/shkc/core/WEBROOT/admin.html"; then
+    bad "the Admin page offers a scout's status to choose"
+else
+    ok "the Admin page offers no status to choose; the Event page's steps change it"
+fi
 
 # And every Result it offers must be a board's decision -- one /complete-board
 # would record. It once offered "Postponed", which is the Status of a scout
@@ -1228,11 +1221,6 @@ table_refused() { # <what> <answer>
         *) bad "$1 -- the table answered: $2" ;;
     esac
 }
-case " $admin_statuses " in
-    *" Seated "*|*" InProgress "*) bad "the Admin page offers a status only a board step may set" ;;
-    *) ok "the Admin page offers neither Seated nor InProgress" ;;
-esac
-
 TABLED=$(xscout Tablerow Tamsin 3501 Final)
 table_refused "a waiting scout is not seated from a table" "$(admin_post /youth-update "$TABLED" Status Seated)"
 table_refused "nor put in review"                          "$(admin_post /youth-update "$TABLED" Status InProgress)"

@@ -238,18 +238,15 @@ Boards, Youth, Youth scheduled (the SignUpGenius reservations), Adults, Adult
 history CSV (every adult who has ever signed in, read-only), and Rooms. Click a
 cell to change it.
 
-A Status can be set back to Registered, or to Completed or Postponed, to
-correct a mistake. Seating a board and starting its review happen only on the
-Event page, where the board gets its room and members; a board that is seated
-or in review keeps its status until **Reset** or **Complete**.
+A youth's Status is read-only in the tables. It changes only through the Event
+page's steps (Seat board, Start review, Complete, Postpone, Reset and Undo),
+which take and free a room and its members.
 
 ![The Admin tables' Boards tab: every youth with their board type, unit, status, result, chair, members and notes](docs/images/results.png)
 
 **Correcting a result.** On the Boards tab, change the Result. If the result was
-recorded against the wrong youth, give the youth who was actually reviewed the
-status Completed, the Result, Chair and Members, and set the other youth's
-status back to Registered with the Result, Chair and Members cleared. They can
-then be seated for their own board.
+recorded against the wrong youth, press **Undo** on the Event page straight
+away: the tables no longer change a youth's status.
 
 **Making someone a chair.** On the Admin tables' Adults tab, change their Final
 or Project role to Chair. An adult's name, unit, contact and roles change in the

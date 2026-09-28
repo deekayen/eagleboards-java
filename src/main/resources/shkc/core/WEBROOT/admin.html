@@ -133,18 +133,6 @@
          // values that key room assignments and the Project*/Final* timers. The
          // labels are the Event page's (ebBoardTypeLabel in scheduler_config.js).
          var BOARD_TYPES = { Project: "Project review", Final: "Final board" };
-         // Statuses an administrator may set by hand. "Registered" is how a
-         // result recorded against the wrong scout is undone: it puts them back
-         // in the queue for their real board. This list once offered "Waiting",
-         // which no part of the app recognises, so choosing it stranded the
-         // scout where nothing could seat them. test-board-event.sh checks
-         // every value here is one the server acts on.
-         //
-         // Never Seated or InProgress (SPEC.md P-6): a board gets there only
-         // through the Event page's steps, which give it a room and members,
-         // and a board that is sitting keeps its status here until Reset or
-         // Complete frees them (statusCol). /youth-update refuses both too.
-         var STATUSES = ["Registered", "Completed", "Postponed"];
          // A board's decision, exactly the three the Complete dialog offers. Not
          // "Postponed": that is the Status of a scout sent away before any board
          // met them, and such a scout has no Result. test-board-event.sh checks
@@ -196,15 +184,14 @@
             return col;
          }
 
-         // A scout's Status: the choices above, read-only while their board is
-         // sitting in a room.
+         // A scout's Status is read-only in every table (SPEC.md P-6): it
+         // changes only through the Event page's steps, which take and free a
+         // room and its members. A status typed into a table once left a
+         // scout "seated" with no room, or finished while holding one.
+         // /youth-update still refuses Seated, InProgress and a sitting
+         // board's status (event test section 25).
          function statusCol(title, width) {
-            var col = selectCol(title, "Status", width, STATUSES);
-            col.editable = function (cell) {
-               var status = cell.getValue();
-               return status !== "Seated" && status !== "InProgress";
-            };
-            return col;
+            return roCol(title, "Status", width);
          }
 
          // The last event an adult signed in at, from "(2026-08-25)(2026-09-22)".
