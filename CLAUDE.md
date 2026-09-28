@@ -56,7 +56,7 @@ original source was received) and then modernized. See `PROVENANCE.md`.
 ## How a board night actually runs
 
 Read this before reasoning about statuses. The code's names do not explain
-the evening on their own, and it is easy to build a wrong model from them.
+the event on their own, and it is easy to build a wrong model from them.
 
 1. **RSVP.** Scouts reserve a slot on SignUpGenius. At startup the app
    imports those reservations (`SignUpGeniusPlugin`, into

@@ -144,9 +144,9 @@ public class CheckInApi {
       }
    }
 
-   // Everyone who RSVP'd, plus tonight's walk-ins, leaving out anyone whose
-   // evening is over (Completed or Postponed). Tonight's record wins over the
-   // RSVP with the same ID; sorted by last name, then first.
+   // Everyone who RSVP'd, plus the event's walk-ins, leaving out anyone
+   // already finished (Completed or Postponed). The sign-in's record wins over
+   // the RSVP with the same ID; sorted by last name, then first.
    private List<Map<String, String>> scoutChoices() {
       synchronized (this._lock) {
          List<String> done = new ArrayList<>();

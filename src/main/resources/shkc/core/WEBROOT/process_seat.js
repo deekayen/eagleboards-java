@@ -132,7 +132,7 @@ function hasNonUnitMember(scout_uname, members) {
 //   2. then the one that uses up the fewest chair qualifications, so
 //      member-only adults fill member seats and a chair who can chair only
 //      this kind of board is used before one who can chair both -- the
-//      chairs are what cap the evening, and walk-ins have not arrived yet;
+//      chairs are what cap the event, and walk-ins have not arrived yet;
 //   3. then the one whose adults could serve the fewest other waiting scouts,
 //      keeping the flexible adults for later;
 //   4. then volunteers who came to serve on any board -- not linked to a
