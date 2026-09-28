@@ -510,7 +510,7 @@ public class EagleBoardScheduler {
       // Disable/Enable (Room) and Link (Supporting) are Event page steps and
       // keep Undo (O-2). An admin edit of the facts below stays off the Undo
       // stack (SPEC.md P-6): undoing it here alone would leave the adult
-      // history disagreeing with tonight's record.
+      // history disagreeing with the event's record.
       @Override
       protected boolean keepsOffUndo(String column) {
          return super.keepsOffUndo(column) || Arrays.asList(EagleBoardScheduler.ADULT_REG_FIELDS).contains(column);
@@ -524,11 +524,11 @@ public class EagleBoardScheduler {
 
    /**
     * An adult's name, unit, contact and roles are one set of facts in
-    * tonight's adults and the adult history, as a sign-in carries them
+    * the event's adults and the adult history, as a sign-in carries them
     * between the two (SPEC.md P-6): an admin edit on the Adults tab is made
     * to the same adult in the read-only history, so someone promoted to
-    * chair tonight is a chair the next time they sign in. Wood Badge, whom
-    * they came to support and their room belong to tonight alone.
+    * chair today is a chair the next time they sign in. Wood Badge, whom
+    * they came to support and their room belong to this event alone.
     */
    private void shareAdultFacts(DataRecord edited, HttpServletRequest request, String editStatus, DataRecordFile<AdultRecord> other) throws IOException {
       if (!"updated".equals(editStatus)) {
@@ -1209,7 +1209,7 @@ public class EagleBoardScheduler {
             AdultRecord existing = EagleBoardScheduler.this._adultRecords.get(adult.getID());
             if (existing != null) {
                existing.updateFrom(adult, EagleBoardScheduler.ADULT_REG_FIELDS);
-               // Tonight-only answers: the latest sign-in says what is true now.
+               // Answers for this event only: the latest sign-in says what is true now.
                existing.setValue("WoodBadge", adult.getValue("WoodBadge"));
                existing.setValue("Supporting", adult.getValue("Supporting"));
                adult = existing;
@@ -1223,7 +1223,7 @@ public class EagleBoardScheduler {
                historyRecord = adult.clone();
                // The history pre-fills next month's form. Whom someone came to
                // support, and whether it counted toward a Wood Badge ticket,
-               // are answers for tonight only, so they are not kept.
+               // are answers for this event only, so they are not kept.
                historyRecord.setValue("WoodBadge", "");
                historyRecord.setValue("Supporting", "");
                EagleBoardScheduler.verbose("Adding new Adult History Record: " + historyRecord);
@@ -1338,7 +1338,8 @@ public class EagleBoardScheduler {
 
                // Released by the scout's room name, as in CompleteBoardHandler:
                // a room renamed or deleted under a board must not strand its
-               // members, who would otherwise stay committed to it all night.
+               // members, who would otherwise stay committed to it for the rest of the
+               // event.
                String boardRoom = scout.getRoom();
 
                if (boardRoom.length() > 0 && !"N/A".equals(boardRoom)) {
@@ -1709,7 +1710,7 @@ public class EagleBoardScheduler {
          // has gone home, not a room anyone can be sent to, so it
          // gets its own wording rather than "in room N/A".
          if ("N/A".equals(member.getRoom())) {
-            return composition.refuse("ERROR: Member " + member.getFullName() + " has been disabled for tonight");
+            return composition.refuse("ERROR: Member " + member.getFullName() + " has been disabled for today");
          }
 
          if (member.getRoom().length() > 0 && !member.getRoom().equals(boardRoom)) {

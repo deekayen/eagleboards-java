@@ -69,15 +69,15 @@ There is no database. Records live in CSV files, read and written through
 
 | Record | File | Lifetime |
 | --- | --- | --- |
-| `ScoutRecord` | `scouts.csv` | one event night |
-| `AdultRecord` | `adults.csv` | one event night |
-| `RoomRecord` | `rooms.csv` | one event night |
-| `ScoutRecord` (pre-reg) | `scouts_scheduled.csv` | one event night |
+| `ScoutRecord` | `scouts.csv` | one event |
+| `AdultRecord` | `adults.csv` | one event |
+| `RoomRecord` | `rooms.csv` | one event |
+| `ScoutRecord` (pre-reg) | `scouts_scheduled.csv` | one event |
 | `AdultRecord` (history) | `Master_AdultHistory.csv` | **cumulative, permanent** |
 | `ConfigRecord` | `config.properties` | permanent, single row |
 
-`-d` selects the event-night directory and defaults to today's date
-(`YYYY-MM-DD`), so each night gets its own folder next to the previous ones.
+`-d` selects the event's directory and defaults to today's date
+(`YYYY-MM-DD`), so each event gets its own folder next to the previous ones.
 `Master_AdultHistory.csv` is the exception: it accumulates across every event
 and is **modified in place**, both by adult check-in and by the SignUpGenius
 import.
@@ -182,10 +182,10 @@ updated, unmatched ones are added. Everything else becomes a pre-registered
 what powers email autofill at the check-in station.
 
 Two behaviors that surprise people: the filter is by **calendar month**, not by
-day, so two board nights in one month both import; and a duplicate email in the
+day, so two events in one month both import; and a duplicate email in the
 adult history means that record is silently skipped entirely.
 
-## Output of an event night
+## Output of an event
 
 A dated folder (`YYYY-MM-DD/`) holding `scouts.csv`, `adults.csv`, `rooms.csv`,
 and `scouts_scheduled.csv`, plus a board-results spreadsheet. These contain

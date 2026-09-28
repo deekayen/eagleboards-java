@@ -117,7 +117,7 @@ function hasNonUnitMember(scout_uname, members) {
 // It used to take the first qualified chair and then the first adults whose
 // role for that board type was "Member", in sign-in order. A Final board's
 // "Member" is often someone who chairs project reviews, so the first Final
-// board of the night could take both project chairs as its members and leave
+// board of the event could take both project chairs as its members and leave
 // every project review with nobody to chair it. It also ignored the troops of
 // the scouts still waiting, so it could spend the one adult a later scout
 // could use on a board anyone could have filled.
@@ -191,7 +191,7 @@ function chairQualifications(adult) {
 }
 
 // Came to serve on any board: not here for a particular scout, or counting
-// tonight toward a Wood Badge ticket item (who is then a volunteer first,
+// this event toward a Wood Badge ticket item (who is then a volunteer first,
 // whoever else they came with).
 function cameForAnyBoard(adult) {
    return adult.woodBadge === "Y" || !adult.supporting;
@@ -257,7 +257,7 @@ function countSeatable(pool, waiting) {
 // happened and has no member list, so the adult's earlier wait stands.
 //
 // Times are the records' "yyyy-MM-dd_HH:mm-0400" stamps, which sort as text
-// within one event night. The member list is joined with commas, which the
+// within one event. The member list is joined with commas, which the
 // CSV writer turns into "~" on disk -- and an ID whose name had a comma holds
 // a "~" of its own -- so the list is not split: each adult's whole ID is
 // looked for between separators.

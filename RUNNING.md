@@ -2,7 +2,7 @@
 
 Setup, build, command-line options, the settings file, and the quirks that have
 cost real debugging time. This is the technical companion to
-[README.md](README.md), which is the operator's manual for an event night.
+[README.md](README.md), which is the operator's manual for an event.
 
 ## Requirements
 
@@ -149,13 +149,13 @@ date):
 
 | File | Contents |
 | --- | --- |
-| `scouts.csv` | Youth who signed in tonight, and their board status |
-| `adults.csv` | Adults who signed in tonight |
+| `scouts.csv` | Youth who signed in at the event, and their board status |
+| `adults.csv` | Adults who signed in at the event |
 | `rooms.csv` | Rooms and what is in them |
 | `scouts_scheduled.csv` | Pre-registration import, if one was loaded |
 
 The adult auto-fill history named by `-a` sits outside that directory and
-persists across nights.
+persists across events.
 
 **None of it is ever committed.** It contains personal information about adults
 and minors. `.gitignore` excludes all CSV and spreadsheet formats, dated
@@ -182,8 +182,8 @@ Things that have cost real debugging time:
   preference to the one built into the jar, and every rebuild is both real and
   completely ignored. `scripts/run.sh` warns about this; `scripts/diagnose.sh`
   identifies it among the other causes of a stale-looking page.
-- **The SignUpGenius import filters by calendar month, not by day.** Two board
-  nights in the same month both import.
+- **The SignUpGenius import filters by calendar month, not by day.** Two events
+  in the same month both import.
 - **A short API key is silently ignored.** The app requires more than 10
   characters, and the launcher scripts skip the flag entirely if the value is
   still `replace-with-real-key`. Both produce "no prereg-file or SignupGenius DB

@@ -53,7 +53,7 @@ original source was received) and then modernized. See `PROVENANCE.md`.
 - Optional Swing popup (`PopupDialog`, only with `-w`) shows the check-in URL.
 - Optional **SignUpGenius** import (`SignUpGeniusPlugin`, Jackson JSON).
 
-## How a board night actually runs
+## How an event actually runs
 
 Read this before reasoning about statuses. The code's names do not explain
 the event on their own, and it is easy to build a wrong model from them.
@@ -71,14 +71,14 @@ the event on their own, and it is easy to build a wrong model from them.
 5. **Complete** → `Completed`, with the **board's decision** as the Result:
    - `Approved`
    - `Adjourned`: the board met the scout and **postpones** its decision
-     (not approved tonight, may come back).
+     (not approved today, may come back).
    - `NotApproved`: denied.
 
 **Postponed is not a board result.** It is the decision for a scout who
 **never sees their board**: they arrived unprepared and are sent away. That
 is the Postpone button, which works only on a `Registered` scout. Once a
 board is seated it is refused, because from then on the board's decision is
-the Result. A postponed scout is not waiting to come back that night, and a
+the Result. A postponed scout is not waiting to come back at that event, and a
 postponed scout has no Result. The Admin page therefore offers `Postponed`
 as a Status only, never as a Result, and `/complete-board` refuses it.
 
@@ -265,7 +265,7 @@ push be the verification.
   cases live in the Windows and Mac versions; change all three together.
 - **What an adult says at sign-in.** Each board type is Member, Chair or
   "No thanks" (stored as the role `Unavailable`, which Seat Board refuses).
-  Two per-night columns end the adult record: `WoodBadge` (`Y` or blank)
+  Two per-event columns end the adult record: `WoodBadge` (`Y` or blank)
   and `Supporting` (IDs of the scouts they came with, `|`-separated, since
   commas become `~` on disk). Neither is copied into the adult history, so
   next month's form never pre-fills them. Start Review names the supporting

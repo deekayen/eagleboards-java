@@ -29,7 +29,7 @@ Four points of the Law carry most of the weight in a project like this one.
 
 - **Trustworthy.** Say what a change actually does. If a test is failing, report
   it failing. The person relying on this software is a volunteer running a board
-  of review on a weeknight, and they cannot read Java to check your work — the
+  of review event, and they cannot read Java to check your work — the
   test suite exists precisely because trust has to be mechanical here.
 - **Helpful.** Explain a rejected idea rather than dismissing it. Leave the
   codebase, and the person you were working with, better than you found them.
