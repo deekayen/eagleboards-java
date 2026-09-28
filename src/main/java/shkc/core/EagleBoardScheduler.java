@@ -7,6 +7,7 @@ import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.Enumeration;
 import java.util.HashMap;
@@ -398,12 +399,60 @@ public class EagleBoardScheduler {
       public AdultHistoryUpdateHandler() {
          super(EagleBoardScheduler.this._adultHistoryRecords);
       }
+
+      // SPEC.md P-6: the Adult history CSV is read-only. A sign-in writes it,
+      // and an edit on the Adults tab reaches it (shareAdultFacts).
+      @Override
+      protected String refusal(DataRecord record, HttpServletRequest request, String editStatus) {
+         return "The adult history is read-only. Change an adult on the Adults tab, and the history follows.";
+      }
    }
 
    public class AdultUpdateHandler extends EagleBoardScheduler.DataRecordUpdateHandler<AdultRecord> {
       public AdultUpdateHandler() {
          super(EagleBoardScheduler.this._adultRecords, "Adult");
       }
+
+      // Disable/Enable (Room) and Link (Supporting) are Event page steps and
+      // keep Undo (O-2). An admin edit of the facts below stays off the Undo
+      // stack (SPEC.md P-6): undoing it here alone would leave the adult
+      // history disagreeing with tonight's record.
+      @Override
+      protected boolean keepsOffUndo(String column) {
+         return super.keepsOffUndo(column) || Arrays.asList(EagleBoardScheduler.ADULT_REG_FIELDS).contains(column);
+      }
+
+      @Override
+      protected void afterEdit(DataRecord record, HttpServletRequest request, String editStatus) throws IOException {
+         EagleBoardScheduler.this.shareAdultFacts(record, request, editStatus, EagleBoardScheduler.this._adultHistoryRecords);
+      }
+   }
+
+   /**
+    * An adult's name, unit, contact and roles are one set of facts in
+    * tonight's adults and the adult history, as a sign-in carries them
+    * between the two (SPEC.md P-6): an admin edit on the Adults tab is made
+    * to the same adult in the read-only history, so someone promoted to
+    * chair tonight is a chair the next time they sign in. Wood Badge, whom
+    * they came to support and their room belong to tonight alone.
+    */
+   private void shareAdultFacts(DataRecord edited, HttpServletRequest request, String editStatus, DataRecordFile<AdultRecord> other) throws IOException {
+      if (!"updated".equals(editStatus)) {
+         return;
+      }
+      boolean factChanged = false;
+      for (String column : ADULT_REG_FIELDS) {
+         factChanged |= request.getParameter(column) != null;
+      }
+      AdultRecord same = other.get(edited.getID());
+      if (!factChanged || same == null) {
+         return;
+      }
+      for (String column : ADULT_REG_FIELDS) {
+         same.put(column, edited.getValue(column));
+      }
+      same.updateFields(false);
+      other.store();
    }
 
    public class AutoFillHandler<T extends DataRecord> implements WebServer.WebHandler {
@@ -918,6 +967,16 @@ public class EagleBoardScheduler {
                   return;
                }
 
+               String refused = this.refusal(record, request, status);
+               if (refused != null) {
+                  if ("inserted".equals(status)) {
+                     this._records.remove(rowId);
+                  }
+                  EagleBoardScheduler.verbose("refused: " + refused);
+                  this.sendResponse("invalid", rowId, response, refused);
+                  return;
+               }
+
                UndoBuilder undo = new UndoBuilder();
                if ("deleted".equals(status)) {
                   this._records.remove(rowId);
@@ -937,7 +996,7 @@ public class EagleBoardScheduler {
                         // auto-select's Sel writes can land after the seat
                         // they preceded, which would otherwise clobber that
                         // seat's own undo snapshot.
-                        if (isEdit && !"Sel".equals(column)) {
+                        if (isEdit && !this.keepsOffUndo(column)) {
                            undo.field(this._undoRecordType, record, column, oldValue);
                         }
                      }
@@ -946,6 +1005,7 @@ public class EagleBoardScheduler {
 
                record.updateFields(false);
                this._records.store();
+               this.afterEdit(record, request, status);
                if (this._undoRecordType != null && !"inserted".equals(status) && !"deleted".equals(status) && !undo.isEmpty()) {
                   undo.commit(this._undoRecordType + " " + rowId + " updated");
                }
@@ -954,11 +1014,36 @@ public class EagleBoardScheduler {
          }
       }
 
+      /** Why this edit is refused, in words for the operator; null to allow it. */
+      protected String refusal(DataRecord record, HttpServletRequest request, String editStatus) {
+         return null;
+      }
+
+      /** A column whose edits are never put on the Undo stack. */
+      protected boolean keepsOffUndo(String column) {
+         return "Sel".equals(column);
+      }
+
+      /** Called once an edit is stored. */
+      protected void afterEdit(DataRecord record, HttpServletRequest request, String editStatus) throws IOException {
+      }
+
       private void sendResponse(String status, String rowId, HttpServletResponse response) throws IOException {
+         this.sendResponse(status, rowId, response, null);
+      }
+
+      // A refusal carries its reason as the action's text, which the Admin
+      // page shows; a grid that only reads the type still sees "invalid".
+      private void sendResponse(String status, String rowId, HttpServletResponse response, String reason) throws IOException {
          StringBuffer out = new StringBuffer();
          out.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?><data>");
          out.append("<action type=\"").append(status).append("\" sid=\"").append(rowId);
-         out.append("\" tid=\"").append(rowId).append("\" />");
+         out.append("\" tid=\"").append(rowId).append("\"");
+         if (reason == null) {
+            out.append(" />");
+         } else {
+            out.append(">").append(reason.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")).append("</action>");
+         }
          out.append("</data>");
          String body = out.toString();
          response.setContentLength(body.length());
@@ -1446,6 +1531,34 @@ public class EagleBoardScheduler {
       public ScoutUpdateHandler() {
          super(EagleBoardScheduler.this._scoutRecords);
       }
+
+      // SPEC.md P-6: a table corrects a status, but a board is seated,
+      // started, reset and completed only through the Event page's steps,
+      // which give the scout a room and members and take them back. An admin
+      // edit never sets Seated or InProgress, and never changes the status of
+      // a board that is sitting. The rest of the record still corrects.
+      @Override
+      protected String refusal(DataRecord record, HttpServletRequest request, String editStatus) {
+         String newStatus = request.getParameter("Status");
+         String oldStatus = record.getValue("Status");
+         if (newStatus == null || "deleted".equals(editStatus) || newStatus.equals(oldStatus)) {
+            return null;
+         }
+         String name = record.getValue("First") + " " + record.getValue("Last");
+         if (EagleBoardScheduler.holdsRoom(newStatus)) {
+            return name + " can be seated, or their review started, only on the Event page, where the board gets its room and members.";
+         }
+         if (EagleBoardScheduler.holdsRoom(oldStatus)) {
+            return name + "'s board is in room " + record.getValue("Room")
+               + ". Reset it or complete it on the Event page, which frees the room and its members.";
+         }
+         return null;
+      }
+   }
+
+   /** A board is sitting: it holds a room and its members. */
+   static boolean holdsRoom(String status) {
+      return "Seated".equals(status) || "InProgress".equals(status);
    }
 
    public class ScoutsScheduledCellsHandler extends EagleBoardScheduler.DataRecordCellsHandler<ScoutRecord> {

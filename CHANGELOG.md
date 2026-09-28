@@ -65,6 +65,16 @@ Registered → Seated → InProgress → Completed / Postponed
   started.
 - **Old records still work.** Anything left in a `Verified` state by an earlier
   run is still seatable rather than stranded. Nothing sets that state any more.
+- **The admin page cannot seat, start or end a board.** Its Status list is
+  Registered, Completed and Postponed, and a board that is seated or in review
+  keeps its status there until Reset or Complete; the server refuses either
+  change. The original's grid could set any status, leaving a youth "seated"
+  with no room and no board.
+- **An adult can be signed in by hand.** Add adult… on the admin page's Adults
+  tab, filled in from the adult history, or Sign in for today on the history
+  tab, go through the tablet's own sign-in. An adult's name, unit, contact and
+  roles edited on the Adults tab reach the adult history too, which is now a
+  read-only tab, the Adult history CSV.
 
 **Seating now checks who is on the board.** The original accepted any set of
 members the operator picked. Seating is now checked against the Guide to

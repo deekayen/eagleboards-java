@@ -5,7 +5,8 @@
 //   GET  <entity>-cells?cols=A,B,C        -> <rows><row id="ID"><cell>..</cell></row></rows>
 //   POST <entity>-update                  -> form fields: !nativeeditor_status
 //        (inserted|updated|deleted), gr_id=<ID>, plus <Column>=<value> pairs;
-//        responds <data><action type="<status|invalid>" sid=".." tid=".."/></data>
+//        responds <data><action type="<status|invalid>" sid=".." tid=".."/></data>;
+//        a refused edit's action holds the reason as its text
 //   POST board actions (/seat-board, /complete-board, ...) -> "OK." (200) or
 //        plain-text error (304)
 //   GET  <entity>-autofill                -> dhtmlx-combo pseudo-JSON list
@@ -53,8 +54,9 @@ function ebFormBody(fields) {
 }
 
 // Save one record edit. status: "inserted" | "updated" | "deleted".
-// Returns Promise<boolean> (true when the server accepted the change).
-function ebSaveRow(path, status, id, fields) {
+// Resolves {ok, reason}: ok when the server accepted the change, and the
+// server's reason, in words for the operator, when it refused one.
+function ebSaveRowResult(path, status, id, fields) {
    var body = { "!nativeeditor_status": status, gr_id: id };
    for (var k in (fields || {})) {
       body[k] = fields[k];
@@ -65,8 +67,16 @@ function ebSaveRow(path, status, id, fields) {
       body: ebFormBody(body)
    }).then(function (r) { return r.text(); }).then(function (text) {
       var action = ebParseXML(text).getElementsByTagName("action")[0];
-      return !!action && action.getAttribute("type") === status;
+      return {
+         ok: !!action && action.getAttribute("type") === status,
+         reason: action ? action.textContent : ""
+      };
    });
+}
+
+// The same, resolving true when the server accepted the change.
+function ebSaveRow(path, status, id, fields) {
+   return ebSaveRowResult(path, status, id, fields).then(function (result) { return result.ok; });
 }
 
 // Board workflow actions (/seat-board, /complete-board, /postpone-board, ...).

@@ -235,8 +235,13 @@ Settings page.
 
 The **Admin tables** hold every record as an editable table, in tabs:
 Boards, Youth, Youth scheduled (the SignUpGenius reservations), Adults, Adult
-history (adults remembered from earlier events, for auto-fill), and Rooms.
-Click a cell to change it.
+history CSV (every adult who has ever signed in, read-only), and Rooms. Click a
+cell to change it.
+
+A Status can be set back to Registered, or to Completed or Postponed, to
+correct a mistake. Seating a board and starting its review happen only on the
+Event page, where the board gets its room and members; a board that is seated
+or in review keeps its status until **Reset** or **Complete**.
 
 ![The Admin tables' Boards tab: every youth with their board type, unit, status, result, chair, members and notes](docs/images/results.png)
 
@@ -247,7 +252,13 @@ status back to Registered with the Result, Chair and Members cleared. They can
 then be seated for their own board.
 
 **Making someone a chair.** On the Admin tables' Adults tab, change their Final
-or Project role to Chair.
+or Project role to Chair. An adult's name, unit, contact and roles change in the
+adult history too, so they are still a chair the next time they sign in.
+
+**Signing an adult in by hand.** For an adult who would rather not use the
+tablet, click **Add adult…** on the Adults tab. Search the adult history to fill
+the form in for someone who has served before. Or select them on the Adult
+history CSV tab and click **Sign in for today**.
 
 ## Settings
 

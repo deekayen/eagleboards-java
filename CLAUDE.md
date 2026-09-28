@@ -82,6 +82,21 @@ the Result. A postponed scout is not waiting to come back that night, and a
 postponed scout has no Result. The Admin page therefore offers `Postponed`
 as a Status only, never as a Result, and `/complete-board` refuses it.
 
+**A table never seats, starts or ends a board** (SPEC.md P-6). The Admin
+page's Status list is Registered, Completed and Postponed, and a board that
+is Seated or InProgress keeps its status there until Reset or Complete.
+`ScoutUpdateHandler.refusal` refuses both through `/youth-update` too,
+whoever posts it (event test section 25): a scout set Seated from a table
+had no room and no members.
+
+**An adult's facts are shared, and the history is read-only** (P-6). Name,
+unit, contact and roles (`ADULT_REG_FIELDS`) edited on the Adults tab reach
+the same adult in the adult history (`shareAdultFacts`), off the Undo stack;
+the Adult history CSV tab is read-only and `/adult-history-update` refuses
+edits (section 26). **Add adult…** and **Sign in for today** post to
+`/register-adult`, the tablet's own sign-in, with the history record's ID
+when filled in from it (section 27).
+
 **Correcting a result.** Wrong result clicked, or a result recorded against
 the wrong scout (mistaken identity): fix it on the Admin page's **Boards**
 tab. Edit the Result directly. For the wrong scout, set their Status back to

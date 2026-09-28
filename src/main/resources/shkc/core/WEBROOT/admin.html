@@ -46,7 +46,7 @@
          <button data-tab="scouts" role="tab">Youth</button>
          <button data-tab="scheduled" role="tab">Youth scheduled</button>
          <button data-tab="adults" role="tab">Adults</button>
-         <button data-tab="history" role="tab">Adult history</button>
+         <button data-tab="history" role="tab">Adult history CSV</button>
          <button data-tab="rooms" role="tab">Rooms</button>
       </div>
 
@@ -83,6 +83,7 @@
       <div class="eb-tabpanel" id="panel-adults">
          <div class="eb-toolbar">
             <button id="adults-refresh">Refresh</button>
+            <button id="adults-add" title="Sign in an adult who would rather not use the tablet">Add adult…</button>
             <a class="eb-button" href="/adult-cells?cols=RegTime,Last,First,UnitType,Unit,Email,Phone,FinalBoard,ProjectReview,Room,WoodBadge&amp;fmt=csv&amp;filename=Adults.csv">Save CSV</a>
             <span class="eb-sep"></span>
             <button id="adults-delete" class="eb-danger">Delete</button>
@@ -93,9 +94,8 @@
       <div class="eb-tabpanel" id="panel-history">
          <div class="eb-toolbar">
             <button id="history-refresh">Refresh</button>
+            <button id="history-signin" title="Put the selected adult on today's list, as if they had signed in at the tablet">Sign in for today</button>
             <a class="eb-button" href="/adult-history-cells?cols=RegTime,Last,First,UnitType,Unit,Email,Phone,FinalBoard,ProjectReview&amp;fmt=csv&amp;filename=AdultHistory.csv">Save CSV</a>
-            <span class="eb-sep"></span>
-            <button id="history-delete" class="eb-danger">Delete</button>
          </div>
          <div class="eb-grid" id="grid-history"></div>
       </div>
@@ -123,6 +123,9 @@
 
       <script>
          var UNIT_TYPES = ["Troop", "Post", "Crew", "Ship", "Pack"];
+         // The adult sign-in form's unit types: District, Council and
+         // Community are roles rather than numbered units.
+         var ADULT_UNIT_TYPES = UNIT_TYPES.concat(["District", "Council", "Community"]);
          // A value->label map, not an array. Tabulator's list editor uses an
          // array item as BOTH the stored value and the label, which would write
          // "Project review" into BoardType. As an object it stores the key and
@@ -136,7 +139,12 @@
          // which no part of the app recognises, so choosing it stranded the
          // scout where nothing could seat them. test-board-event.sh checks
          // every value here is one the server acts on.
-         var STATUSES = ["Registered", "InProgress", "Completed", "Postponed"];
+         //
+         // Never Seated or InProgress (SPEC.md P-6): a board gets there only
+         // through the Event page's steps, which give it a room and members,
+         // and a board that is sitting keeps its status here until Reset or
+         // Complete frees them (statusCol). /youth-update refuses both too.
+         var STATUSES = ["Registered", "Completed", "Postponed"];
          // A board's decision, exactly the three the Complete dialog offers. Not
          // "Postponed": that is the Status of a scout sent away before any board
          // met them, and such a scout has no Result. test-board-event.sh checks
@@ -186,6 +194,23 @@
                col.headerFilterParams = { values: values, clearable: true };
             }
             return col;
+         }
+
+         // A scout's Status: the choices above, read-only while their board is
+         // sitting in a room.
+         function statusCol(title, width) {
+            var col = selectCol(title, "Status", width, STATUSES);
+            col.editable = function (cell) {
+               var status = cell.getValue();
+               return status !== "Seated" && status !== "InProgress";
+            };
+            return col;
+         }
+
+         // The last event an adult signed in at, from "(2026-08-25)(2026-09-22)".
+         function lastEvent(cell) {
+            var dates = String(cell.getValue() || "").match(/\d{4}-\d{2}-\d{2}/g);
+            return dates ? dates[dates.length - 1] : "";
          }
 
          function roCol(title, field, width, extra) {
@@ -265,10 +290,10 @@
                openCellEditors = Math.max(0, openCellEditors - 1);
                var fields = {};
                fields[cell.getField()] = cell.getValue();
-               ebSaveRow(cfg.updatePath, "updated", cell.getRow().getIndex(), fields)
-                  .then(function (ok) {
-                     if (!ok) {
-                        alert("Server rejected the change; reloading.");
+               ebSaveRowResult(cfg.updatePath, "updated", cell.getRow().getIndex(), fields)
+                  .then(function (result) {
+                     if (!result.ok) {
+                        alert(result.reason || "Server rejected the change; reloading.");
                         reload();
                      }
                   })
@@ -328,7 +353,7 @@
                selectCol("UnitType", "UnitType", 90, UNIT_TYPES),
                textCol("Unit", "Unit", 60),
                textCol("Leader", "Leader", 90),
-               selectCol("Status", "Status", 90, STATUSES),
+               statusCol("Status", 90),
                selectCol("Result", "Result", 90, RESULTS),
                textCol("Chair", "BoardChair", 120),
                textCol("Members", "BoardMembers", 180, { formatter: shownList }),
@@ -355,7 +380,7 @@
                textCol("Email", "Email"),
                selectCol("Board", "BoardType", 85, BOARD_TYPES),
                textCol("Room", "Room", 75),
-               selectCol("Status", "Status", 100, STATUSES),
+               statusCol("Status", 100),
                selectCol("Result", "Result", 100, RESULTS)
             ]
          });
@@ -404,26 +429,175 @@
             ]
          });
 
-         // ---- Adult History tab ----
-         var historyCols = ["RegTime", "Last", "First", "UnitType", "Unit", "Email", "Phone", "FinalBoard", "ProjectReview"];
+         // ---- Adult history CSV tab ----
+         // Every adult who has ever signed in, read-only (SPEC.md P-6): a
+         // sign-in writes it, and an edit on the Adults tab reaches the same
+         // adult here (/adult-update). /adult-history-update refuses edits.
+         var historyCols = ["RegTime", "Last", "First", "UnitType", "Unit", "Email", "Phone", "FinalBoard", "ProjectReview", "BoardHistory"];
          var adultHistory = makeGrid({
             el: "#grid-history",
             cellsPath: "/adult-history-cells",
             updatePath: "/adult-history-update",
             cols: historyCols,
             refreshBtn: "history-refresh",
-            deleteBtn: "history-delete",
             columns: [
                roCol("In", "RegTime", 100, { hozAlign: "center" }),
-               textCol("Last", "Last", 120),
-               textCol("First", "First", 120),
-               selectCol("UnitType", "UnitType", 100, UNIT_TYPES),
-               textCol("Unit", "Unit", 90),
-               textCol("Email", "Email"),
-               textCol("Phone", "Phone", 115),
-               selectCol("Final", "FinalBoard", 100, ROLES),
-               selectCol("Project", "ProjectReview", 100, ROLES)
+               roCol("Last", "Last", 120, { formatter: shownText }),
+               roCol("First", "First", 120, { formatter: shownText }),
+               roCol("UnitType", "UnitType", 100),
+               roCol("Unit", "Unit", 90),
+               roCol("Email", "Email", null, { formatter: shownText }),
+               roCol("Phone", "Phone", 115),
+               roCol("Final", "FinalBoard", 100),
+               roCol("Project", "ProjectReview", 100),
+               roCol("Last event", "BoardHistory", 105, { hozAlign: "center", formatter: lastEvent })
             ]
+         });
+
+         // ---- Signing an adult in by hand ----
+         // For an adult who would rather not use the tablet. It posts to
+         // /register-adult, the tablet's own sign-in, so someone in the adult
+         // history is recognized and the history gets today's date. Picking
+         // them from the history fills the form in and carries their ID, as
+         // the tablet's email lookup does, so a corrected name is still them.
+         function signIn(fields) {
+            return fetch("/register-adult", {
+               method: "POST",
+               headers: { "Content-Type": "application/x-www-form-urlencoded" },
+               body: ebFormBody(fields)
+            }).then(function (r) {
+               if (!r.ok) {
+                  throw new Error("HTTP " + r.status);
+               }
+            });
+         }
+
+         function historyFacts(row) {
+            return {
+               ID: row.id, First: row.First, Last: row.Last, UnitType: row.UnitType, Unit: row.Unit,
+               Email: row.Email, Phone: row.Phone, FinalBoard: row.FinalBoard, ProjectReview: row.ProjectReview
+            };
+         }
+
+         function options(values, labels) {
+            return values.map(function (v) {
+               return "<option value='" + ebEscapeHtml(v) + "'>" + ebEscapeHtml((labels && labels[v]) || v) + "</option>";
+            }).join("");
+         }
+
+         var ROLE_LABELS = { Unavailable: "No thanks" };
+
+         function openAddAdult() {
+            var dlg = document.createElement("dialog");
+            dlg.className = "eb-dialog";
+            dlg.setAttribute("aria-labelledby", "add-adult-title");
+            dlg.innerHTML = "<h2 class='eb-dialog-title' id='add-adult-title'>Add an adult</h2>"
+               + "<form class='eb-dialog-body' method='dialog'>"
+               + "<p>For an adult who would rather not sign in at the tablet. They are signed in for today as if they had.</p>"
+               + "<p id='add-adult-known' hidden></p>"
+               + "<label>Signed in before? <input type='search' id='add-adult-search' placeholder='Search the adult history by name, email or unit' size='40'/></label>"
+               + "<div id='add-adult-matches' role='list'></div>"
+               + "<p><label>First name <input id='add-First' required/></label> "
+               + "<label>Last name <input id='add-Last' required/></label></p>"
+               + "<p><label>Unit type <select id='add-UnitType'>" + options(ADULT_UNIT_TYPES) + "</select></label> "
+               + "<label>Unit <input id='add-Unit' size='6'/></label></p>"
+               + "<p><label>Email <input id='add-Email' type='email'/></label> "
+               + "<label>Phone <input id='add-Phone' type='tel' size='14'/></label></p>"
+               + "<p><label>Final board <select id='add-FinalBoard'>" + options(ROLES, ROLE_LABELS) + "</select></label> "
+               + "<label>Project review <select id='add-ProjectReview'>" + options(ROLES, ROLE_LABELS) + "</select></label></p>"
+               + "<p><label><input type='checkbox' id='add-WoodBadge'/> Counting today toward a Wood Badge ticket item</label></p>"
+               + "<p id='add-adult-problem' class='eb-error' role='alert' hidden></p>"
+               + "</form>"
+               + "<div class='eb-dialog-buttons'>"
+               + "<button type='button' class='eb-cancel'>Cancel</button>"
+               + "<button type='button' class='eb-ok eb-accent'>Add adult</button>"
+               + "</div>";
+            document.body.appendChild(dlg);
+            var field = function (name) { return dlg.querySelector("#add-" + name); };
+            field("FinalBoard").value = "Member";
+            field("ProjectReview").value = "Member";
+            var knownId = "";
+            var history = [];
+            ebFetchRows("/adult-history-cells", historyCols).then(function (rows) { history = rows; });
+
+            function fill(row) {
+               knownId = row.id;
+               ["First", "Last", "UnitType", "Unit", "Email", "Phone", "FinalBoard", "ProjectReview"].forEach(function (name) {
+                  if (row[name]) { field(name).value = row[name]; }
+               });
+               var known = dlg.querySelector("#add-adult-known");
+               known.textContent = "From the adult history: " + row.First + " " + row.Last + ", " + row.UnitType + " " + row.Unit;
+               known.hidden = false;
+               dlg.querySelector("#add-adult-search").value = "";
+               dlg.querySelector("#add-adult-matches").innerHTML = "";
+            }
+
+            dlg.querySelector("#add-adult-search").addEventListener("input", function () {
+               var words = this.value.toLowerCase().split(/\s+/).filter(Boolean);
+               var list = dlg.querySelector("#add-adult-matches");
+               list.innerHTML = "";
+               if (!words.length) {
+                  return;
+               }
+               history.filter(function (row) {
+                  var text = [row.First, row.Last, row.Email, row.UnitType + row.Unit, row.UnitType + " " + row.Unit].join(" ").toLowerCase();
+                  return words.every(function (w) { return text.indexOf(w) >= 0; });
+               }).sort(function (a, b) {
+                  return (a.Last + a.First).localeCompare(b.Last + b.First);
+               }).slice(0, 5).forEach(function (row) {
+                  var pick = document.createElement("button");
+                  pick.type = "button";
+                  pick.setAttribute("role", "listitem");
+                  pick.textContent = row.First + " " + row.Last + " · " + row.UnitType + " " + row.Unit + (row.Email ? " · " + row.Email : "");
+                  pick.title = "Fill in the form from " + row.First + " " + row.Last + "'s record";
+                  pick.addEventListener("click", function () { fill(row); });
+                  list.appendChild(pick);
+               });
+            });
+
+            function add() {
+               var problem = dlg.querySelector("#add-adult-problem");
+               if (!field("First").value.trim() || !field("Last").value.trim()) {
+                  problem.textContent = "Please enter a first and last name.";
+                  problem.hidden = false;
+                  return;
+               }
+               var fields = { ID: knownId, WoodBadge: field("WoodBadge").checked ? "Y" : "" };
+               ["First", "Last", "UnitType", "Unit", "Email", "Phone", "FinalBoard", "ProjectReview"].forEach(function (name) {
+                  fields[name] = field(name).value.trim();
+               });
+               signIn(fields).then(function () {
+                  dlg.close();
+                  adults.reload();
+               }).catch(function () {
+                  problem.textContent = "The adult could not be signed in. Try again.";
+                  problem.hidden = false;
+               });
+            }
+
+            dlg.querySelector(".eb-ok").addEventListener("click", add);
+            dlg.querySelector(".eb-cancel").addEventListener("click", function () { dlg.close(); });
+            dlg.querySelector("form").addEventListener("submit", function (ev) {
+               ev.preventDefault();
+               add();
+            });
+            dlg.addEventListener("close", function () { dlg.remove(); });
+            dlg.showModal();
+            dlg.querySelector("#add-adult-search").focus();
+         }
+
+         document.getElementById("adults-add").addEventListener("click", openAddAdult);
+
+         document.getElementById("history-signin").addEventListener("click", function () {
+            var selected = adultHistory.table.getSelectedRows();
+            if (selected.length === 0) {
+               alert("Please select an adult first.");
+               return;
+            }
+            // Their Last event becomes today, which shows it worked (D-14).
+            signIn(historyFacts(selected[0].getData())).then(adultHistory.reload).catch(function () {
+               alert("The adult could not be signed in. Try again.");
+            });
          });
 
          // ---- Rooms tab ----
