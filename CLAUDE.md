@@ -102,7 +102,7 @@ when filled in from it (section 27).
 **Find a person** (SPEC.md D-21) sits under the Rooms heading, not over the
 Youth list: `findPeople`, `roomsFound` and `personFindNote` in
 `process_seat.js`, with the Windows and Mac test cases in
-`test-seat-conflicts.js`. **Approved proposals** (D-22):
+`test-find-people.js`. **Approved proposals** (D-22):
 `/approved-proposals-cells` reads every dated folder beside the event's
 (`_dataRoot`'s parent) dated before it, each time it is asked, never
 creating a file there, and answers as `/youth-cells` does with only its
@@ -123,8 +123,14 @@ checks that the Admin page offers no status to choose.
 - Build: `./mvnw package` → `target/eagleboardscheduler-*.jar` (JDK 25, targets 21).
 - Run: `scripts/run.sh` (reads `SUG_KEY` from env or `.env`; drops the `-w`
   popup automatically when there's no display, e.g. a headless Pi).
-- Board composition rules: `node scripts/test-seat-conflicts.js` (headless, no
-  framework, no network). Runs in CI on all four platforms.
+- Board composition rules, auto-select and fill the rest:
+  `node scripts/test-cases.js` (headless, no framework, no network) runs the
+  cases all three versions share (SPEC.md D-5) through `process_seat.js`.
+  They are in `scripts/cases/`, a copy of eagleboards-shared `cases/` pinned
+  by `test-cases.lock`: **never add or edit a case here**; CI fails if the
+  copy differs. A new case goes in eagleboards-shared, then the `*.json` is
+  copied here and the lock bumped. `node scripts/test-find-people.js` tests
+  finding a person's room (D-21). Both run in CI on all four platforms.
 - Whole board event: `bash scripts/test-board-event.sh` — boots the jar on a
   spare port against a throwaway data dir and runs a full event at the
   district's real shape (14 scouts, 12 rooms, 30 adults, and only **5** adults
@@ -270,7 +276,7 @@ push be the verification.
 
   Age is attested by the "I am 21+" button on the sign-in page, and the
   parent/relative rule is handled by unit matching, so neither needs a field on
-  `AdultRecord`. Keep the pure rules pure and tested (`test-seat-conflicts.js`)
+  `AdultRecord`. Keep the pure rules pure and tested (the shared cases, `test-cases.js`)
   and the server's behavior tested too (`test-board-event.sh`).
 - **Config lives in `config.properties`** (JDK `java.util.Properties`,
   `key=value`, `#` comments) as one CONFIG record, loaded into `ConfigRecord`

@@ -191,9 +191,17 @@ pull request, across all four platforms. Locally, the two test scripts are the
 fast feedback loop:
 
 ```sh
-node scripts/test-seat-conflicts.js     # the composition rules, as pure functions
+node scripts/test-cases.js              # the composition rules, as pure functions
+node scripts/test-find-people.js        # finding a person's room (D-21)
 bash scripts/test-board-event.sh        # a whole event against a real server
 ```
+
+The rule, auto-select and fill-the-rest cases in `scripts/cases/` are shared by
+all three versions (SPEC.md D-5). **Never add or edit one here**: CI fails if
+they differ from the eagleboards-shared commit in `test-cases.lock`. Add the
+case to eagleboards-shared `cases/`, run `node scripts/test-cases.js
+../eagleboards-shared/cases` to check it against this version, then copy the
+`*.json` here and update the lock.
 
 Neither needs network access or any installed package, and both refuse to touch
 real data: the event test seeds a throwaway directory with synthetic names on

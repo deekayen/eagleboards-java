@@ -137,8 +137,10 @@ The scheduler enforces these when seating, from the Guide to Advancement:
 | **Every** member from the scout's own unit | Refused, no override |
 | Room type not matching the board type | Confirm first |
 
-`scripts/test-seat-conflicts.js` covers these as pure functions under plain
-node, no framework and no network. CI runs it on all three platforms.
+`scripts/test-cases.js` covers these as pure functions under plain node, no
+framework and no network, from the cases all three versions share
+(`scripts/cases/`, copied from eagleboards-shared). CI runs it on every
+platform.
 
 ## Data files
 

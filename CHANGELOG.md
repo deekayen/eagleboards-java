@@ -113,7 +113,7 @@ Advancement before it goes through:
   the adult record.
 
 The size and unit rules are pure functions with no server round trip, covered by
-`scripts/test-seat-conflicts.js`. Size, chair qualification and one-board-at-a-
+`scripts/test-cases.js` from the cases all three versions share. Size, chair qualification and one-board-at-a-
 time are **also enforced by the server**, because the browser is the normal way
 in and not the only one: a board seated past the UI is one nobody finds out
 about until they read the result of a review that should not have happened.

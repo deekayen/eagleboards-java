@@ -64,7 +64,7 @@ function checkProjectSize(count) {
 // software refuse.
 //
 // Kept pure (no grids, no dialogs, no DOM) so it can be unit-tested headless:
-// see scripts/test-seat-conflicts.js.
+// see scripts/test-cases.js and the shared cases in scripts/cases/.
 //
 //   scout_uname  the scout's UnitName, e.g. "Troop1234"
 //   members      [{ id, last, first, uname }, ...] — the checked adults
@@ -144,8 +144,9 @@ function hasNonUnitMember(scout_uname, members) {
 // When no full board exists it proposes what it can, in the same preference
 // order, and says what is missing -- as before.
 //
-// Pure, so it is tested headless (scripts/test-seat-conflicts.js), and the
-// same algorithm is in the Windows and Mac versions with the same tests.
+// Pure, so it is tested headless (scripts/test-cases.js), and the same
+// algorithm is in the Windows and Mac versions, which run the same cases
+// (SPEC.md D-5).
 //
 //   scout    { id, uname, btype }
 //   adults   [{ id, uname, final, project, room, freeSince, woodBadge,

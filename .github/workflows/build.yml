@@ -69,14 +69,46 @@ jobs:
             fi
           done
           echo "check-in pages match eagleboards-shared@$SHA"
-      - name: Board composition rules (same-unit conflict detection)
+      - name: Rule and auto-select cases match eagleboards-shared (SPEC.md D-5)
+        shell: bash
+        # The cases are written once, in eagleboards-shared/cases, and every
+        # version runs all of them. test-cases.lock pins the commit; a case
+        # edited, added or dropped here instead of there fails the build.
+        # The whole folder is fetched, so a case added there and not copied
+        # here is caught too. CRs are stripped, as for the check-in pages.
+        run: |
+          SHA=$(tr -d '[:space:]' < test-cases.lock)
+          mkdir shared-cases
+          curl -sfL --retry 3 "https://codeload.github.com/deekayen/eagleboards-shared/tar.gz/$SHA" -o shared-cases.tar.gz \
+            || { echo "FAIL: could not fetch eagleboards-shared@$SHA"; exit 1; }
+          tar -xzf shared-cases.tar.gz -C shared-cases --strip-components=1
+          (cd shared-cases/cases && ls *.json) > shared-cases.txt
+          (cd scripts/cases && ls *.json) > our-cases.txt
+          if ! cmp -s shared-cases.txt our-cases.txt; then
+            echo "FAIL: scripts/cases/ does not hold the same files as eagleboards-shared@$SHA/cases:"
+            diff shared-cases.txt our-cases.txt || true
+            exit 1
+          fi
+          while read -r f; do
+            if ! cmp -s <(tr -d '\r' < "shared-cases/cases/$f") <(tr -d '\r' < "scripts/cases/$f"); then
+              echo "FAIL: scripts/cases/$f differs from eagleboards-shared@$SHA."
+              echo "      Change it in eagleboards-shared/cases, copy the *.json here, and update test-cases.lock."
+              exit 1
+            fi
+          done < shared-cases.txt
+          echo "rule and auto-select cases match eagleboards-shared@$SHA ($(wc -l < shared-cases.txt | tr -d ' ') files)"
+      - name: Board rules, auto-select and fill the rest (the shared cases)
         shell: bash
         # The scheduler must flag board members from the scout's own unit --
-        # a council rule the reviewer may override, but must never miss. The
-        # rule lives in client-side JS, so no server request exercises it and
-        # the runtime smoke test below cannot see it. Node is preinstalled on
-        # all three runners; no packages are installed and no network is used.
-        run: node scripts/test-seat-conflicts.js
+        # a council rule the reviewer may override, but must never miss --
+        # and propose boards that keep chairs for the boards to come. These
+        # rules live in client-side JS, so no server request exercises them
+        # and the runtime smoke test below cannot see them. Node is
+        # preinstalled on every runner; no packages, no network.
+        run: node scripts/test-cases.js
+      - name: Find a person's room (SPEC.md D-21)
+        shell: bash
+        run: node scripts/test-find-people.js
       - name: SignUpGenius sign-up dates (a sign-up counts on its first day)
         shell: bash
         # The live API check below runs on one leg only, and would only see
