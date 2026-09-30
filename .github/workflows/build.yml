@@ -109,6 +109,9 @@ jobs:
       - name: Find a person's room (SPEC.md D-21)
         shell: bash
         run: node scripts/test-find-people.js
+      - name: The board builder (SPEC.md D-12 proposals, D-23 introductions)
+        shell: bash
+        run: node scripts/test-board-builder.js
       - name: SignUpGenius sign-up dates (a sign-up counts on its first day)
         shell: bash
         # The live API check below runs on one leg only, and would only see

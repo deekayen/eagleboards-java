@@ -210,6 +210,52 @@ function withSupportLink(supporting, scoutId, linked) {
    return ids.join("|");
 }
 
+// Whom Start review reminds the operator to fetch (SPEC.md D-23): the adults
+// linked to the youth, who introduce them to their board of review, else
+// their leader if signed in (found as Locate finds one), never a parent.
+// null for a project review, which has no introduction.
+//   scout:  { id, uname, btype, leader }
+//   adults: [{ id, first, last, uname, room, supporting }]
+// Returns { introducers: [adult], leaders: [adult] }.
+function introductionFor(scout, adults) {
+   if (scout.btype === "Project") {
+      return null;
+   }
+   var introducers = adults.filter(function (a) {
+      return (a.supporting || "").split("|").indexOf(scout.id) >= 0;
+   });
+   if (introducers.length > 0) {
+      return { introducers: introducers, leaders: [] };
+   }
+   var leader = (scout.leader || "").toLowerCase();
+   var leaders = adults.filter(function (a) {
+      var last = (a.last || "").toLowerCase();
+      var first = (a.first || "").toLowerCase();
+      return last !== "" && leader.indexOf(last) >= 0
+         && (a.uname === scout.uname || (first !== "" && leader.indexOf(first) >= 0));
+   });
+   return { introducers: [], leaders: leaders };
+}
+
+// A board the scheduler proposed, still as proposed (SPEC.md D-12): nobody
+// added, nobody the operator could still pick removed, the chair not
+// changed. Until then it follows the event and is proposed again as adults
+// sign in, go home or leave boards; a proposed adult who has since gone
+// home or onto another board dropped out on their own, which is no change
+// of the operator's.
+//   proposal: { ids: [adult id], chairId } as proposed, or null
+//   picked:   the adult IDs picked now; chairId the chair marked now
+//   canPick:  function (id) -> whether that adult is free to pick
+function proposalUntouched(proposal, picked, chairId, canPick) {
+   if (!proposal) {
+      return false;
+   }
+   var chair = proposal.chairId || null;
+   return picked.every(function (id) { return proposal.ids.indexOf(id) >= 0; })
+      && proposal.ids.filter(canPick).every(function (id) { return picked.indexOf(id) >= 0; })
+      && ((chairId || null) === chair || (chair !== null && !canPick(chair)));
+}
+
 // Members besides the chair at the district's working size.
 function membersBesideChair(btype) {
    return (btype === "Project" ? PROJECT_MIN_MEMBERS : BOARD_MIN_MEMBERS) - 1;
@@ -518,6 +564,8 @@ if (typeof module !== "undefined" && module.exports) {
       proposeBoard: proposeBoard,
       fillBoard: fillBoard,
       withSupportLink: withSupportLink,
+      introductionFor: introductionFor,
+      proposalUntouched: proposalUntouched,
       freeSinceTimes: freeSinceTimes,
       findUnitConflicts: findUnitConflicts,
       hasNonUnitMember: hasNonUnitMember,

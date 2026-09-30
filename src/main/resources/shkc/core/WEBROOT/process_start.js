@@ -31,32 +31,57 @@ function ProcessStartReview(s_id) {
       return;
    }
 
-   // Whoever came to support this scout -- often their Scoutmaster, who may
-   // be sitting on another board right now -- introduces them. Name the room
-   // so someone can step in and fetch them for a moment.
-   var supporting = SCHEDULER_supportingAdults(s_id);
-   var fetchText = "";
-   if (supporting.length > 0) {
-      fetchText = "<br/><br/>Bring out to introduce them:";
-      supporting.forEach(function (a) {
-         fetchText += "<br/>&nbsp;&nbsp;<b>" + ebEscapeHtml(a.name) + "</b> — "
-            + (a.room === "Main" ? "main room"
-               : a.room === "N/A" ? "marked as gone home"
-               : "on the board in room <b>" + ebEscapeHtml(a.room) + "</b>");
-      });
-   }
-
    ebConfirm("Start the review?",
       "Bring <b>" + ebEscapeHtml(s_first + " " + s_last) + "</b> in to room "
       + ebEscapeHtml(s_room) + "."
       + "<br/><br/>Do this once the board members have finished reading the"
       + " application, references and project workbook."
-      + fetchText,
+      + introductionText(s_id, s_first),
       function (result) {
          if (result) {
             SendStartReviewRequest(s_id);
          }
       }, "Start review");
+}
+
+// A board of review starts with an introduction (SPEC.md D-23): the adult
+// linked to the youth -- usually their Scoutmaster, who may be sitting on
+// another board right now -- introduces them. Name where they are, so
+// someone can step in and fetch them. With no one linked, name the youth's
+// leader if signed in, never a parent. A project review has no
+// introduction, so nobody is named: "".
+function introductionText(s_id, s_first) {
+   var intro = introductionFor(
+      {
+         id: s_id,
+         uname: youthStore.getColumnValue(s_id, "UnitName"),
+         btype: youthStore.getColumnValue(s_id, "BoardType"),
+         leader: youthStore.getColumnValue(s_id, "Leader")
+      },
+      adultStore.rows.map(function (a) {
+         return { id: a.id, first: a.First, last: a.Last, name: fullName(a), uname: a.UnitName, room: a.Room, supporting: a.Supporting };
+      }));
+   if (!intro) {
+      return "";
+   }
+
+   function lines(adults) {
+      return adults.map(function (a) {
+         return "<br/>&nbsp;&nbsp;<b>" + ebEscapeHtml(a.name) + "</b> — "
+            + (a.room === "" || a.room === "-" ? "main room"
+               : a.room === "N/A" ? "marked as gone home"
+               : "on the board in room <b>" + ebEscapeHtml(a.room) + "</b>");
+      }).join("");
+   }
+
+   if (intro.introducers.length > 0) {
+      return "<br/><br/>First fetch whoever introduces them to the board:" + lines(intro.introducers);
+   }
+   if (intro.leaders.length > 0) {
+      return "<br/><br/>No one has said they'll introduce them. Their leader:" + lines(intro.leaders);
+   }
+   return "<br/><br/>No one has said they'll introduce them, and their leader hasn't signed in."
+      + " Ask " + ebEscapeHtml(s_first) + " who will.";
 }
 
 function SendStartReviewRequest(s_id) {

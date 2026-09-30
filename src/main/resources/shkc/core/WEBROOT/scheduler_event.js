@@ -164,6 +164,9 @@ var boardBuilder = {
    // Changing the members of a board already seated, rather than building
    // one for a waiting youth: the room is fixed and Save members posts it.
    editing: false,
+   // The board last proposed, { ids, chairId }: while the picks are still
+   // that, the operator hasn't changed it, and it follows the event (D-12).
+   proposed: null,
 
    memberIds: function () {
       return this.picked.slice();
@@ -175,6 +178,17 @@ var boardBuilder = {
       this.roomId = null;
       this.problems = [];
       this.editing = false;
+      this.proposed = null;
+   },
+
+   // Still the board proposed: nobody added or removed, the chair not
+   // changed. A proposed adult now on another board or gone home dropped
+   // out on their own (proposalUntouched, process_seat.js).
+   untouched: function () {
+      return !this.editing && proposalUntouched(this.proposed, this.picked, this.chairId, function (id) {
+         var a = adultStore.get(id);
+         return !!a && adultIsFreeRow(a);
+      });
    },
 
    // Start from the board as it sits now, chair first.
@@ -276,6 +290,7 @@ function proposeForBuilder() {
    boardBuilder.chairId = proposal.chairId;
    boardBuilder.problems = proposal.problems;
    boardBuilder.settleChair();
+   boardBuilder.proposed = { ids: boardBuilder.picked.slice(), chairId: boardBuilder.chairId };
    if (!boardBuilder.roomId || !roomStore.get(boardBuilder.roomId) || !roomIsFree(roomStore.get(boardBuilder.roomId))) {
       boardBuilder.roomId = proposeRoom(youthStore.getColumnValue(s_id, "BoardType"));
    }
@@ -443,6 +458,13 @@ function render() {
          boardBuilder.needsProposal = true;
       } else if (boardBuilder.needsProposal) {
          boardBuilder.needsProposal = false;
+         proposeForBuilder();
+         selection.roomId = boardBuilder.roomId;
+      } else if (boardBuilder.untouched()) {
+         // A board proposed and not changed since follows the event: an
+         // adult who signs in, goes home or leaves a board is weighed at
+         // once, without Start over (SPEC.md D-12, amended). The room stays
+         // while it's free.
          proposeForBuilder();
          selection.roomId = boardBuilder.roomId;
       }
@@ -847,7 +869,8 @@ function renderFinished(s) {
    }).join("");
 }
 
-// Adults who said they came to support this youth, and where they are now.
+// The adults linked to this youth, who introduce them to their board
+// (SPEC.md D-23), and where they are now.
 function supportingAdults(s_id) {
    return adultStore.rows.filter(function (a) {
       return (a.Supporting || "").split("|").indexOf(s_id) >= 0;
@@ -863,7 +886,7 @@ function renderSupport(s) {
          + "<button type='button' class='eb-icon-button' data-unlink='" + h(a.id) + "' title='No longer linked to this youth' aria-label='Unlink "
          + h(a.name) + "'>" + icon(ICON_REMOVE) + "</button></li>";
    }).join("");
-   el("d-support").innerHTML = list || "<li class='eb-hint'>No one linked. Locate looks for leaders and parents by name and unit.</li>";
+   el("d-support").innerHTML = list || "<li class='eb-hint'>No one linked to introduce them. Locate looks for leaders and parents by name and unit.</li>";
 }
 
 // The details pane's primary action follows the status (D-11, O-4).
@@ -937,7 +960,7 @@ function SCHEDULER_locateText(s_id, parents) {
 
    var lines = [];
    supporting.forEach(function (a) {
-      lines.push("Supporting: <b>" + h(a.name) + "</b>, " + h(adultWhere(a.room === "Main" ? "" : a.room)));
+      lines.push("Introduces them: <b>" + h(a.name) + "</b>, " + h(adultWhere(a.room === "Main" ? "" : a.room)));
    });
    leader_match.forEach(function (a) {
       lines.push("Leader: <b>" + h(fullName(a)) + "</b>, " + h(adultWhere(a.Room)));
@@ -964,12 +987,7 @@ function SCHEDULER_locateAdults(s_id, parents) {
       + "<br/>" + text, "scout");
 }
 
-// Kept for process_start.js, which names whom to fetch at Start review.
-function SCHEDULER_supportingAdults(s_id) {
-   return supportingAdults(s_id);
-}
-
-// Link an adult to the youth as someone who came to support them -- their
+// Link an adult to the youth as the one who introduces them (SPEC.md D-23) -- their
 // Scoutmaster, say -- or undo that, for the adult who did not tick the youth
 // at sign-in, or signed in before the youth did. The same Supporting column
 // the sign-in form writes, saved through /adult-update.
@@ -1009,7 +1027,8 @@ function linkAdultDialog(s_id) {
    }).join("");
    ebModalForm("Link an adult to " + h(fullName(s)) + "?",
       "<label>Adult<br/><select name='Adult'>" + opts + "</select></label>"
-      + "<p class='eb-hint'>Start review then says where to find them, so someone can fetch them to introduce the youth.</p>",
+      + "<p class='eb-hint'>For the adult who will introduce them to their board, usually their Scoutmaster or a leader standing in. "
+      + "Start review on a board of review then says where to find them, so someone can fetch them.</p>",
       [{ name: "Cancel", label: "Cancel" }, { name: "Link", label: "Link" }],
       function (name, body) {
          if (name === "Link") {
