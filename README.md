@@ -176,11 +176,12 @@ references, and the project workbook first. The youth waits outside.
 When the members have finished reading, select the youth, or click their room
 card.
 
-Under **Leaders and parents**, the details pane lists anyone who came to
-support the youth and where they are, so someone can fetch them to walk the
-youth in and introduce them. **Locate** also looks for the youth's leaders and
-parents by name and unit, and **Link an adult…** records someone who didn't say
-so at sign-in.
+Under **Leaders and parents**, the details pane lists the adult who introduces
+the youth and where they are, so someone can fetch them to walk the youth in.
+**Locate** also looks for the youth's leaders and parents by name and unit, and
+**Link an adult…** records someone who didn't say so at sign-in. On a board of
+review, **Start review** first reminds you to fetch whoever introduces the
+youth.
 
 Once the youth has gone in, press **Start review** (or Ctrl+Enter). The room's
 timer starts again from zero, so the reading and the interview are timed
