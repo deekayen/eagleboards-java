@@ -1037,7 +1037,9 @@ function linkAdultDialog(s_id) {
       });
 }
 
-// Enable/disable an adult by rewriting their Room value ("N/A" = gone home).
+// Mark an adult gone home or back by rewriting their Room value ("N/A" =
+// gone home). Named as on Windows and the Mac (SPEC.md P-6, amended
+// 2026-10-24); it was Disable (gone home) and Enable (back).
 function setAdultGone(l_id, gone) {
    var a = adultStore.get(l_id);
    if (!a) {
@@ -1046,7 +1048,7 @@ function setAdultGone(l_id, gone) {
    ebSaveRow("/adult-update", "updated", l_id, { Room: gone ? "N/A" : "" })
       .then(function (ok) {
          if (ok) {
-            ebMessage(gone ? "Disabled" : "Enabled", h(fullName(a)) + (gone ? " is marked as gone home." : " is back."), "adult", "Undo");
+            ebMessage(gone ? "Marked gone home" : "Marked back", h(fullName(a)) + (gone ? " is marked as gone home." : " is back."), "adult", "Undo");
          } else {
             ebAlert("Update error", h(fullName(a)) + " was not updated.", "adult");
          }
@@ -1067,8 +1069,8 @@ function adultMenu(l_id, e) {
    ebContextMenu([
       { label: "Add to this board", disabled: !adultIsFreeRow(a),
         run: function () { boardBuilder.add(l_id); render(); } },
-      { label: "Disable (gone home)", disabled: !adultIsFreeRow(a), run: function () { setAdultGone(l_id, true); } },
-      { label: "Enable (back)", disabled: a.Room !== "N/A", run: function () { setAdultGone(l_id, false); } },
+      { label: "Mark gone home", disabled: !adultIsFreeRow(a), run: function () { setAdultGone(l_id, true); } },
+      { label: "Mark back", disabled: a.Room !== "N/A", run: function () { setAdultGone(l_id, false); } },
       { label: linked ? "Unlink from this youth" : "Link to this youth", disabled: !s_id,
         run: function () { toggleSupportLink(l_id, s_id); } }
    ], e.clientX, e.clientY);

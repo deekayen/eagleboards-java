@@ -217,8 +217,11 @@ jobs:
         # Covers what no single-board check can: adults committed to one room
         # and released when the review completes, the rules holding for
         # requests that never went through our UI, and postpone/reset handing
-        # the room and the members back. Synthetic names, spare port, throwaway
-        # data dir -- never the real Master_AdultHistory.csv.
+        # the room and the members back. Section 29 guards the admin tables'
+        # Delete, which once took a youth or an adult a sitting board held and
+        # left the room held by nobody or the board a member short (SPEC.md
+        # P-6). Synthetic names, spare port, throwaway data dir -- never the
+        # real Master_AdultHistory.csv.
         run: bash scripts/test-board-event.sh
       - name: First run (no adult history yet; a failed start exits non-zero)
         shell: bash

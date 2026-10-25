@@ -102,11 +102,12 @@ email, and the rest of the form fills itself in.
 
 An adult also gives a phone number and says, for each kind of board, whether
 they can serve as a **Member**, as a **Chair**, or not at all. They can tick
-that the event counts toward a Wood Badge ticket, and tick the youth they came
-to support, so you can find them when that youth's review starts. Adults who
-have served before are recognized by email and the form fills itself in.
+that the event counts toward a Wood Badge ticket, and tick the youth they'll
+introduce to their board, so you can find them when that youth's review
+starts. Adults who have served before are recognized by email and the form
+fills itself in.
 
-![The adult sign-in form: email, phone, name and unit; Member or Chair for Eagle boards of review and for project proposal reviews; a Wood Badge checkbox; and an optional list of youth they came to support](docs/images/adult.png)
+![The adult sign-in form: email, phone, name and unit; Member or Chair for Eagle boards of review and for project proposal reviews; a Wood Badge checkbox; and an optional list of youth they'll introduce to their board](docs/images/adult.png)
 
 Each youth appears in the **Youth** list on the Event page the moment they sign
 in, numbered `P1, P2…` if they reserved and `W1, W2…` if they walked in. The
@@ -294,8 +295,8 @@ interviewing.
 
 **An adult has gone home.** With a waiting youth selected, right-click the
 adult under **Add members** (tick **Show everyone** if they are not listed) and
-choose **Disable (gone home)**. They won't be proposed for another board.
-**Enable (back)** returns them.
+choose **Mark gone home**. They won't be proposed for another board.
+**Mark back** returns them.
 
 **The check-in station cannot reach the address.** Both machines must be on the
 same network. Check the address in the grey window, and check that you clicked

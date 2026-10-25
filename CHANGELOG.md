@@ -71,6 +71,11 @@ Registered → Seated → InProgress → Completed / Postponed
   leaving a youth "seated" with no room and no board, and the server now
   refuses a sitting status, or a change to a board that is sitting, whoever
   asks.
+- **Nor does it delete someone a board holds.** The original's Delete took a
+  youth whose board was seated or in review, leaving the room held by nobody,
+  or an adult sitting on a board, leaving it a member short. Both are now
+  refused, by the server too, with the reason: reset or complete the board on
+  the Event page first. The row stays.
 - **Find a person** (D-21), under the Rooms heading, says which room anyone is
   in, youth or adult, or where they are instead; the Youth list's own find is
   gone.
@@ -104,10 +109,11 @@ Advancement before it goes through:
   chair dropdown was narrowed to qualified chairs only. When they are all busy
   the answer is to promote someone on the Admin page, not to hand a Member the
   gavel because nobody else was left in the list.
-- **An adult sits on one board at a time.** Anyone already in a room, or stood
-  down for the night with Disable, is refused, hidden from the adult grid's
-  default view, skipped by auto-select, and has their checkbox greyed out with
-  the reason on hover. They return to the pool when the review completes.
+- **An adult sits on one board at a time.** Anyone already in a room, or
+  marked gone home (**Mark gone home**, the original's Disable), is refused,
+  hidden from the adult grid's default view, skipped by auto-select, and has
+  their checkbox greyed out with the reason on hover. They return to the pool
+  when the review completes.
 - Age is attested by the **"I am 21+"** button on the sign-in page, and the
   parent/relative rule is covered by the unit match, so neither needs a field on
   the adult record.

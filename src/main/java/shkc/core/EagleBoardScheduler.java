@@ -521,6 +521,19 @@ public class EagleBoardScheduler {
          return super.keepsOffUndo(column) || Arrays.asList(EagleBoardScheduler.ADULT_REG_FIELDS).contains(column);
       }
 
+      // SPEC.md P-6, amended 2026-10-24: a table never deletes an adult
+      // sitting on a board (a Room, other than the Disable button's N/A).
+      // A deleted member had left the board a member short.
+      @Override
+      protected String refusal(DataRecord record, HttpServletRequest request, String editStatus) {
+         String room = record.getValue("Room");
+         if (!"deleted".equals(editStatus) || room.length() == 0 || "N/A".equals(room)) {
+            return null;
+         }
+         return record.getValue("First") + " " + record.getValue("Last") + " is on the board in room " + room
+            + ". Reset or complete that board on the Event page first.";
+      }
+
       @Override
       protected void afterEdit(DataRecord record, HttpServletRequest request, String editStatus) throws IOException {
          EagleBoardScheduler.this.shareAdultFacts(record, request, editStatus, EagleBoardScheduler.this._adultHistoryRecords);
@@ -533,7 +546,7 @@ public class EagleBoardScheduler {
     * between the two (SPEC.md P-6): an admin edit on the Adults tab is made
     * to the same adult in the read-only history, so someone promoted to
     * chair today is a chair the next time they sign in. Wood Badge, whom
-    * they came to support and their room belong to this event alone.
+    * they introduce (D-23) and their room belong to this event alone.
     */
    private void shareAdultFacts(DataRecord edited, HttpServletRequest request, String editStatus, DataRecordFile<AdultRecord> other) throws IOException {
       if (!"updated".equals(editStatus)) {
@@ -1137,6 +1150,8 @@ public class EagleBoardScheduler {
 
       // A refusal carries its reason as the action's text, which the Admin
       // page shows; a grid that only reads the type still sees "invalid".
+      // A reason can name someone with an accent, so the length is the
+      // UTF-8 bytes written, not the characters.
       private void sendResponse(String status, String rowId, HttpServletResponse response, String reason) throws IOException {
          StringBuffer out = new StringBuffer();
          out.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?><data>");
@@ -1148,10 +1163,10 @@ public class EagleBoardScheduler {
             out.append(">").append(reason.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")).append("</action>");
          }
          out.append("</data>");
-         String body = out.toString();
-         response.setContentLength(body.length());
+         byte[] body = out.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8);
+         response.setContentLength(body.length);
          response.setContentType("text/xml");
-         response.getOutputStream().write(body.getBytes());
+         response.getOutputStream().write(body);
          response.setStatus(200);
       }
    }
@@ -1230,9 +1245,9 @@ public class EagleBoardScheduler {
             AdultRecord historyRecord = EagleBoardScheduler.this._adultHistoryRecords.get(adult.getID());
             if (historyRecord == null) {
                historyRecord = adult.clone();
-               // The history pre-fills next month's form. Whom someone came to
-               // support, and whether it counted toward a Wood Badge ticket,
-               // are answers for this event only, so they are not kept.
+               // The history pre-fills next month's form. Whom someone
+               // introduces (D-23), and whether it counted toward a Wood Badge
+               // ticket, are answers for this event only, so they are not kept.
                historyRecord.setValue("WoodBadge", "");
                historyRecord.setValue("Supporting", "");
                EagleBoardScheduler.verbose("Adding new Adult History Record: " + historyRecord);
@@ -1641,14 +1656,21 @@ public class EagleBoardScheduler {
       // which give the scout a room and members and take them back. An admin
       // edit never sets Seated or InProgress, and never changes the status of
       // a board that is sitting. The rest of the record still corrects.
+      // Nor does a table delete a scout whose board is sitting (amended
+      // 2026-10-24): a deleted scout had left the room held by nobody.
       @Override
       protected String refusal(DataRecord record, HttpServletRequest request, String editStatus) {
          String newStatus = request.getParameter("Status");
          String oldStatus = record.getValue("Status");
-         if (newStatus == null || "deleted".equals(editStatus) || newStatus.equals(oldStatus)) {
+         String name = record.getValue("First") + " " + record.getValue("Last");
+         if ("deleted".equals(editStatus)) {
+            return EagleBoardScheduler.holdsRoom(oldStatus)
+               ? name + "'s board is in room " + record.getValue("Room") + ". Reset it or complete it on the Event page first."
+               : null;
+         }
+         if (newStatus == null || newStatus.equals(oldStatus)) {
             return null;
          }
-         String name = record.getValue("First") + " " + record.getValue("Last");
          if (EagleBoardScheduler.holdsRoom(newStatus)) {
             return name + " can be seated, or their review started, only on the Event page, where the board gets its room and members.";
          }

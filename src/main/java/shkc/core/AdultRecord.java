@@ -22,8 +22,9 @@ public class AdultRecord extends PersonRecord {
       "BoardHistory",
       // Per event, set at sign-in and never carried into the adult history:
       // "Y" if volunteering toward a Wood Badge ticket item, and the IDs of
-      // the scouts this adult came to support (their Scoutmaster, say),
-      // separated by "|". Appended so older files still line up.
+      // the scouts this adult introduces to their board (as their
+      // Scoutmaster, say; SPEC.md D-23), separated by "|". Appended so older
+      // files still line up.
       "WoodBadge",
       "Supporting"
    };

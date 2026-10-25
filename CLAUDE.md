@@ -89,7 +89,13 @@ also refuses Seated, InProgress and a sitting board's status through
 `/youth-update`, whoever posts it (event test section 25): a scout set
 Seated from a table had no room and no members. `/youth-update` still takes
 Registered, Completed or Postponed on the record, which section 18's
-correction moves; nothing on the Admin page offers them.
+correction moves; nothing on the Admin page offers them. **Nor does a table
+delete someone a board holds** (P-6, amended 2026-10-24): Delete on a scout
+whose board is Seated or InProgress, or on an adult with a Room (not `N/A`),
+is refused with the reason by `ScoutUpdateHandler.refusal` and
+`AdultUpdateHandler.refusal`, and the Admin page keeps the row (event test
+section 29). The original's Delete took either, leaving a room held by
+nobody or a board a member short.
 
 **An adult's facts are shared, and the history is read-only** (P-6). Name,
 unit, contact and roles (`ADULT_REG_FIELDS`) edited on the Adults tab reach
@@ -266,13 +272,14 @@ push be the verification.
 - **What an adult says at sign-in.** Each board type is Member, Chair or
   "No thanks" (stored as the role `Unavailable`, which Seat Board refuses).
   Two per-event columns end the adult record: `WoodBadge` (`Y` or blank)
-  and `Supporting` (IDs of the scouts they came with, `|`-separated, since
-  commas become `~` on disk). Neither is copied into the adult history, so
-  next month's form never pre-fills them. Start Review names the supporting
-  adults and the room they are in, so someone can fetch them to introduce
-  the scout; Locate lists them first. An operator links or unlinks them
-  after both have signed in with **Link an adult** in the details pane (or
-  an adult's right-click menu), which writes the same column.
+  and `Supporting` (IDs of the scouts they'll introduce to their board,
+  SPEC.md D-23, `|`-separated, since commas become `~` on disk). Neither is
+  copied into the adult history, so next month's form never pre-fills them.
+  Start Review names the linked adults and the room they are in, so someone
+  can fetch them to introduce the scout; Locate lists them first. An
+  operator links or unlinks them after both have signed in with **Link an
+  adult** in the details pane (or an adult's right-click menu), which writes
+  the same column.
 
   Age is attested by the "I am 21+" button on the sign-in page, and the
   parent/relative rule is handled by unit matching, so neither needs a field on

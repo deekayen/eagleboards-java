@@ -13,7 +13,7 @@ import java.util.Map;
 // API they speak, the Mac version's.
 //
 //   GET  /api/checked-in     who has signed in, names and units only
-//   GET  /api/scout-choices  the youth an adult may say they came to support
+//   GET  /api/scout-choices  the youth an adult may say they will introduce (D-23)
 //   POST /api/youth-lookup   email=... -> the pre-registration it matches, or {}
 //   POST /api/adult-lookup   email=... -> the adult history it matches, or {}
 //

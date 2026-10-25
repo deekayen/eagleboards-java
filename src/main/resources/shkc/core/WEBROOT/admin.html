@@ -316,12 +316,15 @@
                   if (!window.confirm("Are you sure you want to delete: " + d.Last + ", " + d.First + " ?")) {
                      return;
                   }
-                  ebSaveRow(cfg.updatePath, "deleted", row.getIndex(), {})
-                     .then(function (ok) {
-                        if (ok) {
+                  // A youth whose board is sitting, or an adult on a board,
+                  // is refused (SPEC.md P-6, amended 2026-10-24; event test
+                  // section 29): the row stays, with the server's reason.
+                  ebSaveRowResult(cfg.updatePath, "deleted", row.getIndex(), {})
+                     .then(function (result) {
+                        if (result.ok) {
                            row.delete();
                         } else {
-                           alert("Server rejected the delete; reloading.");
+                           alert(result.reason || "Server rejected the delete; reloading.");
                            reload();
                         }
                      })
@@ -656,7 +659,9 @@
                alert("Room '" + d.Room + "' is currently in use, cannot remove.");
                return;
             }
-            if (!window.confirm("Are you sure you want to remove room '" + d.Room + "' ?")) {
+            // Asked as the Event page's Remove room asks (SPEC.md O-2,
+            // amended 2026-10-24), naming the room.
+            if (!window.confirm("Remove room " + d.Room + "?\n\nIt comes off the list for the rest of this event. You can add it again.")) {
                return;
             }
             ebSaveRow("/room-update", "deleted", row.getIndex(), {})
