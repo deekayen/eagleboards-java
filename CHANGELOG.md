@@ -377,6 +377,12 @@ still compared against the original.
   appears nowhere in the rebuilt jar.
 - **The original jar is never committed**, because it contains that key. It is
   kept offline and authenticated by checksum.
+- **The email autofill no longer lists everyone's address.** Asked with no
+  address, the original's `/adult-autofill` and `/scout-autofill` answered
+  with every email in the adult history and the pre-registrations, to any
+  device on the network. They now list none. The sign-in pages fill a form in
+  from the one address typed (`/api/youth-lookup`, `/api/adult-lookup`), from
+  any station, as before.
 - **Participant data cannot be committed by accident.** All CSV/XLS files, dated
   folders, and adult-history files are ignored by git and blocked by a
   pre-commit hook. The only configuration committed is `config.properties`,

@@ -338,9 +338,14 @@ public class EagleBoardScheduler {
       ChangeFeed changeFeed = new ChangeFeed();
       this._server.setChangeFeed(changeFeed);
       this._server.addHandler("/events", changeFeed);
-      this._server.addHandler("/adult-autofill", new EagleBoardScheduler.AutoFillHandler<>(this._adultHistoryRecords, "Email"));
-      this._server.addHandler("/youth-autofill", new EagleBoardScheduler.AutoFillHandler<>(this._scoutsScheduledRecords, "Email"));
-      this._server.addHandler("/config-autofill", new EagleBoardScheduler.AutoFillHandler<>(this._configRecords, "Name"));
+      // The old email autofill finds one address it's given, but no longer
+      // lists them all: its list mode gave any device on the venue network
+      // every email in the adult history and the pre-registrations. The
+      // sign-in pages look one address up at a time (/api/*-lookup); the
+      // settings' names are no one's personal information.
+      this._server.addHandler("/adult-autofill", new EagleBoardScheduler.AutoFillHandler<>(this._adultHistoryRecords, "Email", false));
+      this._server.addHandler("/youth-autofill", new EagleBoardScheduler.AutoFillHandler<>(this._scoutsScheduledRecords, "Email", false));
+      this._server.addHandler("/config-autofill", new EagleBoardScheduler.AutoFillHandler<>(this._configRecords, "Name", true));
    }
 
    public void run() throws Exception {
@@ -552,10 +557,14 @@ public class EagleBoardScheduler {
    public class AutoFillHandler<T extends DataRecord> implements WebServer.WebHandler {
       private DataRecordFile<T> _records;
       private String _lookupField = null;
+      // Whether the list mode lists the lookup field's values; when it
+      // doesn't, it answers in the same format with none.
+      private final boolean _listsValues;
 
-      public AutoFillHandler(DataRecordFile<T> records, String lookupField) {
+      public AutoFillHandler(DataRecordFile<T> records, String lookupField, boolean listsValues) {
          this._records = records;
          this._lookupField = lookupField;
+         this._listsValues = listsValues;
       }
 
       @Override
@@ -577,7 +586,7 @@ public class EagleBoardScheduler {
             out.append("{ options: [\n");
             boolean first = true;
 
-            for (DataRecord record : this._records.getRecords()) {
+            for (DataRecord record : this._listsValues ? this._records.getRecords() : List.<T>of()) {
                if (record.get(this._lookupField).length() > 4) {
                   if (!first) {
                      out.append(",\n");

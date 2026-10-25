@@ -573,14 +573,17 @@ echo "== 2a. read endpoints (parity vs original) =="
 # /help.html is excluded for the same reason it left PRESERVED above: its
 # operator instructions were rewritten when the Verify step was removed.
 READS_RAW="/scheduler.css /images/16x16/dialog-warning-4.png"
-READS="/adult-cells /adult-history-cells /room-cells /adult-autofill"
+READS="/adult-cells /adult-history-cells /room-cells"
 count=0
 for p in $READS_RAW; do compare_raw "$p"; count=$((count+1)); done
 for p in $READS; do compare GET "$p"; count=$((count+1)); done
 # Renamed scout-* -> youth-* (see compare_renamed). Same handler, same bytes.
 compare_renamed GET /scout-cells            /youth-cells;            count=$((count+1))
 compare_renamed GET /scouts-scheduled-cells /youth-scheduled-cells;  count=$((count+1))
-compare_renamed GET /scout-autofill         /youth-autofill;         count=$((count+1))
+# The email autofill's list mode no longer lists anyone's address (it gave
+# every device on the venue network the adult history's and the
+# pre-registrations' emails), so it differs from the original by design and
+# is compared by status only, below.
 # The old names must be GONE on the rebuilt side, or the rename is only half
 # done and stale links would keep working silently.
 for old in /scout-cells /scouts-scheduled-cells /scout-autofill \
@@ -597,7 +600,11 @@ compare_status GET /no-such-dir/x.html
 # alert fields), so the served fields differ from the original by design.
 # Status-only here; the colors it also carries are exercised via the UI.
 compare_status GET "/config-autofill?Name=DEFAULT&fmt=json"
-note "$count GET paths compared + 3 status-only paths"
+compare_status GET /adult-autofill
+a=$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:$PORT_A/scout-autofill")
+b=$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:$PORT_B/youth-autofill")
+[ "$a" = "$b" ] || fail "GET /scout-autofill -> /youth-autofill status differs: original=$a rebuilt=$b"
+note "$count GET paths compared + 5 status-only paths"
 
 echo "== 3. write endpoints =="
 # Sent as an older cached sign-in page would, with a DOB and a Phone. The
