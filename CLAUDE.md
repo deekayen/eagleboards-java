@@ -273,7 +273,8 @@ push be the verification.
   "No thanks" (stored as the role `Unavailable`, which Seat Board refuses).
   Two per-event columns end the adult record: `WoodBadge` (`Y` or blank)
   and `Supporting` (IDs of the scouts they'll introduce to their board,
-  SPEC.md D-23, `|`-separated, since commas become `~` on disk). Neither is
+  SPEC.md D-23, `|`-separated, since commas become `~` on disk; the form's
+  list, `/api/scout-choices`, leaves out a scout here for a project proposal). Neither is
   copied into the adult history, so next month's form never pre-fills them.
   Start Review names the linked adults and the room they are in, so someone
   can fetch them to introduce the scout; Locate lists them first. An

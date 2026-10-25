@@ -145,8 +145,9 @@ public class CheckInApi {
    }
 
    // Everyone who RSVP'd, plus the event's walk-ins, leaving out anyone
-   // already finished (Completed or Postponed). The sign-in's record wins over
-   // the RSVP with the same ID; sorted by last name, then first.
+   // already finished (Completed or Postponed) and anyone here for a project
+   // proposal, which has no introduction (SPEC.md D-23). The sign-in's record
+   // wins over the RSVP with the same ID; sorted by last name, then first.
    private List<Map<String, String>> scoutChoices() {
       synchronized (this._lock) {
          List<String> done = new ArrayList<>();
@@ -163,7 +164,12 @@ public class CheckInApi {
                byId.put(scout.getID(), scout);
             }
          }
-         List<ScoutRecord> sorted = new ArrayList<>(byId.values());
+         List<ScoutRecord> sorted = new ArrayList<>();
+         for (ScoutRecord scout : byId.values()) {
+            if (!"Project".equals(scout.getBoardType())) {
+               sorted.add(scout);
+            }
+         }
          sorted.sort((a, b) -> {
             int byLast = a.getLast().compareToIgnoreCase(b.getLast());
             return byLast != 0 ? byLast : a.getFirst().compareToIgnoreCase(b.getFirst());

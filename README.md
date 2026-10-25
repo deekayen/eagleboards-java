@@ -103,8 +103,8 @@ email, and the rest of the form fills itself in.
 An adult also gives a phone number and says, for each kind of board, whether
 they can serve as a **Member**, as a **Chair**, or not at all. They can tick
 that the event counts toward a Wood Badge ticket, and tick the youth they'll
-introduce to their board, so you can find them when that youth's review
-starts. Adults who have served before are recognized by email and the form
+introduce to their Eagle board of review, so you can find them when that
+youth's review starts. Adults who have served before are recognized by email and the form
 fills itself in.
 
 ![The adult sign-in form: email, phone, name and unit; Member or Chair for Eagle boards of review and for project proposal reviews; a Wood Badge checkbox; and an optional list of youth they'll introduce to their board](docs/images/adult.png)
