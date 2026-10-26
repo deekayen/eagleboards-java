@@ -107,7 +107,7 @@ introduce to their Eagle board of review, so you can find them when that
 youth's review starts. Adults who have served before are recognized by email and the form
 fills itself in.
 
-![The adult sign-in form: email, phone, name and unit; Member or Chair for Eagle boards of review and for project proposal reviews; a Wood Badge checkbox; and an optional list of youth they'll introduce to their board](docs/images/adult.png)
+![The adult sign-in form: email, phone, name and unit; Member or Chair for Eagle boards of review and for project proposal reviews; a Wood Badge checkbox; and an optional list of the youth here for an Eagle board of review, to check the ones they'll introduce](docs/images/adult.png)
 
 Each youth appears in the **Youth** list on the Event page the moment they sign
 in, numbered `P1, P2…` if they reserved and `W1, W2…` if they walked in. The
