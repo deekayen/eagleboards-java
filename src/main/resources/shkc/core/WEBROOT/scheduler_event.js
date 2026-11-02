@@ -159,6 +159,9 @@ var boardBuilder = {
    picked: [],
    chairId: null,
    roomId: null,
+   // The operator chose roomId themselves, so it stays even if it is the
+   // other board type's (D-24).
+   roomByOperator: false,
    problems: [],
    needsProposal: false,
    // Changing the members of a board already seated, rather than building
@@ -176,6 +179,7 @@ var boardBuilder = {
       this.picked = [];
       this.chairId = null;
       this.roomId = null;
+      this.roomByOperator = false;
       this.problems = [];
       this.editing = false;
       this.proposed = null;
@@ -271,11 +275,20 @@ function waitingForProposal(s_id) {
       .map(function (s) { return { id: s.id, uname: s.UnitName, btype: s.BoardType, regnum: s.RegNum }; });
 }
 
-// The first free room of the youth's board type, or of any type.
-function proposeRoom(btype) {
-   var free = roomStore.rows.filter(roomIsFree).sort(byRoomName);
-   var same = free.filter(function (r) { return r.BoardType === btype; });
-   return same.length > 0 ? same[0].id : (free.length > 0 ? free[0].id : null);
+// The first free room set up for the youth's board type, or none (D-24).
+function proposeRoomFor(btype) {
+   return proposeRoom(roomStore.rows.filter(roomIsFree).sort(byRoomName), btype);
+}
+
+// Keep the room chosen for the board while it is free and the youth's type
+// (or the operator's own choice); otherwise propose one (D-24).
+function settleRoom(btype) {
+   var room = boardBuilder.roomId && roomStore.get(boardBuilder.roomId);
+   var chosen = room ? { id: room.id, BoardType: room.BoardType, free: roomIsFree(room) } : null;
+   if (!keepsRoom(chosen, btype, boardBuilder.roomByOperator)) {
+      boardBuilder.roomId = proposeRoomFor(btype);
+      boardBuilder.roomByOperator = false;
+   }
 }
 
 // A fresh proposal for the whole board (D-5).
@@ -291,9 +304,7 @@ function proposeForBuilder() {
    boardBuilder.problems = proposal.problems;
    boardBuilder.settleChair();
    boardBuilder.proposed = { ids: boardBuilder.picked.slice(), chairId: boardBuilder.chairId };
-   if (!boardBuilder.roomId || !roomStore.get(boardBuilder.roomId) || !roomIsFree(roomStore.get(boardBuilder.roomId))) {
-      boardBuilder.roomId = proposeRoom(youthStore.getColumnValue(s_id, "BoardType"));
-   }
+   settleRoom(youthStore.getColumnValue(s_id, "BoardType"));
 }
 
 // ------------------------------------------------------------- selection
@@ -331,6 +342,7 @@ function selectRoom(r_id) {
    var current = selection.youthId && youthStore.get(selection.youthId);
    if (current && isWaiting(current.Status)) {
       boardBuilder.roomId = r_id;
+      boardBuilder.roomByOperator = true;
    } else {
       selection.youthId = null;
    }
@@ -1530,6 +1542,7 @@ el("room-remove").addEventListener("click", removeRoom);
 
 el("d-room").addEventListener("change", function () {
    boardBuilder.roomId = this.value || null;
+   boardBuilder.roomByOperator = !!boardBuilder.roomId;
    selection.roomId = boardBuilder.roomId;
    render();
 });
@@ -1557,7 +1570,7 @@ el("d-fill").addEventListener("click", function () {
    fill.memberIds.forEach(function (id) { boardBuilder.add(id); });
    boardBuilder.problems = fill.problems;
    if (!boardBuilder.roomId) {
-      boardBuilder.roomId = proposeRoom(youthStore.getColumnValue(s_id, "BoardType"));
+      boardBuilder.roomId = proposeRoomFor(youthStore.getColumnValue(s_id, "BoardType"));
    }
    render();
 });

@@ -556,12 +556,35 @@ function personFindNote(found, rooms) {
    return elsewhere.length > 4 ? said + " And " + (elsewhere.length - 4) + " more." : said;
 }
 
+// The room a proposed board takes (SPEC.md D-24): a free room set up for the
+// youth's board type, never the other type's. With none free, no room: the
+// operator switches a room's type or chooses one by hand.
+//   freeRooms: the free rooms, in the order to offer them; each { id, BoardType }
+//   btype:     the youth's board type, "Final" or "Project"
+// Returns the room's id, or null.
+function proposeRoom(freeRooms, btype) {
+   var same = freeRooms.filter(function (r) { return r.BoardType === btype; });
+   return same.length > 0 ? same[0].id : null;
+}
+
+// Whether the room already chosen for the board stays when the board is
+// proposed again (D-24): while it is free, and either the operator chose it
+// or it is still the youth's board type. A room the app proposed, then
+// switched to the other type, is withdrawn.
+//   room:       the chosen room { id, BoardType, free }, or null
+//   chosenByOperator: the operator picked it, not the proposal
+function keepsRoom(room, btype, chosenByOperator) {
+   return !!room && room.free && (chosenByOperator || room.BoardType === btype);
+}
+
 if (typeof module !== "undefined" && module.exports) {
    module.exports = {
       findPeople: findPeople,
       roomsFound: roomsFound,
       personFindNote: personFindNote,
       proposeBoard: proposeBoard,
+      proposeRoom: proposeRoom,
+      keepsRoom: keepsRoom,
       fillBoard: fillBoard,
       withSupportLink: withSupportLink,
       introductionFor: introductionFor,

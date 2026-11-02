@@ -90,6 +90,29 @@ check("a project review has no introduction",
    seat.introductionFor({ id: "S1", uname: "Troop1001", btype: "Project", leader: "Sam Smith" }, [introducer]), null);
 
 console.log("");
+console.log("== a proposed board only takes a room of its own type (SPEC.md D-24) ==");
+var finalRoom = { id: "R1", BoardType: "Final" };
+var projectRoom = { id: "R2", BoardType: "Project" };
+
+check("a project review is proposed the project room, not the first free room",
+   seat.proposeRoom([finalRoom, projectRoom], "Project"), "R2");
+check("a board of review is proposed the final room",
+   seat.proposeRoom([projectRoom, finalRoom], "Final"), "R1");
+check("only a final room free: a project review is proposed no room",
+   seat.proposeRoom([finalRoom], "Project"), null);
+check("no room free: none proposed", seat.proposeRoom([], "Final"), null);
+
+var asProposed = { id: "R1", BoardType: "Final", free: true };
+check("a proposed room stays while it is free and the youth's type",
+   seat.keepsRoom(asProposed, "Final", false), true);
+check("a proposed room switched to the other type is withdrawn",
+   seat.keepsRoom(asProposed, "Project", false), false);
+check("a room the operator chose stays, even the other type",
+   seat.keepsRoom(asProposed, "Project", true), true);
+check("a room that is taken goes, whoever chose it",
+   seat.keepsRoom({ id: "R1", BoardType: "Final", free: false }, "Final", true), false);
+check("no room chosen: nothing to keep", seat.keepsRoom(null, "Final", false), false);
+
 if (failures > 0) {
    console.log("BOARD BUILDER: FAIL -- " + failures + " of " + checks + " checks");
    process.exit(1);
