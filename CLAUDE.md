@@ -15,7 +15,8 @@ original source was received) and then modernized. See `PROVENANCE.md`.
 
 - Java app, single self-contained jar. `Main-Class: shkc.core.EagleBoardScheduler`.
 - Embedded **Jetty 12** web server. One servlet (`WebServer$LocalDefaultHandler`)
-  dispatches every request to app handlers registered in `EagleBoardScheduler`.
+  dispatches every request to an app handler, one class per endpoint, listed in
+  `EventRoutes` (see ARCHITECTURE.md for the class map).
 - Data is **CSV files** in a working directory (`-d`), read/written through the
   `DataRecordFile` / `DataRecord` machinery. Records: scouts, adults, rooms,
   adult history, and a single-row CONFIG.
@@ -110,7 +111,7 @@ Youth list: `findPeople`, `roomsFound` and `personFindNote` in
 `process_seat.js`, with the Windows and Mac test cases in
 `test-find-people.js`. **Approved proposals** (D-22):
 `/approved-proposals-cells` reads every dated folder beside the event's
-(`_dataRoot`'s parent) dated before it, each time it is asked, never
+(the data folder's parent) dated before it, each time it is asked, never
 creating a file there, and answers as `/youth-cells` does with only its
 columns; the admin page's tab shows it read-only (event test section 28).
 
@@ -137,6 +138,9 @@ checks that the Admin page offers no status to choose.
   copy differs. A new case goes in eagleboards-shared, then the `*.json` is
   copied here and the lock bumped. `node scripts/test-find-people.js` tests
   finding a person's room (D-21). Both run in CI on all four platforms.
+  `java -cp target/eagleboardscheduler-*.jar scripts/test-board-composition.java`
+  unit-tests `BoardCompositionChecker`, `UndoLog` and `EventData` with no
+  server (also in CI).
 - Whole board event: `bash scripts/test-board-event.sh` — boots the jar on a
   spare port against a throwaway data dir and runs a full event at the
   district's real shape (14 scouts, 12 rooms, 30 adults, and only **5** adults
@@ -220,7 +224,7 @@ push be the verification.
   that state and became "record a result for a review that never happened" the
   moment it was restored; there is now a CI guard for exactly that.
 - **Changing a seated board's members** (`/change-board-members`) runs the
-  same composition check as seating (`checkComposition`), except that adults
+  same composition check as seating (`BoardCompositionChecker`), except that adults
   already in the room may stay. It does not touch `LastUpdateTime`, so the
   room timer keeps running: it is the same board.
 - **Renaming a room** from the Event page goes through `/rename-room`, which
@@ -230,7 +234,8 @@ push be the verification.
   refused, as in the Windows and Mac versions.
 - **Board composition rules** live in `process_seat.js` for the operator's sake
   (it explains and, where allowed, offers an override) **and again in
-  `SeatBoardHandler` as a hard backstop**. The UI is the normal way in, not the
+  `BoardCompositionChecker` as a hard backstop** (the seat and change-members
+  handlers both call it). The UI is the normal way in, not the
   only one, and a board seated past it is one nobody finds out about until they
   read the result of a review that should not have happened. Both must agree:
   - **Size.** A board of review is three to six (GTA 8.0.0.3) — fewer refused,

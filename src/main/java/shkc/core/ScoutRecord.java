@@ -2,6 +2,15 @@ package shkc.core;
 
 import java.util.Map;
 
+/**
+ * One youth (an Eagle candidate) checking in for a board of review: the row in
+ * the youth file.
+ *
+ * <p>Besides who the scout is, it tracks where the scout stands:
+ * {@code Status} (Registered, Seated, InProgress, Completed or Postponed), the
+ * {@code Room} and the board assigned, and the board's {@code Result}. See
+ * CLAUDE.md, "How an event actually runs", for how those move.
+ */
 public class ScoutRecord extends PersonRecord {
    // The youth file's columns (SPEC.md D-1). Phone and DOB stay, so files
    // still move between versions, though a new youth's are written empty and
@@ -37,7 +46,7 @@ public class ScoutRecord extends PersonRecord {
       this(null);
    }
 
-   public ScoutRecord(Map values) {
+   public ScoutRecord(Map<String, ?> values) {
       super("SCOUT", COLUMNS, values);
       this.setDefaults();
       this.updateFields(true);
@@ -48,19 +57,11 @@ public class ScoutRecord extends PersonRecord {
       this.setIfNotSet("Status", "");
    }
 
+   /** Sets {@code column} to {@code defaultValue} when it is missing or only whitespace. */
    private void setIfNotSet(String column, String defaultValue) {
       String current = this.get(column);
       if (current == null || current.trim().length() == 0) {
          this.put(column, defaultValue);
-      }
-   }
-
-   public void updateFrom(ScoutRecord source, String[] columns) {
-      for (String column : columns) {
-         String value = source.get(column);
-         if (value != null && value.length() > 0) {
-            this.put(column, value);
-         }
       }
    }
 

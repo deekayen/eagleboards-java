@@ -21,7 +21,11 @@ a small web server on the local network; every screen is a browser page.
                 +-------+--------+
                         |  dispatch by path
                 +-------v--------------------------+
-                |  EagleBoardScheduler             |  handler registry + app logic
+                |  EventRoutes                     |  path -> handler table
+                +-------+--------------------------+
+                        |  each handler gets the shared EventData
+                +-------v--------------------------+
+                |  *Handler classes                |  one class per endpoint
                 +-------+--------------------------+
                         |
         +---------------+----------------+-------------------+
@@ -35,11 +39,13 @@ a small web server on the local network; every screen is a browser page.
 
 `shkc.core.EagleBoardScheduler` — the jar's `Main-Class`.
 
-`main()` parses the command line (see the README for the option table),
-enumerates network interfaces to decide which URL to advertise, optionally shows
-the Swing `PopupDialog` with that URL, then constructs the app and starts the
-server. The constructor resolves the data directory, opens each
-`DataRecordFile`, and registers every HTTP handler.
+`main()` parses the command line (see the README for the option table), asks
+`NetworkAddresses` to list the URLs the tablets can use (and show them in the
+Swing `PopupDialog` with `-w`), then constructs the app and starts the
+server. The class is deliberately small. The constructor asks `EventFiles` where
+everything lives, opens each `DataRecordFile` into one `EventData`, lets
+`PreRegistrationLoader` import the pre-registrations, and has `EventRoutes`
+register every HTTP handler.
 
 Everything after startup is request-driven; there is no background thread other
 than Jetty's.
@@ -48,7 +54,7 @@ than Jetty's.
 
 `WebServer` wraps Jetty 12. A single servlet, `WebServer$LocalDefaultHandler`,
 receives every request and dispatches it to a handler registered by path in
-`EagleBoardScheduler`. Static files are resolved by `FileLocator`, which checks
+`EventRoutes`. Static files are resolved by `FileLocator`, which checks
 the filesystem first and then the classpath — which is why the UI can be served
 straight out of the jar.
 
@@ -140,6 +146,80 @@ adult files still serve theirs.
 (`CheckInAddress`), and `/checkin-qr?url=` draws one of them as an SVG QR code
 for the Event page's footer.
 
+## Code map
+
+Everything is in the one package, `shkc.core`, one top-level class per file.
+A class's Javadoc says what it is for; this is the map.
+
+**Starting up**
+
+| Class | Job |
+| --- | --- |
+| `EagleBoardScheduler` | `main()`, the usage text, and the wiring in its constructor; nothing else |
+| `Commandline` | reads `-d`, `-p`, `-port` and the other options |
+| `NetworkAddresses` | lists the URLs, shows the popup, applies `-bind` |
+| `EventFiles` | works out the data folder, adult history and config file from the command line |
+| `PreRegistrationLoader` | imports a pre-registration CSV or SignUpGenius into the "scheduled" files |
+| `EventRoutes` | **the table of every URL and the class that answers it** |
+
+**The shared event state**
+
+| Class | Job |
+| --- | --- |
+| `EventData` | the six record files, the data folder, the event lock and the Undo log; every handler is given one |
+| `UndoLog` / `UndoField` | the one level of Undo (see below) |
+| `BoardCompositionChecker` / `BoardComposition` | the hard backstop for board size, chair and one-board-at-a-time; answers with a refusal or the accepted members. Needs no server, so it is unit tested |
+| `ScoutStatus`, `ScoutResult`, `BoardType`, `AdultRole`, `RoomMarker` | the words that appear in the data files, named once instead of repeated as strings |
+
+**Handlers** (each is one endpoint)
+
+| Class | Job |
+| --- | --- |
+| `BoardHandler` | base for the board steps: the plain-text `OK.` / reason answers |
+| `SeatBoardHandler`, `InProgressBoardHandler`, `CompleteBoardHandler`, `PostponeBoardHandler`, `ResetBoardHandler` | the steps of the board lifecycle below |
+| `ChangeBoardMembersHandler`, `RoomChangeHandler`, `RenameRoomHandler` | corrections while a board is seated |
+| `RestoreBoardHandler` | Undo |
+| `RecordCellsHandler` | base for the read side of an Admin table (`ScoutCellsHandler`, `AdultCellsHandler`, `RoomCellsHandler` and the others are a few lines each) |
+| `RecordUpdateHandler` | base for the edit side; subclasses add rules through `refusal`, `keepsOffUndo` and `afterEdit` (`ScoutUpdateHandler`, `AdultUpdateHandler`, `RoomUpdateHandler` ...) |
+| `RegisterScoutHandler`, `RegisterAdultHandler` | the tablets' sign-in |
+| `AutoFillHandler`, `UpdateConfigHandler`, `ApprovedProposalsCellsHandler` | email lookup, the Settings page, earlier events' approved proposals |
+| `CheckInApi`, `CheckInAddress` | the shared check-in pages' `/api/*` calls and the address and QR code |
+
+**Data and imports**: `DataRecordFile`, `DataRecord` and its subclasses, `DataFileConverter`,
+`NegaPreRegScoutRecordConverter`, `NegaPreRegAdultRecordConverter`, `PreRegFieldConverters`,
+`SignUpGeniusPlugin`. **Web**: `WebServer`, `FileLocator`, `ChangeFeed`.
+**Small helpers**: `Log`, `RequestFields`, `XmlText`, `NameUtil`.
+
+### Adding an endpoint
+
+1. Write a class named for the URL (`/seat-board` is `SeatBoardHandler`).
+   Extend `BoardHandler` for a board step, `RecordCellsHandler` or
+   `RecordUpdateHandler` for a table, or implement `WebServer.WebHandler`.
+   Take an `EventData` in the constructor.
+2. Hold `data.getLock()` for as long as you read or change records.
+3. Add one line to `EventRoutes`.
+4. If it changes how a board is seated, run or torn down, add a case to
+   `scripts/test-board-event.sh`. If it is a pure rule, put the rule in its own
+   class and test it in `scripts/test-board-composition.java`.
+
+### The event lock and Undo
+
+Jetty answers requests on several threads, and a board step reads and changes
+several records at once. So every handler that changes records, or reads
+several together, does its whole job inside `synchronized (data.getLock())`:
+there is one lock per event, owned by `EventData`, and `CheckInApi` is given the
+same one. Two operators pressing Seat Board at the same moment are therefore
+taken one after the other. (`AutoFillHandler` only looks one record up and, as
+in the original, does not take the event lock.)
+
+Undo is one level deep. A reversible handler asks `data.getUndoLog().begin()`
+for a `Builder`, tells it the old value of every field it is about to change,
+and calls `commit(description)` just before it answers. `RestoreBoardHandler`
+puts the old values back, but only if every field still holds what the action
+wrote; if something else changed one since, the whole undo is refused rather
+than guessed at. `UndoLog` itself takes no lock, which is why it is only used
+while the event lock is held.
+
 ## Board lifecycle
 
 ```
@@ -194,7 +274,8 @@ personal information about minors and are never committed — see
 
 ## Reading order for a newcomer
 
-1. `EagleBoardScheduler.main()` and the constructor — the wiring
+1. `EagleBoardScheduler.main()` and the constructor — the wiring — then
+   `EventRoutes`, the list of everything the server answers
 2. `eb-data.js` — the client/server contract in one screen
 3. `scheduler.html` plus `scheduler_event.js` — the operator's workflow
 4. One `process_*.js` — how a single lifecycle action travels end to end

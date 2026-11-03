@@ -2,15 +2,19 @@ package shkc.core;
 
 import java.util.Map;
 
+/**
+ * The columns a scout and an adult have in common: name, unit, email, the room
+ * they are in. Also works out the record's ID from the person's name and unit,
+ * and the display columns {@code UnitName} and {@code ShortName}.
+ */
 public class PersonRecord extends DataRecord {
 
-   public PersonRecord(String recordType, String[] columns, Map values) {
+   public PersonRecord(String recordType, String[] columns, Map<String, ?> values) {
       super(recordType, columns, values);
-      if (this.getLast().length() > 0 || this.getUnit() != null) {
-         this.populateID();
-      }
+      this.populateID();
    }
 
+   /** Rebuilds {@code UnitName} and {@code ShortName} from the columns they are made of. */
    @Override
    public void updateFields(boolean markUpdated) {
       super.updateFields(markUpdated);
@@ -29,14 +33,21 @@ public class PersonRecord extends DataRecord {
       this.setValue("ShortName", this.getShortName());
    }
 
+   /**
+    * Gives the record an ID of the form {@code Type:Last:First:Unit} when it
+    * has none, or when its ID is not one of this type's (or is the empty
+    * placeholder {@code Type:::}). An ID that is already set is kept.
+    */
    public void populateID() {
-      if (this.getID() == null || this.getID().length() == 0 || !this.getID().startsWith(this.getType()) || this.getID().equals(this.getType() + ":::")) {
+      String id = this.getID();
+      String type = this.getType();
+      if (id.length() == 0 || !id.startsWith(type) || id.equals(type + ":::")) {
          // No commas in an ID. MemberIDs travels as a comma-separated list, so
          // "Smith, Jr." split into two unknown ids and that adult could never
          // be seated; and the CSV writer turns ',' into '~' anyway, so the id
          // changed under everyone at the next restart. '~' is what it became.
-         String id = (this.getType() + ":" + this.getLast() + ":" + this.getFirst() + ":" + this.getUnit()).replace(',', '~');
-         this.put("ID", id);
+         String newId = (type + ":" + this.getLast() + ":" + this.getFirst() + ":" + this.getUnit()).replace(',', '~');
+         this.put(COLUMN_ID, newId);
       }
    }
 
@@ -50,11 +61,12 @@ public class PersonRecord extends DataRecord {
       return this.getValue("Email");
    }
 
+   /** The first initial and last name, such as {@code J. Smith}; just the last name if there is no first name. */
    public String getShortName() {
       String first = this.getFirst();
       String initial = "";
       if (first.length() > 0) {
-         initial = this.getFirst().charAt(0) + ". ";
+         initial = first.charAt(0) + ". ";
       }
 
       return initial + this.getLast();

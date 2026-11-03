@@ -1,6 +1,9 @@
 package shkc.core;
 
-class InvalidCommandlineArgument extends Throwable {
+/** Thrown when the command line names an option the program does not know. */
+public class InvalidCommandlineArgument extends Exception {
+   private static final long serialVersionUID = 1L;
+
    public InvalidCommandlineArgument() {
    }
 

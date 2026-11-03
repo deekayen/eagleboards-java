@@ -2,6 +2,14 @@ package shkc.core;
 
 import java.util.Map;
 
+/**
+ * One adult volunteer: the row in the adult file for today's event, and in
+ * the adult history file that remembers adults from one event to the next.
+ *
+ * <p>{@code ProjectReview} and {@code FinalBoard} hold the adult's role for each
+ * kind of board (Member, Chair or Unavailable). {@code Room} is the room the
+ * adult is committed to, or {@code N/A} when they have gone home.
+ */
 public class AdultRecord extends PersonRecord {
    public static final String[] COLUMNS = new String[]{
       "Type",
@@ -33,27 +41,20 @@ public class AdultRecord extends PersonRecord {
       this((AdultRecord)null);
    }
 
-   public AdultRecord(Map values) {
+   public AdultRecord(Map<String, ?> values) {
       super("ADULT", COLUMNS, values);
       this.updateFields(true);
    }
 
+   /** Copies another adult, such as a history record being signed in for today. */
    public AdultRecord(AdultRecord source) {
       super("ADULT", COLUMNS, source);
       this.updateFields(true);
    }
 
+   @Override
    public AdultRecord clone() {
       return new AdultRecord(this);
-   }
-
-   public void updateFrom(AdultRecord source, String[] columns) {
-      for (String column : columns) {
-         String value = source.get(column);
-         if (value != null && value.length() > 0) {
-            this.put(column, value);
-         }
-      }
    }
 
    public String getFinalBoardRole() {

@@ -1,6 +1,9 @@
 package shkc.core;
 
-class MissingCommandlineArgument extends Throwable {
+/** Thrown when a command-line option the program requires was not given. */
+public class MissingCommandlineArgument extends Exception {
+   private static final long serialVersionUID = 1L;
+
    public MissingCommandlineArgument() {
    }
 

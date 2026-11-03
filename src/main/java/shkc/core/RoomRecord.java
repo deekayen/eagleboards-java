@@ -2,6 +2,11 @@ package shkc.core;
 
 import java.util.Map;
 
+/**
+ * One interview room: the row in the room file. {@code Scout} and
+ * {@code Leaders} name who is in it now; {@code BoardType} says what kind of
+ * board the room is for.
+ */
 public class RoomRecord extends DataRecord {
    public static final String[] COLUMNS = new String[]{"Type", "ID", "Room", "BoardType", "Scout", "Leaders", "RegTime"};
 
@@ -9,14 +14,15 @@ public class RoomRecord extends DataRecord {
       this(null);
    }
 
-   public RoomRecord(Map values) {
+   public RoomRecord(Map<String, ?> values) {
       super("ROOM", COLUMNS, values);
    }
 
-   public RoomRecord(String recordType, String[] columns, Map values) {
+   /** Variant for a record kind other than ROOM: its ID is the type and room name. Not used at present. */
+   public RoomRecord(String recordType, String[] columns, Map<String, ?> values) {
       super(recordType, columns, values);
       String id = this.getType() + ":" + this.getRoom();
-      this.put("ID", id);
+      this.put(COLUMN_ID, id);
    }
 
    public String getRoom() {

@@ -120,6 +120,21 @@ jobs:
         run: |
           NEW_JAR=$(ls target/eagleboardscheduler-*.jar | grep -v original- | head -1)
           java -cp "$NEW_JAR" scripts/test-signup-dates.java
+      - name: Board composition and Undo log (unit tests, no server)
+        shell: bash
+        # BoardCompositionChecker, UndoLog and EventData need no web server,
+        # so this runs them straight from the jar over a temporary folder and
+        # pins the refusal messages the Event page shows.
+        run: |
+          NEW_JAR=$(ls target/eagleboardscheduler-*.jar | grep -v original- | head -1)
+          java -cp "$NEW_JAR" scripts/test-board-composition.java
+      - name: Small data fixes (pre-registration phone numbers, command line, timestamps)
+        shell: bash
+        # No server: reads a pre-registration sheet into a temporary folder and
+        # builds records on many threads. Pins three bugs fixed in the cleanup.
+        run: |
+          NEW_JAR=$(ls target/eagleboardscheduler-*.jar | grep -v original- | head -1)
+          java -cp "$NEW_JAR" scripts/test-data-quirks.java
       - name: Runtime smoke test (start server, exercise endpoints)
         shell: bash
         run: |

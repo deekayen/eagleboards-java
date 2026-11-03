@@ -2,6 +2,10 @@ package shkc.core;
 
 import java.util.Map;
 
+/**
+ * The program's settings: the one row of {@code config.properties}. Holds the
+ * minutes after which a room card turns yellow or red; see the Settings page.
+ */
 public class ConfigRecord extends DataRecord {
    public static final String[] COLUMNS = new String[]{
       "Type",
@@ -22,12 +26,12 @@ public class ConfigRecord extends DataRecord {
       this(null);
    }
 
-   public ConfigRecord(Map values) {
+   public ConfigRecord(Map<String, ?> values) {
       super("CONFIG", COLUMNS, values);
       // There is only ever one config record. Default its identity to DEFAULT
       // so a config update or a hand-edited file that omits ID/Name still
       // targets the single record in place instead of adding a duplicate.
-      this.setIfNotSet("ID", "DEFAULT");
+      this.setIfNotSet(COLUMN_ID, "DEFAULT");
       this.setIfNotSet("Name", "DEFAULT");
       this.setIfNotSet("RefreshTimeSecs", "30");
       // How long the board may spend convening -- reading the application,
@@ -43,25 +47,18 @@ public class ConfigRecord extends DataRecord {
       this.setIfNotSet("FinalRedMins", "45");
    }
 
+   /** Sets {@code column} to {@code defaultValue} when it is empty. */
    private void setIfNotSet(String column, String defaultValue) {
       if (this.getValue(column).length() == 0) {
          this.setValue(column, defaultValue);
       }
    }
 
-   public ConfigRecord(String recordType, String[] columns, Map values) {
+   /** Variant for a record kind other than CONFIG: its ID is the type and name. Not used at present. */
+   public ConfigRecord(String recordType, String[] columns, Map<String, ?> values) {
       super(recordType, columns, values);
       String id = this.getType() + ":" + this.getName();
-      this.put("ID", id);
-   }
-
-   public void updateFrom(ConfigRecord source, String[] columns) {
-      for (String column : columns) {
-         String value = source.get(column);
-         if (value != null && value.length() > 0) {
-            this.put(column, value);
-         }
-      }
+      this.put(COLUMN_ID, id);
    }
 
    public String getName() {

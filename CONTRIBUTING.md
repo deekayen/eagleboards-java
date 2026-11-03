@@ -194,6 +194,8 @@ fast feedback loop:
 node scripts/test-cases.js              # the composition rules, as pure functions
 node scripts/test-find-people.js        # finding a person's room (D-21)
 bash scripts/test-board-event.sh        # a whole event against a real server
+java -cp target/eagleboardscheduler-*.jar scripts/test-board-composition.java
+                                        # BoardCompositionChecker, UndoLog, EventData: no server
 ```
 
 The rule, auto-select and fill-the-rest cases in `scripts/cases/` are shared by
@@ -258,6 +260,14 @@ looks like a pass**, because a tool that quietly produces nothing empties out
   surrounding decompiled style, because that style is an artifact, not a
   convention. CI enforces this: the "No decompiled variable names" step greps
   `src/main/java` and fails the build if any come back.
+- **One class per file, one job per class.** The handlers, the board rules and
+  the startup steps are separate classes (see the code map in
+  [ARCHITECTURE.md](ARCHITECTURE.md)), so a change touches a small file and can
+  be tested without starting the server. A new endpoint is a new
+  `*Handler` class plus one line in `EventRoutes`. Give every class a Javadoc
+  comment saying what it is for, use named constants (`ScoutStatus.SEATED`,
+  `RoomMarker.NO_ROOM`) instead of repeating a string, and put a rule that can
+  be tested on its own in its own class rather than inside a handler.
 - **Editing a method body does not change a class's signature; adding or
   removing a field or method does.** Add null-guards freely. Removing a member
   is the edit that bites: an accessor that reads as dead today is one upstream
@@ -267,7 +277,9 @@ looks like a pass**, because a tool that quietly produces nothing empties out
   declared members have moved against the original binary, `verify-parity.sh`
   still reports that as a diagnostic — a targeted filter in its `sig()` keeps
   the rest of that class compared, where exempting the class skips every
-  signature in it.
+  signature in it. Note that the handlers used to be inner classes of
+  `EagleBoardScheduler` and are now top-level classes, so that report shows them
+  as moved; compare behaviour, not class names.
 - **Server endpoints are the contract.** The UI rework froze every endpoint and
   wire format. Prefer client-only changes; if you must touch the server, add a
   case to `scripts/test-board-event.sh` covering it.

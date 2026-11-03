@@ -338,6 +338,30 @@ recovered by decompiling the inherited jar, so almost every local was called
 `var1`, `var7`, `var23`. All 2,890 of them were renamed. The build now fails if
 any come back.
 
+**The program is split into small classes.** The original kept almost
+everything in one class of nearly 2,000 lines: command line, network setup,
+all twenty-odd request handlers as inner classes, the board rules and the Undo
+bookkeeping.
+Each handler is now its own class with a name that says which URL it answers,
+the board composition rules are a class that can be tested without a web
+server (`BoardCompositionChecker`), the table of URLs is one short list
+(`EventRoutes`), and `EagleBoardScheduler` is just the startup. Strings that
+appear in the data files (`Seated`, `N/A`, `Chair`) are named constants,
+the table handlers are a few lines each over two shared base classes,
+the two pre-registration importers share their field converters, and every
+class has a comment saying what it is for. Behaviour is unchanged: the same
+endpoints, answers and files, checked by the whole-event test and a new unit
+test program (`scripts/test-board-composition.java`). See `ARCHITECTURE.md`
+for the class map.
+
+Three small bugs found while splitting it were fixed, each with a check in
+`scripts/test-data-quirks.java`: a pre-registered phone number written as
+`(555) 123-4567` was stored garbled (it is now rebuilt from its digits as
+`555-123-4567`); every record's timestamp came from one date formatter shared by
+all the web server's threads, which is not safe (each use now has its own); and
+the command line's required-option check crashed instead of naming the missing
+option.
+
 ### Dead code removed
 
 `ConfigWindow` and `NetTest` (unused classes), `old_saved_script.js`,
