@@ -7,7 +7,7 @@ import java.util.Map;
  * the adult history file that remembers adults from one event to the next.
  *
  * <p>{@code ProjectReview} and {@code FinalBoard} hold the adult's role for each
- * kind of board (Member, Chair or Unavailable). {@code Room} is the room the
+ * kind of board (Member, Chair, or Unavailable). {@code Room} is the room the
  * adult is committed to, or {@code N/A} when they have gone home.
  */
 public class AdultRecord extends PersonRecord {

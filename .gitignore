@@ -1,5 +1,5 @@
 # ============================================================
-# PII / participant data — NEVER commit.
+# PII / participant data: NEVER commit.
 # The application's data lives beside the code in this folder:
 #   - Master_AdultHistory.csv        (names, emails, phones)
 #   - 20??-??-??/ dated run folders  (adults/scouts/rooms CSVs, incl. minors)
@@ -15,7 +15,7 @@
 Master_AdultHistory*
 
 # ============================================================
-# Secrets — NEVER commit.
+# Secrets: NEVER commit.
 #   - LOGIN_INFO.txt                 (account credentials)
 #   - RunScheduler.sh / .bat         (embed the SignUpGenius API key)
 #   - .env                           (local secrets for scripts/run.sh)
@@ -31,9 +31,9 @@ parity/
 .DS_Store
 # Everything under .claude/ is local tooling, not part of the application.
 # There was once a `!.claude/skills/` negation here so one skill could be
-# versioned. It un-ignored the whole tree rather than just the code in it,
-# and the skill's scoutmaster directory -- names, units, and 45 email
-# addresses -- rode in behind it. The skill lives on disk only now.
+# versioned. It un-ignored the whole tree instead of only the code in it,
+# and the skill's scoutmaster directory (names, units, and 45 email
+# addresses) rode in behind it. The skill lives on disk only now.
 .claude/
 
 # The inherited binary stays out of git entirely: it embeds a SignUpGenius

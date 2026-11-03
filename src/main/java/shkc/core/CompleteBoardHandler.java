@@ -62,7 +62,7 @@ public class CompleteBoardHandler extends BoardHandler {
          // only convenes the board, a Seated scout is one still waiting
          // outside the room, and completing there would record a result
          // for a review that never happened. The error message already
-         // said "expected 'InProgress'" -- the check now matches it.
+         // said "expected 'InProgress'"; the check now matches it.
          if (!ScoutStatus.IN_PROGRESS.equals(scout.getStatus())) {
             this.sendError("Invalid Scout Status '" + scout.getStatus() + "' expected '" + ScoutStatus.IN_PROGRESS + "'", response);
             return;
@@ -104,7 +104,7 @@ public class CompleteBoardHandler extends BoardHandler {
     * the change to the Undo log.
     */
    private void complete(ScoutRecord scout, String result, String notes) throws IOException {
-      // By name, or -- for a room renamed under the board -- the card that
+      // By name, or (for a room renamed under the board) the card that
       // still names the scout. Without that it stayed "occupied" by a board
       // that had finished, and nothing could be seated there.
       RoomRecord room = this.data.findRoomOfBoard(scout);

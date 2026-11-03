@@ -1,14 +1,14 @@
 // ------------------------------------------------------------------------
-// test-find-people.js — finding a person's room (SPEC.md D-21).
+// test-find-people.js: finding a person's room (SPEC.md D-21).
 //
-// findPeople, roomsFound and personFindNote are pure (no DOM), so this runs
+// findPeople, roomsFound, and personFindNote are pure (no DOM), so this runs
 // headless with no browser and no test framework:
 //
 //   node scripts/test-find-people.js
 //
 // The same cases are the Windows version's SchedulerLogicTests.
 // FindingAPersonSaysWhichRoomTheyAreInOrWhereTheyAreInstead and the Mac's
-// PersonFindTests. The board rules, auto-select and fill the rest are not
+// PersonFindTests. The board rules, auto-select, and fill the rest are not
 // here: they are the shared cases, run by scripts/test-cases.js.
 //
 // Runs on all CI platforms (see .github/workflows/build.yml).
@@ -81,7 +81,7 @@ check("four at most, then how many more", seat.personFindNote(crowdFound, seat.r
 
 console.log("");
 if (failures > 0) {
-   console.log("FIND A PERSON TESTS: FAIL — " + failures + " of " + checks + " checks failed");
+   console.log("FIND A PERSON TESTS: FAIL (" + failures + " of " + checks + " checks failed)");
    process.exit(1);
 }
-console.log("FIND A PERSON TESTS: PASS — " + checks + " checks");
+console.log("FIND A PERSON TESTS: PASS (" + checks + " checks)");

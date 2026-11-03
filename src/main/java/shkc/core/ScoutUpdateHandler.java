@@ -15,7 +15,7 @@ public class ScoutUpdateHandler extends RecordUpdateHandler<ScoutRecord> {
    }
 
    // SPEC.md P-6: a table corrects a status, but a board is seated,
-   // started, reset and completed only through the Event page's steps,
+   // started, reset, and completed only through the Event page's steps,
    // which give the scout a room and members and take them back. An admin
    // edit never sets Seated or InProgress, and never changes the status of
    // a board that is sitting. The rest of the record still corrects.

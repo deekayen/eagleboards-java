@@ -9,7 +9,7 @@ name: release
 # This builds the shaded jar, refuses to publish it if it carries a secret or
 # participant data, smoke tests the exact artifact, and attaches it to a GitHub
 # Release. Versions are CalVer (the release date); the inherited binary's date
-# is provenance, not a version -- see PROVENANCE.md.
+# is provenance, not a version; see PROVENANCE.md.
 
 on:
   push:
@@ -63,7 +63,7 @@ jobs:
           #
           # Listed to a file, never piped into grep -q. Under this shell's
           # pipefail, grep -q exits on first match and SIGPIPEs jar, so the
-          # pipeline reports failure exactly when the pattern IS found -- which
+          # pipeline reports failure exactly when the pattern IS found, which
           # an `if` reads as "clean" and would publish the jar anyway.
           jar tf "$JAR" > jar-contents.txt
           if grep -qE "$PATTERN" jar-contents.txt; then
@@ -74,7 +74,7 @@ jobs:
           echo "ok: no key-bearing or data files in the artifact"
 
           # Content: the live key must not appear anywhere inside the jar. Never
-          # echoed -- grep -q only, and GitHub masks the secret in logs anyway.
+          # echoed: grep -q only, and GitHub masks the secret in logs anyway.
           if [ -n "$SUG_KEY" ]; then
             mkdir -p .scan && (cd .scan && jar xf "../$JAR")
             if grep -rqF "$SUG_KEY" .scan; then

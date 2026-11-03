@@ -15,19 +15,19 @@ fi
 # `ls -t` (newest first), not a plain `ls`: the version is a DATE, so sorting
 # alphabetically puts the OLDEST jar first. `./mvnw package` never removes the
 # previous version's jar, so they accumulate in target/ and a plain `head -1`
-# quietly launches a months-old build -- which looks by every outward sign like
-# the current one, because the window, the port and the pages are all the same.
+# quietly launches a months-old build, which looks by every outward sign like
+# the current one, because the window, the port, and the pages are all the same.
 pick_jar() { ls -t target/eagleboardscheduler-*.jar 2>/dev/null | grep -v original- | head -1; }
 
 JAR=$(pick_jar)
 if [ -z "$JAR" ]; then
-    echo "No built jar found — building with ./mvnw package ..."
+    echo "No built jar found; building with ./mvnw package ..."
     ./mvnw -q package
     JAR=$(pick_jar)
 fi
 
 # Say which build is starting, and name any older ones still sitting there.
-# Picking the newest is a good guess, not a guarantee -- the only way to be
+# Picking the newest is a good guess, not a guarantee; the only way to be
 # certain target/ holds exactly what the source says is a clean build.
 others=$(ls target/eagleboardscheduler-*.jar 2>/dev/null | grep -v original- | grep -vF "$JAR" || true)
 if [ -n "$others" ]; then
@@ -40,11 +40,11 @@ fi
 # WebServer.sendResponseFile checks the FILESYSTEM before the classpath: it
 # tries `new File("WEBROOT", name)` first and only falls back to the copy
 # packaged in the jar when that does not exist. The path is relative, so it
-# resolves against this working directory -- the repo root, thanks to the cd
-# above. A stray WEBROOT/ here therefore shadows the entire UI, and every
-# rebuild is both real and completely ignored. Original inherited behaviour
-# (it let operators patch a page without rebuilding), so this warns rather
-# than refusing, and does not touch the folder.
+# resolves against this working directory (the repo root, thanks to the cd
+# above). A stray WEBROOT/ here therefore shadows the entire UI, and every
+# rebuild is both real and completely ignored. Original inherited behavior
+# (it let operators patch a page without rebuilding), so this warns instead
+# of refusing, and leaves the folder alone.
 if [ -d WEBROOT ]; then
     echo "WARNING: a WEBROOT/ directory exists in $(pwd)."
     echo "         The server serves pages from there IN PREFERENCE to the ones"
@@ -57,15 +57,15 @@ fi
 
 # -w pops up the Swing window with the check-in URL. The app force-disables
 # java.awt.headless, so on a machine with no display (e.g. a headless
-# Raspberry Pi) -w would crash at startup — only add it when a display exists.
+# Raspberry Pi) -w would crash at startup; only add it when a display exists.
 W_FLAG="-w"
 if [ "$(uname)" != "Darwin" ] && [ -z "${DISPLAY:-}" ] && [ -z "${WAYLAND_DISPLAY:-}" ]; then
     W_FLAG=""
-    echo "No display detected — skipping the URL popup window (-w)."
+    echo "No display detected; skipping the URL popup window (-w)."
 fi
 
 # Quiet by default. -verbose logs every request, and with it the SignUpGenius
-# import prints each registrant and the API key -- not something to leave
+# import prints each registrant and the API key, not something to leave
 # scrolling on a laptop at the check-in table. EB_VERBOSE=1 turns it on for
 # chasing a problem.
 V_FLAG=""

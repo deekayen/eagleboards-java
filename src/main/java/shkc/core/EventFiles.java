@@ -43,7 +43,7 @@ record EventFiles(File dataRoot, File scouts, File adults, File rooms, File scou
 
       // SPEC.md D-9: a new install has no adult history, and no release ships
       // one (it would hold participant data), so a missing one is started
-      // empty rather than refused. The full path is printed, so a
+      // empty, not refused. The full path is printed, so a
       // mistyped -a shows up as a new history in an unexpected place.
       boolean adultHistoryIsNew = !adultHistory.exists();
 

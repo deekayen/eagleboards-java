@@ -113,7 +113,7 @@ public class NameUtil {
          int closeParen = expression.indexOf(')');
          // ${date(name)} once looked "name" up in a caller-supplied property
          // map and formatted that value when it held a Date. Nothing ever
-         // populated the map -- every setter that could have was dead code --
+         // populated the map (every setter that could have was dead code),
          // so the lookup always missed and the value was always "now". The
          // named property is accepted and ignored; only an optional
          // ":pattern" after the parentheses changes the output.

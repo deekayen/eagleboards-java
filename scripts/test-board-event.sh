@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ------------------------------------------------------------------------
-# test-board-event.sh — end-to-end regression test for a board event.
+# test-board-event.sh: end-to-end regression test for a board event.
 #
 # scripts/test-cases.js pins down the composition RULES as pure functions,
 # from the cases all three versions share. This pins down what the SERVER does with them across a whole
@@ -13,10 +13,10 @@
 #
 # Everything runs against a throwaway data directory seeded with SYNTHETIC
 # names on a spare port. It never reads Master_AdultHistory.csv and never
-# touches a live instance -- see CLAUDE.md rule 4.
+# touches a live instance; see CLAUDE.md rule 3.
 #
-# Portability: same constraints as verify-parity.sh -- bash, curl, awk and a
-# JDK, no Python. Runs on Linux, macOS and Git-for-Windows, and in CI on all
+# Portability: same constraints as verify-parity.sh: bash, curl, awk, and a
+# JDK, no Python. Runs on Linux, macOS, and Git-for-Windows, and in CI on all
 # three platforms. See CONTRIBUTING "Running it off Linux" before changing a
 # shell idiom here.
 #
@@ -27,7 +27,7 @@
 #       3 can chair a Final board, 3 a Project review, one of them both.
 #
 # So the event is capped at five concurrent boards no matter how many rooms
-# are free -- which is the constraint the scheduler actually has to survive.
+# are free, which is the constraint the scheduler actually has to survive.
 #
 # Sections 9-24 then work through what goes wrong at an event: malformed
 # and replayed requests, every out-of-order step, adults and scouts signing
@@ -122,8 +122,8 @@ ROOMS="$WORK/run/rooms.csv"
 
 # ------------------------------------------------------------- 0a. helpers
 # All the write handlers store() their records inside the same lock they
-# answer from, so once curl returns, the CSVs on disk are already current --
-# these read them directly rather than re-parsing the grid XML.
+# answer from, so once curl returns, the CSVs on disk are already current;
+# these read them directly instead of re-parsing the grid XML.
 post() { curl -sf -X POST "$@" -o /dev/null; }
 
 # act <path> [curl args...] -> "HTTPCODE|body". The server answers "OK." on
@@ -148,19 +148,19 @@ empty_rooms() { awk -F, 'NR>1 && $5=="" {n++} END {print n+0}' "$ROOMS"; }
 
 # Success is exactly what ebAction() in eb-data.js calls success: HTTP 200
 # with a body starting "OK". Anything else is a refusal, and the handlers do
-# not agree on wording -- /seat-board answers "ERROR: ..." while
-# /complete-board answers "Invalid Scout Status ..." -- so these test the
-# contract the UI actually reads rather than any one handler's phrasing.
+# not agree on wording (/seat-board answers "ERROR: ..." while
+# /complete-board answers "Invalid Scout Status ..."), so these test the
+# contract the UI actually reads, not any one handler's phrasing.
 refused() {
     _code=${2%%|*}
     _body=${2#*|}
     if [ "$_code" = "500" ]; then
-        bad "$1 -- HTTP 500. That is a crash, not a rule."
+        bad "$1: HTTP 500. That is a crash, not a rule."
         return
     fi
     case "$_body" in
-        OK*) bad "$1 -- the server ACCEPTED it" ;;
-        "")  bad "$1 -- refused with an empty body; the UI has nothing to show" ;;
+        OK*) bad "$1: the server ACCEPTED it" ;;
+        "")  bad "$1: refused with an empty body; the UI has nothing to show" ;;
         *)   ok "$1" ;;
     esac
 }
@@ -168,11 +168,11 @@ refused() {
 accepted() {
     case "${2#*|}" in
         OK*) ok "$1" ;;
-        *)   bad "$1 -- refused with '${2#*|}'" ;;
+        *)   bad "$1: refused with '${2#*|}'" ;;
     esac
 }
 
-# seat <room> <scout> <chair> <member>... -- chair always sits on the board.
+# seat <room> <scout> <chair> <member>...: chair always sits on the board.
 seat() {
     _rm=$1; _sc=$2; _ch=$3
     shift 3
@@ -185,7 +185,7 @@ seat() {
         --data-urlencode "MemberIDs=$_ids"
 }
 
-run_board() { # <room> <scout> -- convene, bring the scout in, record a result
+run_board() { # <room> <scout>: convene, bring the scout in, record a result
     act /inprogress-board --data-urlencode "ScoutID=$2" >/dev/null
     act /complete-board \
         --data-urlencode "RoomID=ROOM:$1" \
@@ -208,7 +208,7 @@ set -- $FIRST; FIRSTS="$*"
 
 # nth <word-list> <1-based index>. Both arguments are read into locals FIRST:
 # `set --` overwrites the positional parameters, so reading $2 after it would
-# pick the second word of the LIST, not the index -- which silently gave every
+# pick the second word of the LIST, not the index, which silently gave every
 # adult the same name and let this whole test pass on degenerate data.
 nth() {
     _nth_list=$1
@@ -340,7 +340,7 @@ chk "5 boards convening"        "$(n_status Seated)" "5"
 chk "13 adults committed"       "$(busy_adults)" "13"
 chk "7 rooms sit empty for want of a chair" "$(empty_rooms)" "7"
 
-# Seating convenes only -- the scout is still outside. GTA 8.0.3.0 #8.
+# Seating convenes only; the scout is still outside. GTA 8.0.3.0 #8.
 chk "seating does not start the review" "$(n_status InProgress)" "0"
 
 refused "a seated chair cannot take a second board" \
@@ -428,7 +428,7 @@ chk "its project chair was released"     "$(adult_room "$PC1")" ""
 echo
 echo "== 8. the rest of the event, five chairs at a time =="
 
-# Explicit rather than greedy: a regression test should assert the outcome it
+# Explicit, not greedy: a regression test should assert the outcome it
 # expects, not whatever the scheduler managed on the day.
 for pair in "103 $SF3" "200B $SP2" "104 $SF4"; do
     set -- $pair
@@ -454,7 +454,7 @@ chk "every adult released"     "$(busy_adults)" "0"
 chk "every room empty"         "$(empty_rooms)" "12"
 
 # Every completed board must name a chair who was actually allowed to chair
-# it -- the record is what the district keeps, so a wrong chair on it is the
+# it. The record is what the district keeps, so a wrong chair on it is the
 # failure that outlives the event.
 bad_chairs=0
 while IFS= read -r line; do
@@ -489,7 +489,7 @@ xscout() {
     echo "SCOUT:$1:$2:$3"
 }
 
-# resign_adult <id> -- the same adult taps through the sign-in page again,
+# resign_adult <id>: the same adult taps through the sign-in page again,
 # which is what happens when someone isn't sure the first one took. They
 # pick the same roles as before; the form has no way to know they are seated.
 resign_adult() {
@@ -524,7 +524,7 @@ LATE11=$(xscout Zabala Leander 3111 Final)
 echo
 echo "== 9. requests the UI would never send =="
 
-# A bookmark, a stale tab, a replay -- each must be a refusal the operator
+# A bookmark, a stale tab, a replay: each must be a refusal the operator
 # can read, never a 500 and never a silent OK.
 for ep in /seat-board /inprogress-board /complete-board /postpone-board /reset-board /room-change; do
     refused "$ep with no parameters at all" "$(act "$ep")"
@@ -705,8 +705,8 @@ echo
 echo "== 16. the server restarts in the middle of the event =="
 
 # A laptop that sleeps, a Pi that loses power, a window closed by mistake:
-# boards convening and running when it goes down must still be there -- and
-# still finishable -- when it comes back.
+# boards convening and running when it goes down must still be there (and
+# still finishable) when it comes back.
 seat 101 "$LATE9"  "$FC1" "$M1" "$M2" >/dev/null
 start "$LATE9" >/dev/null
 seat 102 "$LATE10" "$FC2" "$M3" "$M4" >/dev/null
@@ -808,7 +808,7 @@ echo "== 18. a result corrected on the Admin page =="
 # Two mistakes the record has to survive: the wrong result clicked, and the
 # right result recorded against the wrong scout. The Admin page's Boards tab
 # is the path for both. admin_edit posts exactly what its grid posts when a
-# cell is edited -- one field per request -- and checks the grid would call
+# cell is edited (one field per request) and checks the grid would call
 # it saved.
 admin_edit() { # <scout-id> <field> <value>
     _r=$(curl -s -X POST --data-urlencode "!nativeeditor_status=updated" \
@@ -823,7 +823,7 @@ result_of() { awk -F, -v i="$1" 'NR>1 && $2==i {print $19}' "$SCOUTS"; }
 # The Admin page offers no status to choose: a scout's status changes only
 # through the Event page's steps, which take and free a room and its members,
 # so a status typed into a table can't leave them held (SPEC.md P-6). It once
-# offered "Waiting", which nothing recognised, and later InProgress, which
+# offered "Waiting", which nothing recognized, and later InProgress, which
 # left a scout "in review" with no room. /youth-update still takes Registered,
 # Completed or Postponed, which the corrections below make on the record.
 if grep -q 'var STATUSES' "$ROOT/src/main/resources/shkc/core/WEBROOT/admin.html"; then
@@ -832,7 +832,7 @@ else
     ok "the Admin page offers no status to choose; the Event page's steps change it"
 fi
 
-# And every Result it offers must be a board's decision -- one /complete-board
+# And every Result it offers must be a board's decision, one /complete-board
 # would record. It once offered "Postponed", which is the Status of a scout
 # sent away before any board met them, not something a board decides.
 admin_results=$(awk -F'[][]' '/var RESULTS/ {print $2}' \
@@ -977,7 +977,7 @@ accepted "undo start review" "$(restore)"
 chk "undo puts the scout back to Seated" "$(status_of "$U1")" "Seated"
 
 # Undo is refused, not guessed at, once something else has changed the same
-# field it would restore -- here, a correction made on the Admin page. (This
+# field it would restore: here, a correction made on the Admin page. (This
 # changed the Status once; a table no longer sets a sitting board's status,
 # section 25, so it changes the chair the seat would restore.)
 reset "$U1" >/dev/null
@@ -1057,7 +1057,7 @@ chk "nobody committed after section 21" "$(busy_adults)" "0"
 # The browser operator screen never polls (SPEC.md D-15): /events streams a
 # message after every POST, and the page re-reads when one arrives. The
 # check-in address and its QR code are for the tablets at the door. Both are
-# the Java version's own -- the Windows and Mac operator screens are native --
+# the Java version's own (the Windows and Mac operator screens are native),
 # so this section is not copied to their tests.
 echo
 echo "== 22. the Event page hears about changes, and shows the check-in address =="
@@ -1076,7 +1076,7 @@ post --data "!nativeeditor_status=deleted&gr_id=ROOM:900" "$B/room-update"
 ADDRS=$(curl -sf "$B/checkin-address")
 case "$ADDRS" in
     '{"urls": ['*) ok "the check-in address list answers" ;;
-    *) bad "the check-in address list answers -- got '$ADDRS'" ;;
+    *) bad "the check-in address list answers: got '$ADDRS'" ;;
 esac
 FIRST_URL=$(echo "$ADDRS" | sed -n 's/.*\["\([^"]*\)".*/\1/p')
 if [ -n "$FIRST_URL" ]; then
@@ -1125,7 +1125,7 @@ chk "nobody committed after section 23" "$(busy_adults)" "0"
 # ------- 24. what the check-in pages are told: no birthdate, no youth phone
 # The check-in pages are shared by every version (SPEC.md D-18) and speak one
 # small API that answers with only what each page shows. And no birthdate is
-# kept, shown or exported (D-7); one already on file stays there (O-5). The
+# kept, shown, or exported (D-7); one already on file stays there (O-5). The
 # same goes for a youth's phone number (D-8), but not an adult's.
 echo
 echo "== 24. the check-in pages' API, no birthdate, no youth phone number =="
@@ -1135,7 +1135,7 @@ api_post() { curl -sf -X POST --data-urlencode "email=$2" "$B$1"; }
 CHECKED_IN=$(curl -sf "$B/api/checked-in")
 case "$CHECKED_IN" in
     *'"refreshSeconds"'*'"youth"'*'"adults"'*) ok "/api/checked-in lists youth and adults" ;;
-    *) bad "/api/checked-in -- got '$(echo "$CHECKED_IN" | head -c 120)'" ;;
+    *) bad "/api/checked-in: got '$(echo "$CHECKED_IN" | head -c 120)'" ;;
 esac
 chk "the lists at the door carry no emails" "$(echo "$CHECKED_IN" | grep -c '@example.org')" "0"
 
@@ -1147,7 +1147,7 @@ post --data-urlencode "!nativeeditor_status=inserted" --data-urlencode "gr_id=SC
 LOOKUP=$(api_post /api/youth-lookup "  lena.lookup@EXAMPLE.org ")
 case "$LOOKUP" in
     *'"First":"Lena"'*) ok "a pre-registration is found by email, trimmed and in any case" ;;
-    *) bad "youth lookup -- got '$LOOKUP'" ;;
+    *) bad "youth lookup: got '$LOOKUP'" ;;
 esac
 chk "the youth lookup never sends a birthdate" "$(echo "$LOOKUP" | grep -c 'DOB\|2010-05-06')" "0"
 chk "nor a phone number" "$(echo "$LOOKUP" | grep -c 'Phone\|555-0100')" "0"
@@ -1171,7 +1171,7 @@ chk "the old autofill lists no adult's email" "$(curl -s "$B/adult-autofill" | g
 chk "nor a pre-registered youth's" "$(curl -s "$B/youth-autofill?op=list" | grep -ci 'example.org')" "0"
 case "$AUTOFILL" in
     *Lena*) ok "it still answers for an address it's given" ;;
-    *) bad "the old autofill no longer finds an address -- got '$AUTOFILL'" ;;
+    *) bad "the old autofill no longer finds an address: got '$AUTOFILL'" ;;
 esac
 
 CHOICES=$(curl -sf "$B/api/scout-choices")
@@ -1223,9 +1223,9 @@ case "$(api_post /api/adult-lookup "adele@example.org")" in
 esac
 chk "and it is in the adult grid read" "$(curl -s "$B/adult-cells?cols=Last,Phone" | grep -c '555-0102')" "1"
 
-# ----------------------------- 25. a table never seats, starts or ends a board
+# ---------------------------- 25. a table never seats, starts, or ends a board
 echo
-echo "== 25. a table never seats, starts or ends a board =="
+echo "== 25. a table never seats, starts, or ends a board =="
 
 # SPEC.md P-6. A table corrects a status, but a board is seated, started,
 # reset and completed only through the Event page's steps, which give the
@@ -1238,7 +1238,7 @@ admin_post() { # <path> <id> <field> <value> -> the grid's answer
 table_refused() { # <what> <answer>
     case "$2" in
         *'type="invalid"'*'Event page'*) ok "$1" ;;
-        *) bad "$1 -- the table answered: $2" ;;
+        *) bad "$1 (the table answered: $2)" ;;
     esac
 }
 TABLED=$(xscout Tablerow Tamsin 3501 Final)
@@ -1261,7 +1261,7 @@ chk "nobody committed after section 25" "$(busy_adults)" "0"
 echo
 echo "== 26. an adult's facts: edited on the Adults tab, kept in the history =="
 
-# SPEC.md P-6. An adult's name, unit, contact and roles are one set of facts
+# SPEC.md P-6. An adult's name, unit, contact, and roles are one set of facts
 # in the event's adults and the adult history, as a sign-in carries them. The
 # history is read-only; an edit on the Adults tab reaches it. A role changed
 # in one table alone once left the Event page seating by the other.
@@ -1372,7 +1372,7 @@ admin_delete() { # <path> <id> -> the grid's answer
 delete_refused() { # <what> <answer>
     case "$2" in
         *'type="invalid"'*'>'?*'</action>'*) ok "$1" ;;
-        *) bad "$1 -- the table answered: $2" ;;
+        *) bad "$1 (the table answered: $2)" ;;
     esac
 }
 HELD=$(xscout Heldfast Hollis 3901 Final)
@@ -1400,10 +1400,10 @@ chk "every adult released"     "$(busy_adults)" "0"
 # ------------------------------------------------------------------- verdict
 echo
 if [ "$FAIL" -gt 0 ]; then
-    echo "BOARD EVENT: FAIL — $FAIL of $((PASS + FAIL)) checks failed"
+    echo "BOARD EVENT: FAIL ($FAIL of $((PASS + FAIL)) checks failed)"
     echo "--- server log (tail) ---"
     tail -30 "$WORK/server.log"
     exit 1
 fi
 
-echo "BOARD EVENT: PASS — $PASS checks"
+echo "BOARD EVENT: PASS ($PASS checks)"

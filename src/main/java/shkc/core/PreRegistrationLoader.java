@@ -8,7 +8,7 @@ import java.io.File;
  *
  * <p>There are two sources, and the first one given wins: a pre-registration
  * spreadsheet saved as CSV ({@code -p}), or the SignUpGenius web service
- * ({@code -sugkey}). With neither, the event simply starts without any.
+ * ({@code -sugkey}). With neither, the event starts without any.
  */
 final class PreRegistrationLoader {
    /** A SignUpGenius key is longer than ten characters; anything shorter is treated as "no key". */

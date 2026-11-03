@@ -17,7 +17,7 @@ import java.util.List;
  * Where the tablets at the door reach the check-in page, for the Event page's
  * footer and its QR code window. The operator's own browser usually reaches
  * the scheduler as localhost, which is no use to a tablet, so the page asks
- * the server for the addresses it is reachable at on the venue network --
+ * the server for the addresses it is reachable at on the venue network:
  * the same list the startup window and console print.
  *
  * <pre>

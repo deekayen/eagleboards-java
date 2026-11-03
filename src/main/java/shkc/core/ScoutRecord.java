@@ -7,7 +7,7 @@ import java.util.Map;
  * the youth file.
  *
  * <p>Besides who the scout is, it tracks where the scout stands:
- * {@code Status} (Registered, Seated, InProgress, Completed or Postponed), the
+ * {@code Status} (Registered, Seated, InProgress, Completed, or Postponed), the
  * {@code Room} and the board assigned, and the board's {@code Result}. See
  * CLAUDE.md, "How an event actually runs", for how those move.
  */

@@ -1,11 +1,11 @@
 // ------------------------------------------------------------------------
-// process_start.js — Seated -> InProgress transition (/inprogress-board).
+// process_start.js: Seated -> InProgress transition (/inprogress-board).
 //
-// "Seat board" gives the members the room to read the application, references
-// and project workbook. This is the second step: the scout is brought in and
-// the interview begins. Seating used to do both at once, which left no way to
-// tell a board still reading the paperwork from one already talking to the
-// candidate -- and so no way to time them apart.
+// "Seat board" gives the members the room to read the application,
+// references, and project workbook. This is the second step: the scout is
+// brought in and the interview begins. Seating used to do both at once, which
+// left no way to tell a board still reading the paperwork from one already
+// talking to the candidate, and so no way to time them apart.
 // ------------------------------------------------------------------------
 
 function ProcessStartReview(s_id) {
@@ -45,8 +45,8 @@ function ProcessStartReview(s_id) {
 }
 
 // A board of review starts with an introduction (SPEC.md D-23): the adult
-// linked to the youth -- usually their Scoutmaster, who may be sitting on
-// another board right now -- introduces them. Name where they are, so
+// linked to the youth (usually their Scoutmaster, who may be sitting on
+// another board right now) introduces them. Name where they are, so
 // someone can step in and fetch them. With no one linked, name the youth's
 // leader if signed in, never a parent. A project review has no
 // introduction, so nobody is named: "".

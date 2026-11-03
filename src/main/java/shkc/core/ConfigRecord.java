@@ -34,8 +34,8 @@ public class ConfigRecord extends DataRecord {
       this.setIfNotSet(COLUMN_ID, "DEFAULT");
       this.setIfNotSet("Name", "DEFAULT");
       this.setIfNotSet("RefreshTimeSecs", "30");
-      // How long the board may spend convening -- reading the application,
-      // references and project workbook -- before the scout is brought in.
+      // How long the board may spend convening (reading the application,
+      // references, and project workbook) before the scout is brought in.
       // There is no yellow stage: this window is a cap, not a target, and a
       // board still previewing past it is keeping the candidate waiting.
       this.setIfNotSet("ConveneRedMins", "30");

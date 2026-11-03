@@ -1,5 +1,5 @@
 // ------------------------------------------------------------------------
-// test-board-composition.java — unit tests for the board rules, with no
+// test-board-composition.java: unit tests for the board rules, with no
 // server in the way.
 //
 // Seat Board and Change Board Members both ask BoardCompositionChecker
@@ -10,7 +10,7 @@
 // level of Undo (UndoLog), ScoutStatus.holdsRoom, and EventData's lookup of
 // the room a board sits in and its release of the board's adults.
 //
-// No network, no running server and no test framework: each check prints
+// No network, no running server, and no test framework: each check prints
 // FAIL and the script exits non-zero if any of them fails. Run it against
 // the built jar (Java's single-file source launch):
 //

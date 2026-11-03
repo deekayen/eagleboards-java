@@ -1,5 +1,5 @@
 // ------------------------------------------------------------------------
-// process_postpone.js — Registered/Verified -> Postponed transition
+// process_postpone.js: Registered/Verified -> Postponed transition
 // (/postpone-board).
 // ------------------------------------------------------------------------
 

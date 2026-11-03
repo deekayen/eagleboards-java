@@ -1,5 +1,5 @@
 // ------------------------------------------------------------------------
-// scheduler_event.js — the Event page (scheduler.html): the youth queue, the
+// scheduler_event.js: the Event page (scheduler.html): the youth queue, the
 // room cards and the details pane, all visible at once (SPEC.md O-3).
 //
 //   youthStore / adultStore / roomStore  the rows the server has, fetched
@@ -47,7 +47,7 @@ EventTable.prototype.get = function (id) {
    return this.byId[id] || null;
 };
 
-// "" for a blank column, null for a row that does not exist -- the contract
+// "" for a blank column, null for a row that does not exist: the contract
 // the process_*.js handlers were written against.
 EventTable.prototype.getColumnValue = function (id, col) {
    var row = this.byId[id];
@@ -164,7 +164,7 @@ var boardBuilder = {
    roomByOperator: false,
    problems: [],
    needsProposal: false,
-   // Changing the members of a board already seated, rather than building
+   // Changing the members of a board already seated, instead of building
    // one for a waiting youth: the room is fixed and Save members posts it.
    editing: false,
    // The board last proposed, { ids, chairId }: while the picks are still
@@ -465,7 +465,7 @@ function render() {
          // Changing this board's members: keep the operator's edits.
       } else if (!isWaiting(s.Status)) {
          // Seated (here or in another window): nothing to build. If they
-         // come back to waiting -- Undo, Reset -- propose afresh.
+         // come back to waiting (Undo, Reset), propose afresh.
          boardBuilder.reset();
          boardBuilder.needsProposal = true;
       } else if (boardBuilder.needsProposal) {
@@ -999,8 +999,8 @@ function SCHEDULER_locateAdults(s_id, parents) {
       + "<br/>" + text, "scout");
 }
 
-// Link an adult to the youth as the one who introduces them (SPEC.md D-23) -- their
-// Scoutmaster, say -- or undo that, for the adult who did not tick the youth
+// Link an adult to the youth as the one who introduces them (SPEC.md D-23), their
+// Scoutmaster, say, or undo that, for the adult who did not tick the youth
 // at sign-in, or signed in before the youth did. The same Supporting column
 // the sign-in form writes, saved through /adult-update.
 function toggleSupportLink(l_id, s_id) {
@@ -1327,7 +1327,7 @@ function refresh_all() {
 
 // SPEC.md D-15: listen instead of polling. The first message on every
 // (re)connection re-reads, so nothing that happened while the connection was
-// down is missed. A drop is said once it has lasted a few seconds -- long
+// down is missed. A drop is said once it has lasted a few seconds: long
 // enough not to flash for a blip, soon enough that nobody works on stale data.
 var connectionTimer = null;
 

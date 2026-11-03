@@ -1,11 +1,11 @@
 #!/bin/bash
 # ------------------------------------------------------------------------
-# test-first-run.sh -- a new install, started the way run.sh starts it.
+# test-first-run.sh: a new install, started the way run.sh starts it.
 #
 # A new install has no Master_AdultHistory.csv, and no release ships one (it
-# would hold participant data). run.sh, run.bat and RUNNING.md all pass
+# would hold participant data). run.sh, run.bat, and RUNNING.md all pass
 # `-a Master_AdultHistory.csv`, so the program must start a new, empty one
-# rather than refuse (SPEC.md D-9). A start that fails for any other reason
+# instead of refusing (SPEC.md D-9). A start that fails for any other reason
 # must end the process with a non-zero exit code.
 #
 #   ./mvnw package && bash scripts/test-first-run.sh
@@ -74,7 +74,7 @@ echo "testing: ${JAR#"$ROOT"/}"
 mkdir -p "$WORK"
 cp "$ROOT/config.properties" "$WORK/config.properties"
 
-# start <log> -- run.sh's options, without the window, in $WORK.
+# start <log>: run.sh's options, without the window, in $WORK.
 start() {
     ( cd "$WORK" && exec java -jar "$JAR" \
         -a Master_AdultHistory.csv -c config.properties -port "$PORT" -d 2026-09-27 ) > "$WORK/$1" 2>&1 &
@@ -143,7 +143,7 @@ fi
 
 echo
 if [ "$FAIL" -gt 0 ]; then
-    echo "FIRST RUN: FAIL -- $FAIL of $((PASS + FAIL)) checks failed"
+    echo "FIRST RUN: FAIL ($FAIL of $((PASS + FAIL)) checks failed)"
     exit 1
 fi
-echo "FIRST RUN: PASS -- $PASS checks"
+echo "FIRST RUN: PASS ($PASS checks)"

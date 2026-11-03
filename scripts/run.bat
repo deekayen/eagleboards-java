@@ -28,7 +28,7 @@ if not defined JAR (
 )
 
 REM Say which build is starting, and name any older ones still sitting there.
-REM Picking the newest is a good guess, not a guarantee -- the only way to be
+REM Picking the newest is a good guess, not a guarantee; the only way to be
 REM certain target\ holds exactly what the source says is a clean build.
 if !JARCOUNT! GTR 1 (
     echo NOTE: target\ holds more than one build. Starting the newest:
@@ -42,11 +42,11 @@ if !JARCOUNT! GTR 1 (
 REM WebServer.sendResponseFile checks the FILESYSTEM before the classpath: it
 REM tries `new File("WEBROOT", name)` first and only falls back to the copy
 REM packaged in the jar when that does not exist. The path is relative, so it
-REM resolves against this working directory -- the repo root, thanks to the cd
-REM above. A stray WEBROOT\ here therefore shadows the entire UI, and every
-REM rebuild is both real and completely ignored. Original inherited behaviour,
-REM which let operators patch a page without rebuilding, so this warns rather
-REM than refusing, and does not touch the folder.
+REM resolves against this working directory (the repo root, thanks to the cd
+REM above). A stray WEBROOT\ here therefore shadows the entire UI, and every
+REM rebuild is both real and completely ignored. Original inherited behavior,
+REM which let operators patch a page without rebuilding, so this warns instead
+REM of refusing, and leaves the folder alone.
 if exist "WEBROOT\" (
     echo WARNING: a WEBROOT\ directory exists in "%CD%".
     echo          The server serves pages from there IN PREFERENCE to the ones

@@ -7,7 +7,7 @@ cost real debugging time. This is the technical companion to
 ## Requirements
 
 - **Java 21 or newer.** The build targets Java 21 bytecode; CI uses Temurin 25.
-- **Maven is not required** — use the bundled wrapper, `./mvnw` (`mvnw.cmd` on
+- **Maven is not required**; use the bundled wrapper, `./mvnw` (`mvnw.cmd` on
   Windows).
 
 ### Supported platforms
@@ -19,6 +19,7 @@ Every push and pull request is built and smoke-tested on:
 | Linux amd64 | |
 | Windows amd64 | typical admin laptop |
 | Linux arm64 | Raspberry Pi deployment target |
+| macOS arm64 | Apple silicon |
 
 Anything with a JDK 21+ should work. The optional Swing popup is skipped
 automatically when there is no display, so a headless Pi is fine.
@@ -54,14 +55,14 @@ java -jar target/eagleboardscheduler-*.jar \
   -port 8080 -bind 192.168. -sugkey "$SUG_KEY"
 ```
 
-Two windows appear: a console and a small grey window showing the URL to open on
+Two windows appear: a console and a small gray window showing the URL to open on
 the check-in station.
 
 The first time, there is no `Master_AdultHistory.csv` yet: the program starts a
 new, empty one and prints its full path, so check that the path is where you
 meant it to be. Every adult who signs in is added to it, and later events
-recognize them. If the program cannot start, it prints why and exits with a
-non-zero code, closing the URL window.
+recognize them. If the program cannot start, it prints why, closes the URL window, and
+exits with a non-zero code.
 
 ### Screens
 
@@ -91,10 +92,10 @@ has signed in each time it opens.
 | `-p`, `-prereg` | file | Pre-registration CSV from the district website. Takes priority over SignUpGenius. |
 | `-port` | number | Listen port. Default `8080`. |
 | `-bind` | ip-prefix | Only listen on, and advertise, the interface whose IPv4 starts with this (e.g. `192.168.`). `127.0.0.1` stays reachable either way. Default: every interface. |
-| `-sugkey` | key | SignUpGenius API key, enabling the pre-registration import. |
+| `-sugkey` | key | SignUpGenius API key. Turns on the pre-registration import. |
 | `-sugid` | id | Specific SignUpGenius signup ID. Optional; otherwise auto-detected. |
 | `-w`, `-windows` | | Show the popup dialog with the check-in URL. |
-| `-v`, `-verbose` | | Verbose logging. **Prints the API key** — see SECURITY.md. |
+| `-v`, `-verbose` | | Verbose logging. **Prints the API key**; see SECURITY.md. |
 | `-debug` | | Write `eagle-board-scheduler.log`. |
 | `-h`, `-help`, `-?` | | Print usage. |
 
@@ -105,7 +106,7 @@ has signed in each time it opens.
 | Key | Meaning |
 | --- | --- |
 | `RefreshTimeSecs` | No longer used: nothing polls. Kept so older builds can read the file |
-| `ConveneRedMins` | Minutes since **Seat Board** before the room card's timer shows overdue. No running-long stage: it caps the convening phase rather than pacing it |
+| `ConveneRedMins` | Minutes since **Seat Board** before the room card's timer shows overdue. No running-long stage: it caps the convening phase instead of pacing it |
 | `ProjectYellowMins`, `ProjectRedMins` | Minutes since **Start Review** before a project review's timer shows running long, then overdue |
 | `FinalYellowMins`, `FinalRedMins` | The same, for final boards |
 
@@ -113,14 +114,14 @@ Status colors are not settings (shared SPEC.md D-19): the `*Color` and
 `*HiColor` keys an older file may still have are ignored and dropped on the
 next save.
 
-All of it is editable from the Settings page. Note that saving there rewrites the
+All of it is editable from the Settings page. Saving there rewrites the
 file and does not preserve `#` comments.
 
 Timers run on the record's last-update time, so the clock restarts by itself at
 each transition.
 
 The SignUpGenius key is read from the `SUG_KEY` environment variable or an
-untracked `.env` file — copy `.env.example` and fill it in.
+untracked `.env` file; copy `.env.example` and fill it in.
 
 ## Board composition rules
 
@@ -187,11 +188,11 @@ Things that have cost real debugging time:
 - **A short API key is silently ignored.** The app requires more than 10
   characters, and the launcher scripts skip the flag entirely if the value is
   still `replace-with-real-key`. Both produce "no prereg-file or SignupGenius DB
-  loaded" rather than an error.
+  loaded" instead of an error.
 
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md). In short: install the pre-commit hook,
 build with the wrapper, develop against synthetic data, and keep
-CI green on all four platforms — that is this project's acceptance test, not
+CI green on all four platforms; that is this project's acceptance test, not
 code review.

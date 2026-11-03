@@ -9,7 +9,7 @@ public final class RequestFields {
 
    /**
     * Splits a list of column names such as {@code "First,Last"} (commas, plus
-    * signs, spaces and square brackets all separate names).
+    * signs, spaces, and square brackets all separate names).
     *
     * @param csvList  the request parameter, which may be null or empty
     * @param defaults what to return when {@code csvList} is null or empty

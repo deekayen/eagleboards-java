@@ -1,5 +1,5 @@
 // ------------------------------------------------------------------------
-// test-board-builder.js — the event page's board builder, after the
+// test-board-builder.js: the event page's board builder, after the
 // 2026-09-30 event: a proposed board following the event until the
 // operator changes it (SPEC.md D-12, amended), and whom Start review names
 // to introduce the youth (D-23).
@@ -114,7 +114,7 @@ check("a room that is taken goes, whoever chose it",
 check("no room chosen: nothing to keep", seat.keepsRoom(null, "Final", false), false);
 
 if (failures > 0) {
-   console.log("BOARD BUILDER: FAIL -- " + failures + " of " + checks + " checks");
+   console.log("BOARD BUILDER: FAIL (" + failures + " of " + checks + " checks)");
    process.exit(1);
 }
-console.log("BOARD BUILDER: PASS -- " + checks + " checks");
+console.log("BOARD BUILDER: PASS (" + checks + " checks)");

@@ -111,7 +111,7 @@ public class BoardCompositionChecker {
    private String refusalForMember(AdultRecord member, ScoutRecord scout, String boardRoom, List<AdultRecord> listedSoFar) {
       // "N/A" is the Disable button's marker for an adult who
       // has gone home, not a room anyone can be sent to, so it
-      // gets its own wording rather than "in room N/A".
+      // gets its own wording instead of "in room N/A".
       if (RoomMarker.NO_ROOM.equals(member.getRoom())) {
          return "ERROR: Member " + member.getFullName() + " has been disabled for today";
       }

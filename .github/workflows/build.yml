@@ -10,7 +10,7 @@ jobs:
     # Runtime proof across platforms the app is deployed on:
     # amd64 Linux + Windows, and arm64 Linux (Raspberry Pi deployment target).
     # macOS is not a deployment target, but the shell scripts claim to run
-    # there and it is the only leg with BSD userland -- sed, awk, stat and seq
+    # there and it is the only leg with BSD userland: sed, awk, stat, and seq
     # all differ from GNU. CONTRIBUTING warns that a portability bug in these
     # scripts surfaces as a false PASS, so the cheapest way to keep that claim
     # honest is to actually run them on it.
@@ -43,7 +43,7 @@ jobs:
         shell: bash
         # The sources were reconstructed by decompiling an inherited binary,
         # so every local was once var1, var10, ... They have all been renamed
-        # and none may come back -- including in new code written to "match
+        # and none may come back, including in new code written to "match
         # the surrounding style", which is how they crept back in before.
         run: |
           if grep -rnE "\bvar[0-9]+\b" src/main/java --include="*.java" > decompiled-names.txt; then
@@ -73,7 +73,7 @@ jobs:
         shell: bash
         # The cases are written once, in eagleboards-shared/cases, and every
         # version runs all of them. test-cases.lock pins the commit; a case
-        # edited, added or dropped here instead of there fails the build.
+        # edited, added, or dropped here instead of there fails the build.
         # The whole folder is fetched, so a case added there and not copied
         # here is caught too. CRs are stripped, as for the check-in pages.
         run: |
@@ -99,8 +99,8 @@ jobs:
           echo "rule and auto-select cases match eagleboards-shared@$SHA ($(wc -l < shared-cases.txt | tr -d ' ') files)"
       - name: Board rules, auto-select and fill the rest (the shared cases)
         shell: bash
-        # The scheduler must flag board members from the scout's own unit --
-        # a council rule the reviewer may override, but must never miss --
+        # The scheduler must flag board members from the scout's own unit
+        # (a council rule the reviewer may override, but must never miss)
         # and propose boards that keep chairs for the boards to come. These
         # rules live in client-side JS, so no server request exercises them
         # and the runtime smoke test below cannot see them. Node is
@@ -122,7 +122,7 @@ jobs:
           java -cp "$NEW_JAR" scripts/test-signup-dates.java
       - name: Board composition and Undo log (unit tests, no server)
         shell: bash
-        # BoardCompositionChecker, UndoLog and EventData need no web server,
+        # BoardCompositionChecker, UndoLog, and EventData need no web server,
         # so this runs them straight from the jar over a temporary folder and
         # pins the refusal messages the Event page shows.
         run: |
@@ -169,7 +169,7 @@ jobs:
           # And the server must still serve pages afterward (no wedge).
           curl -sf -o /dev/null http://127.0.0.1:18099/index.html
           curl -sf -o /dev/null http://127.0.0.1:18099/youth-cells
-          # wait, not just kill: the next step binds a port too, and on macOS
+          # wait, not only kill: the next step binds a port too, and on macOS
           # the socket outlived the signal often enough to fail the build with
           # "Address already in use". They use different ports now as well.
           kill $SRV
@@ -180,7 +180,7 @@ jobs:
         # Seating convenes the board; the scout is only brought in by
         # /inprogress-board. Guards the bug that restoring the Seated state
         # re-exposed: /complete-board used to accept a Seated scout, which
-        # records a result for a review that never happened -- harmless only
+        # records a result for a review that never happened, harmless only
         # while Seat went straight to InProgress and nothing was ever Seated.
         run: |
           NEW_JAR=$(ls target/eagleboardscheduler-*.jar | grep -v original- | head -1)
@@ -235,7 +235,7 @@ jobs:
         # the room and the members back. Section 29 guards the admin tables'
         # Delete, which once took a youth or an adult a sitting board held and
         # left the room held by nobody or the board a member short (SPEC.md
-        # P-6). Synthetic names, spare port, throwaway data dir -- never the
+        # P-6). Synthetic names, spare port, throwaway data dir, never the
         # real Master_AdultHistory.csv.
         run: bash scripts/test-board-event.sh
       - name: First run (no adult history yet; a failed start exits non-zero)
@@ -285,12 +285,12 @@ jobs:
           SUG_KEY: ${{ secrets.SUG_KEY }}
         run: |
           if [ -z "$SUG_KEY" ]; then
-            echo "SUG_KEY secret not set — skipping live API check."
+            echo "SUG_KEY secret not set; skipping live API check."
             exit 0
           fi
           # PII rule: the API returns real registrant names/emails. The app is
           # run WITHOUT -verbose (per-registrant log lines are verbose-gated)
-          # and the raw log is never printed — only these coarse markers.
+          # and the raw log is never printed, only these coarse markers.
           # GitHub also masks the secret value in any log output.
           NEW_JAR=$(ls target/eagleboardscheduler-*.jar | grep -v original- | head -1)
           echo 'Type,ID,Last,First,Email,Phone,UnitType,Unit,UnitName,ProjectReview,FinalBoard,RegTime,Room,Flags,Sel,BoardHistory' > SugAdults.csv

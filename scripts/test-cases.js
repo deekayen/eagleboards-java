@@ -1,7 +1,7 @@
 // ------------------------------------------------------------------------
-// test-cases.js — the shared rule and auto-select cases (SPEC.md D-5).
+// test-cases.js: the shared rule and auto-select cases (SPEC.md D-5).
 //
-// The board rules, auto-select and fill the rest are written down once, as
+// The board rules, auto-select, and fill the rest are written down once, as
 // data, in eagleboards-shared/cases, and every version runs every case
 // through its own code. scripts/cases/ is a byte-for-byte copy of that
 // folder, pinned by test-cases.lock and checked in CI. A new case goes there,
@@ -78,7 +78,7 @@ function checkProblemKinds(expect) {
 }
 
 // Only the keys the case names are compared; any other key is a mistake in
-// the case, so it fails rather than being ignored.
+// the case, so it fails instead of being ignored.
 function compareKeys(got, want, allowed) {
    var wrong = [];
    Object.keys(want).forEach(function (key) {
@@ -180,11 +180,11 @@ var files;
 try {
    files = fs.readdirSync(dir).filter(function (f) { return /\.json$/.test(f); }).sort();
 } catch (e) {
-   console.log("SHARED CASES: FAIL — cannot read " + dir + ": " + e.message);
+   console.log("SHARED CASES: FAIL (cannot read " + dir + ": " + e.message + ")");
    process.exit(1);
 }
 if (files.length === 0) {
-   console.log("SHARED CASES: FAIL — no case files in " + dir);
+   console.log("SHARED CASES: FAIL (no case files in " + dir + ")");
    process.exit(1);
 }
 
@@ -229,7 +229,7 @@ files.forEach(function (file) {
 
 console.log("");
 if (failures > 0) {
-   console.log("SHARED CASES: FAIL — " + failures + " of " + checks + " cases failed");
+   console.log("SHARED CASES: FAIL (" + failures + " of " + checks + " cases failed)");
    process.exit(1);
 }
-console.log("SHARED CASES: PASS — " + checks + " cases");
+console.log("SHARED CASES: PASS (" + checks + " cases)");

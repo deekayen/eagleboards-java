@@ -5,7 +5,7 @@ package shkc.core;
  *
  * <p>To add an endpoint, write a handler class (see {@link BoardHandler},
  * {@link RecordCellsHandler} and {@link RecordUpdateHandler}) and add one line
- * here. The static pages (the Event page, Admin, Settings, Help and the
+ * here. The static pages (the Event page, Admin, Settings, Help, and the
  * check-in pages) are not listed: {@link WebServer} serves those from
  * {@code WEBROOT} when no handler matches.
  */

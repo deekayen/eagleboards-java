@@ -45,5 +45,5 @@ assignees: ''
 ## Impact
 
 - [ ] Blocked an event
-- [ ] Worked around it — how:
+- [ ] Worked around it (say how):
 - [ ] Cosmetic

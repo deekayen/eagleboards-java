@@ -1,17 +1,17 @@
 // ------------------------------------------------------------------------
-// scheduler_config.js — scheduler configuration + shared UI helpers.
+// scheduler_config.js: scheduler configuration + shared UI helpers.
 //
 // Loads the DEFAULT config record (the room-timer settings) from
 // /config-autofill?Name=DEFAULT&fmt=json. The server emits pseudo-JSON with
 // unquoted keys, so it is parsed with a regex.
 //
 // Also provides the status labels and icons, the persistent messages, the
-// dialog helpers and the right-click menu used by the scheduler page and the
+// dialog helpers, and the right-click menu used by the scheduler page and the
 // process_*.js board-lifecycle handlers.
 // ------------------------------------------------------------------------
 
 // How long the board may spend convening (status "Seated") before the scout
-// is brought in. Red only -- the window is a cap, not something to aim at, so
+// is brought in. Red only: the window is a cap, not something to aim at, so
 // there is no yellow stage to warn that the board is approaching it. Override
 // in config.properties with ConveneRedMins.
 var SCHEDULER_ConveneRedTime = 30;
@@ -73,7 +73,7 @@ var SCHEDULER_configReady = fetch("/config-autofill?Name=DEFAULT&fmt=json")
 // Room timer state for a board: "ok", "warn" (running long) or "over"
 // (overdue), each drawn with its own clock (scheduler_event.js). The
 // clock runs on MinsSinceLastUpdate, so it restarts by itself when the status
-// changes -- which is what keeps the two phases timed apart:
+// changes, which is what keeps the two phases timed apart:
 //
 //   "Seated"      the board is convening, reading the paperwork before the
 //                 scout is called in. One cap, no yellow: the card stays okay
@@ -95,7 +95,7 @@ function SCHEDULER_timerState(status, btype, mins) {
    return mins >= yellow ? "warn" : "ok";
 }
 
-// What a timer state means, for the card's tooltip and screen readers --
+// What a timer state means, for the card's tooltip and screen readers;
 // the color is never the only cue (D-13).
 function SCHEDULER_timerMeaning(status, btype, state) {
    if (status === "Seated") {
@@ -174,7 +174,7 @@ function sort_status(a, b) {
 //
 // RegNum is assigned at sign-in by RegisterScoutHandler: "P" plus a counter
 // when the youth matches a pre-registration record (by ID, or by email), "W"
-// plus a counter when nothing matches -- a walk-in. Each counter increments
+// plus a counter when nothing matches (a walk-in). Each counter increments
 // in sign-in order, so ordering by prefix then number keeps everyone in the
 // order they arrived WITHIN their group, while holding walk-ins below the
 // pre-registered queue where their lower priority is visible.
@@ -209,14 +209,14 @@ function SCHEDULER_regnumMeaning(regnum) {
    return "";
 }
 
-// Display form of UnitName. DISPLAY ONLY -- the stored value and every CSV
+// Display form of UnitName. DISPLAY ONLY: the stored value and every CSV
 // export keep the whole word.
 //
 // A numbered unit collapses to its initial and number, "Troop2" -> "T2": the
 // number is what identifies it and the type is obvious in context.
 //
 // A unit type with NO number keeps the whole word. Abbreviating those is
-// exactly the ambiguity the stored value was widened to fix -- "District"
+// exactly the ambiguity the stored value was widened to fix: "District"
 // would become "D", and "Council" and "Community" would both become "C".
 function ebUnitLabel(value) {
    if (!value) {
@@ -231,14 +231,14 @@ function ebBoardTypeLabel(btype) {
 }
 
 // ------------------------------------------------------------------------
-// Persistent messages, dialogs and menus.
+// Persistent messages, dialogs, and menus.
 // ------------------------------------------------------------------------
 
 // D-14: a problem stays on screen next to what it's about until it's fixed
-// or dismissed -- no self-dismissing toast. region is "main" | "scout" |
+// or dismissed, with no self-dismissing toast. region is "main" | "scout" |
 // "adult" | "room", matching the #<region>-messages slot beside the part of
 // the page it concerns; omit it for a page-wide message. A new message in a
-// region replaces that region's old one rather than stacking.
+// region replaces that region's old one instead of stacking.
 function ebMessageSlot(region) {
    return document.getElementById((region || "main") + "-messages");
 }
@@ -345,7 +345,7 @@ function ebConfirm(title, html, callback, okLabel) {
 }
 
 // Modal with arbitrary body HTML and named buttons (P-4: native <dialog>).
-// buttons: [{name, label}], callback(name, bodyElement) — return false from
+// buttons: [{name, label}], callback(name, bodyElement); return false from
 // callback to keep the dialog open (for validation). Esc/backdrop close
 // without calling back, same as a Cancel button with no handler. The last
 // button is the one the dialog is for, and is styled as such.
@@ -443,8 +443,8 @@ function ebContextMenu(items, x, y) {
    menu.style.top = Math.max(4, Math.min(y, window.innerHeight - h - 4)) + "px";
    menu.querySelector("button").focus();
 
-   // Close on a press anywhere else -- a fresh one, not the mouse-up of the
-   // right-click that opened it -- and when the window loses focus or resizes.
+   // Close on a press anywhere else (a fresh one, not the mouse-up of the
+   // right-click that opened it), and when the window loses focus or resizes.
    setTimeout(function () {
       document.addEventListener("pointerdown", ebContextMenuOutside, true);
       window.addEventListener("blur", ebCloseContextMenu);

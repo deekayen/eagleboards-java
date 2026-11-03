@@ -6,13 +6,13 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * One row of one of the program's CSV data files: a scout, an adult, a room or
+ * One row of one of the program's CSV data files: a scout, an adult, a room, or
  * the configuration.
  *
  * <p>A record is a {@link HashMap} from column name to text value, so any
  * column can be read with {@code get} and written with {@code put}. On top of
  * that it knows which columns its file has, keeps the {@code RegTime} and
- * {@code LastUpdateTime} stamps, and can write itself out as CSV, JSON or the
+ * {@code LastUpdateTime} stamps, and can write itself out as CSV, JSON, or the
  * XML the browser tables read.
  *
  * <p>Subclasses ({@link ScoutRecord}, {@link AdultRecord}, {@link RoomRecord},
@@ -135,7 +135,7 @@ public class DataRecord extends HashMap<String, String> {
          long elapsedMillis = now.getTime() - then.getTime();
          return (int)(elapsedMillis / MILLIS_PER_MINUTE);
       } catch (Exception unparsable) {
-         // Any unreadable stamp (blank, hand-edited) simply counts as "unknown".
+         // Any unreadable stamp (blank, hand-edited) counts as "unknown".
          return -1;
       }
    }

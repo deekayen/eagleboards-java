@@ -13,7 +13,7 @@ import java.util.List;
  * one action's worth of undo. The restore handler re-checks each field's
  * current value against what the action wrote before touching anything: if
  * something else changed it since (another request, or a hand-edit on the
- * Admin page), that field, and the whole restore, is refused rather than
+ * Admin page), that field, and the whole restore, is refused, not
  * guessed at.
  *
  * <p>This class is not thread-safe by itself. Callers hold the event lock

@@ -1,5 +1,5 @@
 // ------------------------------------------------------------------------
-// process_complete.js — InProgress -> Completed transition
+// process_complete.js: InProgress -> Completed transition
 // (/complete-board). Collects the board Result and free-text Notes before
 // posting. (Project cost / BSA hours / other hours are no longer collected.)
 // ------------------------------------------------------------------------

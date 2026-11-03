@@ -1,8 +1,8 @@
-# What's changed since the original
+# Changes since the original
 
 This is a cumulative summary of how the app differs from the **inherited 2019
 binary** (`EagleBoardScheduler_20190618.jar`) that this project was rebuilt
-from — see `PROVENANCE.md` for how that reconstruction was done.
+from; see `PROVENANCE.md` for how that reconstruction was done.
 
 It is deliberately **not** a release-to-release changelog. Everything below is
 phrased as "the original did X, it now does Y", so anyone who knew the old
@@ -28,7 +28,7 @@ Releases are versioned by date (e.g. `2026.07.31`). For commit-level detail,
   pressed a button.
 - "Scout" is now **"Youth"** throughout the interface. The event is still
   **"Eagle Boards"**, as it always was.
-- Every bundled library was **replaced or upgraded** — the original shipped a
+- Every bundled library was **replaced or upgraded**; the original shipped a
   2013 web server and a 2012 JSON parser.
 - A **live API key** that was baked into the original jar is gone.
 
@@ -53,8 +53,8 @@ Registered → Seated → InProgress → Completed / Postponed
   registered youth is now seated directly. The Verify button, its dialog, and
   the `/verify-board` endpoint were all removed.
 - **Seat and Start still mean different things.** *Seated* is the convening
-  phase: the members have the room and the paperwork — application, references,
-  project workbook — and the youth is still outside, per Guide to Advancement
+  phase: the members have the room and the paperwork (application, references,
+  project workbook), and the youth is still outside, per Guide to Advancement
   8.0.3.0 #8. **Start Review** is what brings the youth in and moves the board
   to *InProgress*. An interim version of this program merged the two, on the
   view that the second click was redundant. Keeping them separate is what lets
@@ -64,16 +64,16 @@ Registered → Seated → InProgress → Completed / Postponed
   refuses a *Seated* youth, so no result can be recorded for a review that never
   started.
 - **Old records still work.** Anything left in a `Verified` state by an earlier
-  run is still seatable rather than stranded. Nothing sets that state any more.
+  run is still seatable instead of stranded. Nothing sets that state anymore.
 - **The admin page does not change a youth's status.** Status is read-only in
   its tables; it changes only through the Event page's steps, which take and
-  free a room and its members. The original's grid could set any status,
-  leaving a youth "seated" with no room and no board, and the server now
+  free a room and its members. The original's grid could set any status
+  and leave a youth "seated" with no room and no board; the server now
   refuses a sitting status, or a change to a board that is sitting, whoever
   asks.
 - **Nor does it delete someone a board holds.** The original's Delete took a
-  youth whose board was seated or in review, leaving the room held by nobody,
-  or an adult sitting on a board, leaving it a member short. Both are now
+  youth whose board was seated or in review (the room was then held by
+  nobody) or an adult sitting on a board (which was then a member short). Both are now
   refused, by the server too, with the reason: reset or complete the board on
   the Event page first. The row stays.
 - **Find a person** (D-21), under the Rooms heading, says which room anyone is
@@ -84,7 +84,7 @@ Registered → Seated → InProgress → Completed / Postponed
   for a youth who comes to their board without the signed page.
 - **An adult can be signed in by hand.** Add adult… on the admin page's Adults
   tab, filled in from the adult history, or Sign in for today on the history
-  tab, go through the tablet's own sign-in. An adult's name, unit, contact and
+  tab, go through the tablet's own sign-in. An adult's name, unit, contact, and
   roles edited on the Adults tab reach the adult history too, which is now a
   read-only tab, the Adult history CSV.
 
@@ -101,7 +101,7 @@ Advancement before it goes through:
   one member must come from outside the unit. A board made up *entirely* of the
   youth's own unit is therefore refused with no override available.
 - **A project proposal review** is not a board of review (GTA 9.0.2.4), so the
-  three-member floor does not apply to it — this district runs them with two,
+  three-member floor does not apply to it; this district runs them with two,
   under the same ceiling of six.
 - **The chair must be qualified to chair.** A board is chaired by someone whose
   role for that board type is Chair, and the chair sits on the board. The
@@ -112,19 +112,19 @@ Advancement before it goes through:
 - **An adult sits on one board at a time.** Anyone already in a room, or
   marked gone home (**Mark gone home**, the original's Disable), is refused,
   hidden from the adult grid's default view, skipped by auto-select, and has
-  their checkbox greyed out with the reason on hover. They return to the pool
+  their checkbox grayed out with the reason on hover. They return to the pool
   when the review completes.
 - Age is attested by the **"I am 21+"** button on the sign-in page, and the
   parent/relative rule is covered by the unit match, so neither needs a field on
   the adult record.
 
 The size and unit rules are pure functions with no server round trip, covered by
-`scripts/test-cases.js` from the cases all three versions share. Size, chair qualification and one-board-at-a-
-time are **also enforced by the server**, because the browser is the normal way
-in and not the only one: a board seated past the UI is one nobody finds out
-about until they read the result of a review that should not have happened.
-`scripts/test-board-event.sh` runs a whole event against those rules. Both
-run in CI on all three platforms.
+`scripts/test-cases.js` from the cases all three versions share. Size, chair
+qualification, and one-board-at-a-time are **also enforced by the server**,
+because the browser is the normal way in and not the only one: a board seated
+past the UI is one nobody finds out about until they read the result of a
+review that should not have happened. `scripts/test-board-event.sh` runs a
+whole event against those rules. Both run in CI on all three platforms.
 
 **Other workflow changes**
 
@@ -139,8 +139,8 @@ run in CI on all three platforms.
 - **Room warning timers are per board type, and each phase is timed on its
   own.** The clock runs on the record's last update, so it restarts by itself at
   every transition. Convening is capped by `ConveneRedMins`, 30 minutes, which
-  goes straight to overdue with no running-long stage because it is a limit
-  rather than a target. From **Start Review** the interview is paced by its own
+  goes straight to overdue with no running-long stage because it is a limit,
+  not a target. From **Start Review** the interview is paced by its own
   pair: Project runs long at 25 minutes and is overdue at 40; Final runs long
   at 30 and is overdue at 45. All five are editable in Settings. The original
   had a single pair of alert/reminder values shared by every board.
@@ -156,15 +156,15 @@ run in CI on all three platforms.
 
 **Rebuilt on a different toolkit.** The original UI was built on **dhtmlxSuite
 4.1.2**, which is GPL-licensed and no longer maintained. Every page was rewritten
-on **Tabulator 6.5.2** (MIT). This was a front-end-only rework — the server, its
-endpoints, and its wire formats were held frozen so the behaviour could be proven
+on **Tabulator 6.5.2** (MIT). This was a front-end-only rework: the server, its
+endpoints, and its wire formats were held frozen so the behavior could be proven
 unchanged.
 
-**It now looks like a Scouting app.** The inherited pale-blue-and-grey was
+**It now looks like a Scouting app.** The inherited pale-blue-and-gray was
 replaced with the Scouts BSA sub-brand palette (tan, gray, olive, with Scouting
-Red for actions). Colour carries meaning: olive for primary actions, white for
+Red for actions). Color carries meaning: olive for primary actions, white for
 navigation, red for destructive, blue for neutral changes. Every text/background
-pairing was measured against WCAG 2.2 contrast rather than picked by eye.
+pairing was measured against WCAG 2.2 contrast instead of picked by eye.
 
 **The sign-in forms were redesigned.** Both registration pages were two columns
 with right-aligned labels; they are now a single column with labels above the
@@ -182,17 +182,17 @@ top row, as they did in the original.
 **Screens refresh themselves.** New registrations used to appear only when
 someone pressed Refresh. The check-in page, the admin page, and the scheduler
 now all poll on the existing `RefreshTimeSecs` setting, so one setting drives
-every screen. The check-in page repaints rather than appending, and only
+every screen. The check-in page repaints instead of appending, and only
 auto-scrolls if the viewer was already at the bottom. Background failures are
 silent on the check-in screen, which faces the youth signing in.
 
 **Smaller interface fixes**
 
 - **Chosen board members survive clicking around.** Selecting a youth used to
-  wipe every adult checkbox, throwing away a board the operator had assembled by
+  wipe every adult checkbox and throw away a board the operator had assembled by
   hand. Only the Adult panel's Clear button empties them now.
 - **Seating a board no longer leaves its members checked.** The server only
-  ever set `Room` on a seated adult, not `Sel` — so their checkbox stayed on
+  ever set `Room` on a seated adult, not `Sel`, so their checkbox stayed on
   indefinitely, which made auto-select skip picking anyone new for the next
   youth (it treats any existing check as "the operator already chose") and let
   a fast click to the next youth briefly re-offer adults who were just seated,
@@ -208,10 +208,10 @@ silent on the check-in screen, which faces the youth signing in.
   verbally to that list meant already knowing their last name. It now reads
   "Jordan Smith, Kelly Doe".
 - The **B/S column** (adult:scout ratio) was removed from the youth grid and
-  from the report export — it was computed and stored but not used.
+  from the report export; it was computed and stored but not used.
 - The six **XML export buttons** were removed; CSV export is unchanged. The XML
   format was the old toolkit's internal grid format and nothing consumed it.
-- The startup **URL popup** (`-w`) centres its text and adds a clickable link
+- The startup **URL popup** (`-w`) centers its text and adds a clickable link
   straight to that host's scheduler page.
 
 ---
@@ -221,7 +221,7 @@ silent on the check-in screen, which faces the youth signing in.
 - **"Scout" → "Youth"** across the interface: the admin tabs, the Rooms grid
   heading, the sign-in page (now at `/youth_register`), and the downloaded file
   name (`Youth.csv`, previously `Scouts.csv`).
-- **Six endpoints were renamed** to match — this is the one place the frozen
+- **Six endpoints were renamed** to match; this is the one place the frozen
   server contract was deliberately broken:
 
   | Original | Now |
@@ -233,8 +233,8 @@ silent on the check-in screen, which faces the youth signing in.
   | `/scout-autofill` | `/youth-autofill` |
   | `/register-scout` | `/register-youth` |
 
-  The old names now return 404 rather than quietly continuing to work, so a
-  stale bookmark fails loudly instead of half-working.
+  The old names now return 404 instead of quietly continuing to work, so a
+  stale bookmark fails loudly and never half-works.
 
 - **The event is still called "Eagle Boards".** For a while the pages said
   "Review Board" instead, on the reasoning that boards of review exist for every
@@ -243,12 +243,12 @@ silent on the check-in screen, which faces the youth signing in.
   says "Welcome to Eagle Boards", the admin page is the "Eagle Board Admin
   Page", and the scheduler is the "Eagle Board Scheduler". The **board types**
   read **"Final Board"** and **"Proposal Review"**, though the values stored on
-  disk stay `Final` and `Project` — they key room assignments and the
+  disk stay `Final` and `Project`; they key room assignments and the
   board-type timers, so the labels are a display mapping only.
 - **District branding was removed.** Pages are district-neutral so any district
   can run the app. Export filenames are generic too (`Report.csv`, `Youth.csv`,
-  `Adults.csv`, `Rooms.csv`, `AdultHistory.csv`) rather than district-prefixed.
-  Making the name configurable instead of absent was considered and declined —
+  `Adults.csv`, `Rooms.csv`, `AdultHistory.csv`) instead of district-prefixed.
+  Making the name configurable instead of absent was considered and declined;
   the app deliberately never displays whose district it is.
 - **Unit types were updated for programs that no longer exist.** *Team*
   (Varsity Scouting, discontinued) is no longer offered; *Post* (Exploring) was
@@ -257,18 +257,18 @@ silent on the check-in screen, which faces the youth signing in.
   retired unit types still display.
 - **Unit labels are spelled out.** The original abbreviated a unit to the first
   letter of its type plus its number, so Troop 1776 became `T1776`. That
-  collided — Pack and Post both gave `P`, and the new Council/Community/Crew
-  options would all have given `C` — so the whole word is written now
+  collided (Pack and Post both gave `P`, and the new Council/Community/Crew
+  options would all have given `C`), so the whole word is written now
   (`Troop1776`).
 
 ---
 
 ## Settings and configuration
 
-- **Config moved from CSV to `config.properties`** — a plain `key=value` file
+- **Config moved from CSV to `config.properties`**: a plain `key=value` file
   that supports `#` comments for hand-editing, which is the normal Java choice
   for flat configuration. The CSV reader is retained so the original binary and
-  the parity gate still work. Note that saving from the Settings page rewrites
+  the parity gate still work. Saving from the Settings page rewrites
   the file and does not preserve comments.
 - The old shared alert/reminder fields were replaced by the four board-type
   timers described above.
@@ -287,9 +287,9 @@ silent on the check-in screen, which faces the youth signing in.
 - **New `-bind <ip-prefix>` option.** A machine with Hyper-V or WSL adapters
   would pop up one window per interface and listen on all of them. `-bind`
   restricts both the advertised URLs and the listening socket to the interface
-  whose IPv4 address starts with the given prefix (e.g. `192.168.`). A prefix
-  rather than a fixed address, so DHCP moving the host within the subnet still
-  works; `127.0.0.1` stays reachable either way. Without `-bind`, behaviour is
+  whose IPv4 address starts with the given prefix (e.g. `192.168.`). A prefix,
+  not a fixed address, so DHCP moving the host within the subnet still
+  works; `127.0.0.1` stays reachable either way. Without `-bind`, behavior is
   exactly what it was.
 - The default config file is `config.properties` (was `config.csv`).
 - `scripts/run.sh` and `run.bat` wrap startup and drop the `-w` popup
@@ -312,7 +312,7 @@ silent on the check-in screen, which faces the youth signing in.
 | JSON parsing | json-simple 1.1, vendored and repackaged as `shkc.json.simple` | Jackson Databind 2.22.1 |
 | Logging | `monfox.log`, a vendored ~2010 library | `java.util.logging` (JDK built-in) |
 | Bytecode | Java 7 (class major version 51) | targets Java 21, built on JDK 25 |
-| Build | none — only the compiled jar was received | Maven, single self-contained jar |
+| Build | none; only the compiled jar was received | Maven, single self-contained jar |
 
 Dependency updates are now proposed automatically every week, and the build is
 tested on 64-bit Linux, Windows, and ARM Linux.
@@ -322,7 +322,7 @@ tested on 64-bit Linux, Windows, and ARM Linux.
 - **A failing request can no longer take down the web service.** All request
   handling is wrapped so an unexpected error is logged and returns a clean 500
   for that one request, instead of leaving every subsequent page load broken.
-- **Fixed a crash when seating a board with no members selected** — a
+- **Fixed a crash when seating a board with no members selected**, a
   null-handling bug present in the original binary. It now rejects the request
   with a clear message.
 - **The SignUpGenius import finds a sign-up on its first day.** The original
@@ -340,17 +340,17 @@ any come back.
 
 **The program is split into small classes.** The original kept almost
 everything in one class of nearly 2,000 lines: command line, network setup,
-all twenty-odd request handlers as inner classes, the board rules and the Undo
+all twenty-odd request handlers as inner classes, the board rules, and the Undo
 bookkeeping.
 Each handler is now its own class with a name that says which URL it answers,
 the board composition rules are a class that can be tested without a web
 server (`BoardCompositionChecker`), the table of URLs is one short list
-(`EventRoutes`), and `EagleBoardScheduler` is just the startup. Strings that
+(`EventRoutes`), and `EagleBoardScheduler` is only the startup. Strings that
 appear in the data files (`Seated`, `N/A`, `Chair`) are named constants,
 the table handlers are a few lines each over two shared base classes,
 the two pre-registration importers share their field converters, and every
-class has a comment saying what it is for. Behaviour is unchanged: the same
-endpoints, answers and files, checked by the whole-event test and a new unit
+class has a comment saying what it is for. Behavior is unchanged: the same
+endpoints, answers, and files, checked by the whole-event test and a new unit
 test program (`scripts/test-board-composition.java`). See `ARCHITECTURE.md`
 for the class map.
 
@@ -367,15 +367,15 @@ option.
 `ConfigWindow` and `NetTest` (unused classes), `old_saved_script.js`,
 `index_simple.html` (a second sign-in page with no lists), and the scripts
 behind the removed Verify step. Roughly 928 files of the old UI
-toolkit — about 3 MB — went with it.
+toolkit (about 3 MB) went with it.
 
 A later audit walked the whole tree looking for anything nothing referenced,
 and removed it:
 
 - **105 of the 106 bundled icons** (~560 KB). They were toolbar art for the
   dhtmlx interface that is gone; only the overdue-badge warning icon on the
-  room cards is still used. `NegaScheduler.png`, `ScoutButton.png` and
-  `LeaderButton.png` went too — no page ever loaded them, and the first
+  room cards is still used. `NegaScheduler.png`, `ScoutButton.png`, and
+  `LeaderButton.png` went too; no page ever loaded them, and the first
   carried the old district's branding.
 - **The `AdultScoutRatio` leftovers.** The "B/S" column was retired earlier,
   but the code that computed it survived, along with its accessors.
@@ -384,16 +384,16 @@ and removed it:
   passed `null`), together with the loops that consulted them.
 - **`NameUtil`'s variable map.** `${...}` expansion in a path could substitute
   caller-supplied variables, except nothing ever set one, so it always fell
-  through to the system properties — which is exactly what it still does.
-- **The unused half of `FileLocator`** — the file and directory lookups. What
+  through to the system properties, which is exactly what it still does.
+- **The unused half of `FileLocator`**: the file and directory lookups. What
   the app actually calls, resource loading along a search path, is untouched.
 - Unreferenced record accessors, a command-line test harness, empty
-  initialisation stubs in the browser code, and a handful of write-only local
+  initialization stubs in the browser code, and a handful of write-only local
   variables.
 
 Nothing here changed behavior: every item had zero references anywhere in the
-repository. The parity gate was taught about each deletion individually rather
-than being pointed away from whole classes, so everything that remains is
+repository. The parity gate was taught about each deletion individually instead
+of being pointed away from whole classes, so everything that remains is
 still compared against the original.
 
 ---
@@ -421,16 +421,16 @@ still compared against the original.
 ### Licensing
 
 **GPL-2.0 → Apache-2.0.** The original choice was forced by the bundled GPL
-dhtmlx toolkit; removing that toolkit in favour of MIT-licensed Tabulator
+dhtmlx toolkit; removing that toolkit in favor of MIT-licensed Tabulator
 removed the constraint. GPL-2.0 had also become a poor fit, since Apache-2.0
 (Jackson's license, shaded into the distributed jar) is generally treated as
-incompatible with it. Apache-2.0 additionally covers inbound contributions,
+incompatible with it. Apache-2.0 also covers inbound contributions,
 grants patent rights explicitly, and disclaims trademarks. A `NOTICE` file was
 added to carry attribution.
 
 ---
 
-## What deliberately did *not* change
+## Deliberately unchanged
 
 This matters as much as the list above. Except for the six renamed youth
 endpoints, the server's **endpoints and wire formats are frozen**, and so are
@@ -439,12 +439,12 @@ the **CSV data files** on disk. Field names that appear in the wire format or in
 changed. The XML export format is still supported server-side even though the
 buttons are gone, so it can be restored if a downstream tool ever needs it.
 
-## How this is verified
+## Verification
 
 The owner of this project does not review Java, so correctness is established
-mechanically rather than by code review. `scripts/verify-parity.sh` boots the
+mechanically, not by code review. `scripts/verify-parity.sh` boots the
 original inherited jar and the rebuilt jar side by side and proves they behave
-identically — class structure, served bytes, endpoint responses, the data files
+identically: class structure, served bytes, endpoint responses, the data files
 they write, and their startup logs.
 
 Every intentional difference listed on this page is registered in that script

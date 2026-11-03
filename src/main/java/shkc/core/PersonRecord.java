@@ -21,9 +21,9 @@ public class PersonRecord extends DataRecord {
       // UnitName is the unit type and number as one label, e.g. "Troop1776".
       //
       // The original abbreviated the type to its first letter ("T1776"), which
-      // was already ambiguous -- Pack and Post both produced "P" -- and adding
-      // the District, Council and Community options made it worse, because
-      // Council, Community and Crew would all have collided on "C". Nothing
+      // was already ambiguous (Pack and Post both produced "P"), and adding
+      // the District, Council, and Community options made it worse, because
+      // Council, Community, and Crew would all have collided on "C". Nothing
       // reads this value back apart from the retired adult/scout ratio
       // calculation, and a CSV column has no width limit to justify the
       // truncation, so the whole word is written.

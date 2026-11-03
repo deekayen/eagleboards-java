@@ -1,6 +1,6 @@
 /* ========================================================================
-   eb-app.css — the operator pages' look, built from the system's own:
-   system font, light/dark appearance and accent color (SPEC.md D-16).
+   eb-app.css, the operator pages' look, built from the system's own:
+   system font, light/dark appearance, and accent color (SPEC.md D-16).
    Status colors are the shared status palette (--eb-st-*, D-13), never
    settings (D-19), and every status also carries text and an icon, so color
    is never the only cue. The Event page (scheduler.html) uses it; the other operator pages

@@ -47,7 +47,7 @@ public class AdultUpdateHandler extends RecordUpdateHandler<AdultRecord> {
    }
 
    /**
-    * An adult's name, unit, contact and roles are one set of facts in
+    * An adult's name, unit, contact, and roles are one set of facts in
     * the event's adults and the adult history, as a sign-in carries them
     * between the two (SPEC.md P-6): an admin edit on the Adults tab is made
     * to the same adult in the read-only history, so someone promoted to

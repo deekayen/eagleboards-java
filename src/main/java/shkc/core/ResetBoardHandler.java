@@ -11,7 +11,7 @@ import jakarta.servlet.http.HttpServletResponse;
  *
  * <p>Request parameter: {@code ScoutID}. The youth must be {@code Seated},
  * {@code InProgress} or (legacy) {@code Verified}. The room card is emptied,
- * the board's members are freed and the youth's room, chair and members are
+ * the board's members are freed, and the youth's room, chair, and members are
  * cleared. Answers {@code OK.} (status 200), or the reason for the refusal
  * (status 304).
  *
@@ -40,7 +40,7 @@ public class ResetBoardHandler extends BoardHandler {
             return;
          }
 
-         // By name, or -- for a room renamed under the board -- the card
+         // By name, or (for a room renamed under the board) the card
          // that still names the scout.
          RoomRecord room = this.data.findRoomOfBoard(scout);
 

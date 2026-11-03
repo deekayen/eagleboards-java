@@ -6,7 +6,7 @@ import jakarta.servlet.http.HttpServletResponse;
 
 /**
  * Base class for the handlers that carry out a board step (seat, start,
- * complete, reset, undo and so on).
+ * complete, reset, undo, and so on).
  *
  * <p>These handlers answer in plain text: {@code OK.} with status 200 when the
  * step was done, or the reason it was refused with status 304. The browser

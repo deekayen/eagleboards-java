@@ -2,8 +2,8 @@
 # Why am I looking at an old version of the app?
 #
 # There are five independent ways this app can serve stale pages, and every one
-# of them is silent -- the UI looks completely normal, just out of date. They
-# have each cost real debugging time, so rather than checking them by hand (and
+# of them is silent: the UI looks completely normal, only out of date. They
+# have each cost real debugging time, so instead of checking them by hand (and
 # guessing wrong), this checks all five and says which one you have.
 #
 # Usage: scripts/diagnose.sh [port]     (default 8080, the port run.sh uses)
@@ -17,19 +17,20 @@ verdict() { echo; echo "  >>> $1"; VERDICTS=$((VERDICTS + 1)); }
 
 # The age test. The reference is the scheduler page in THIS checkout; a jar or
 # a running server is "current" only if the page it holds is byte-identical to
-# it. That is exact and needs no version number, no Java and no marker string.
-# (Markers were tried twice -- the product name, then the UI toolkit -- and
-# each one went stale itself: the name was changed and changed back, and every
-# build since the Tabulator rework carries the same toolkit, so a month-old jar
-# read as current.) When a page differs, the wording in it still says roughly
-# which era it came from, and that is reported as a hint, never as the verdict.
+# it. That is exact and needs no version number, no Java, and no marker string.
+# (Markers were tried twice, first the product name and then the UI toolkit,
+# and each one went stale itself: the name was changed and changed back, and
+# every build since the Tabulator rework carries the same toolkit, so a
+# month-old jar read as current.) When a page differs, the wording in it still
+# says roughly which era it came from, and that is reported as a hint, never as
+# the verdict.
 REF=src/main/resources/shkc/core/WEBROOT/scheduler.html
 TMP=$(mktemp -d "${TMPDIR:-/tmp}/eb-diag.XXXXXX") || exit 1
 trap 'rm -rf "$TMP"' EXIT
 
 # describe_page FILE -> one line saying how FILE relates to the checkout.
 # Returns 0 when identical (current), 1 when it differs (stale, or the checkout
-# has uncommitted edits -- section 1 says which).
+# has uncommitted edits; section 1 says which).
 describe_page() {
     if cmp -s "$1" "$REF"; then
         echo "identical to this checkout's scheduler.html (CURRENT)"
@@ -47,12 +48,12 @@ describe_page() {
     fi
     local lines
     lines=$(diff "$1" "$REF" 2>/dev/null | grep -c '^[<>]')
-    echo "$era -- $lines line(s) differ from this checkout (OLD)"
+    echo "$era: $lines line(s) differ from this checkout (OLD)"
     return 1
 }
 
 echo "================================================================"
-echo " Eagle Board Scheduler — staleness diagnosis"
+echo " Eagle Board Scheduler: staleness diagnosis"
 echo "================================================================"
 echo "working directory : $(pwd)"
 echo "git commit        : $(git log --oneline -1 2>/dev/null || echo '(not a git repo)')"
@@ -67,7 +68,7 @@ echo "port under test   : $PORT"
 echo
 echo "1. SOURCE TREE (the reference everything below is compared against)"
 if [ ! -f "$REF" ]; then
-    echo "   ?: $REF not found — are you in the repo root?"
+    echo "   ?: $REF not found. Are you in the repo root?"
     echo "   Nothing below can be compared without it."
     exit 1
 fi
@@ -116,7 +117,7 @@ echo
 echo "3. BUILT JARS IN target/"
 jars=$(ls -t target/eagleboardscheduler-*.jar 2>/dev/null | grep -v original-)
 if [ -z "$jars" ]; then
-    echo "   none — nothing built yet. Run: ./mvnw clean package"
+    echo "   none; nothing built yet. Run: ./mvnw clean package"
 else
     echo "$jars" | while read -r j; do echo "   $(ls -l "$j" | awk '{print $6, $7, $8}')  $j"; done
     JAR=$(echo "$jars" | head -1)
@@ -153,7 +154,7 @@ fi
 # --- 5. a server already holding the port ------------------------------------
 # The app EXITS with 'Failed to bind' when the port is taken. A forgotten
 # instance therefore keeps serving while every restart you launch dies on
-# startup -- the single most convincing way to believe a rebuild did nothing.
+# startup: the single most convincing way to believe a rebuild did nothing.
 echo
 echo "5. SOMETHING ALREADY LISTENING ON :$PORT"
 listener=""
@@ -176,7 +177,7 @@ echo
 echo "6. WHAT THE LIVE SERVER ON :$PORT ACTUALLY SERVES"
 rc=0
 if ! curl -s --max-time 5 "http://127.0.0.1:$PORT/scheduler.html" -o "$TMP/served.html" 2>/dev/null || [ ! -s "$TMP/served.html" ]; then
-    echo "   nothing responded — no server running on :$PORT"
+    echo "   nothing responded; no server running on :$PORT"
 else
     desc=$(describe_page "$TMP/served.html"); rc=$?
     echo "   served page is $desc"
@@ -220,7 +221,7 @@ if command -v lsof >/dev/null 2>&1; then
         if [ "$rc" -ne 0 ] && [ "$p" != "$PORT" ]; then
             verdict "An OLD instance is answering on port $p, which is NOT the
       port checked above. If this is the one your browser is pointed
-      at, that is your answer -- stop it and use :$PORT instead."
+      at, that is your answer: stop it and use :$PORT instead."
         fi
     done
 fi
@@ -232,12 +233,12 @@ echo "   in this checkout can affect it."
 
 # --- 7. the browser ----------------------------------------------------------
 # Cannot be tested from here, and it is the one cause that survives fixing
-# every other one, so it gets said out loud rather than checked.
+# every other one, so it gets said out loud, not checked.
 echo
 echo "7. BROWSER CACHE (cannot be checked from a script)"
 echo "   These are plain static pages, so a browser can serve its own cached"
 echo "   copy. If everything above says ok and the tab still looks old, do a"
-echo "   hard reload — Cmd-Shift-R on macOS — or open a private window."
+echo "   hard reload (Cmd-Shift-R on macOS) or open a private window."
 
 echo
 echo "================================================================"
@@ -245,6 +246,6 @@ if [ "$VERDICTS" -eq 0 ]; then
     echo "No stale-build cause found. If the UI still looks old, it is most"
     echo "likely the browser cache (7). Send this output if not."
 else
-    echo "$VERDICTS likely cause(s) found — see the >>> lines above."
+    echo "$VERDICTS likely cause(s) found; see the >>> lines above."
 fi
 echo "================================================================"

@@ -78,7 +78,7 @@ public class FileLocator {
 
    /** Opens {@code location} if it is a complete URL, or returns null when it is not one (or cannot be read). */
    // new URL(String) is deprecated, but URI.create(...).toURL() throws an unchecked
-   // error for names with spaces or backslashes, and here those must just mean "not a URL".
+   // error for names with spaces or backslashes, and here those must mean only "not a URL".
    @SuppressWarnings("deprecation")
    private static InputStream openAsUrl(String location) {
       try {

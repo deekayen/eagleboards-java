@@ -141,7 +141,7 @@
          // A value->label map, not an array. Tabulator's list editor uses an
          // array item as BOTH the stored value and the label, which would write
          // "Project review" into BoardType. As an object it stores the key and
-         // shows the label, so the data keeps saying "Project" / "Final" -- the
+         // shows the label, so the data keeps saying "Project" / "Final", the
          // values that key room assignments and the Project*/Final* timers. The
          // labels are the Event page's (ebBoardTypeLabel in scheduler_config.js).
          var BOARD_TYPES = { Project: "Project review", Final: "Final board" };
@@ -177,7 +177,7 @@
 
          // `values` is either an array (value doubles as the label) or a
          // value->label map. With a map the editor dropdown shows labels while
-         // storing the key -- but the CELL would still render the raw stored
+         // storing the key, though the CELL would still render the raw stored
          // value, so the grid would read "Project" under a dropdown offering
          // "Project review". The lookup formatter closes that gap, and the
          // header filter is given the same map so it lists labels too.

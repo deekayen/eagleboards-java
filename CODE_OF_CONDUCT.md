@@ -1,8 +1,8 @@
 # Code of Conduct
 
 This project exists to run Eagle Scout boards of review. Everyone who takes part
-in it — writing code, filing issues, reviewing changes, or operating the app at
-an event — is already held to a standard, and this project does not invent a
+in it (writing code, filing issues, reviewing changes, or operating the app at
+an event) is already held to a standard, and this project does not invent a
 second one. The standard is Scouting America's.
 
 ## The standard
@@ -23,15 +23,15 @@ Law, to comply with Youth Protection policies, and to follow the *Guide to Safe
 Scouting*. Those obligations do not stop at the door of a code repository. If
 you would not say it in front of a troop, do not put it in an issue.
 
-## What that looks like here
+## In practice
 
 Four points of the Law carry most of the weight in a project like this one.
 
 - **Trustworthy.** Say what a change actually does. If a test is failing, report
   it failing. The person relying on this software is a volunteer running a board
-  of review event, and they cannot read Java to check your work — the
+  of review event, and they cannot read Java to check your work; the
   test suite exists precisely because trust has to be mechanical here.
-- **Helpful.** Explain a rejected idea rather than dismissing it. Leave the
+- **Helpful.** Explain a rejected idea instead of dismissing it. Leave the
   codebase, and the person you were working with, better than you found them.
 - **Courteous** and **Kind.** Disagree with the design, not the designer.
   Contributors range from professional developers to volunteers who have never
@@ -76,8 +76,8 @@ publish.
 **Youth safety concerns do not come here.** Contact local law enforcement and
 your council Scout executive, immediately and directly.
 
-For conduct within the project — harassment, hostile behavior, or anything in
-this document — contact the maintainer directly rather than raising it in
+For conduct within the project (harassment, hostile behavior, or anything in
+this document), contact the maintainer directly instead of raising it in
 public. Reports are handled discreetly, and the privacy of whoever reports is
 respected.
 

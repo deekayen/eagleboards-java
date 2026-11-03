@@ -5,12 +5,12 @@
 # gate for the reconstruction: it proves the rebuilt jar behaves identically
 # to original/EagleBoardScheduler_20190618.jar without reading the code.
 #
-#   1. Structure  — every class's declared members match (javap), modulo
-#                   compiler-internal synthetics (access$ bridges, switch maps)
-#   2. Reads      — both servers return identical bytes for every page,
-#                   asset, and data endpoint
-#   3. Writes     — identical registration/update requests produce identical
-#                   data files on disk
+#   1. Structure: every class's declared members match (javap), modulo
+#                 compiler-internal synthetics (access$ bridges, switch maps)
+#   2. Reads: both servers return identical bytes for every page,
+#             asset, and data endpoint
+#   3. Writes: identical registration/update requests produce identical
+#              data files on disk
 #
 # Timestamps (RegTime/LastUpdateTime fields, HTTP Date headers) are the only
 # normalized difference. Everything else must match byte-for-byte.
@@ -25,7 +25,7 @@ ADULT_FILE=Master_AdultHistory.csv
 # `ls -t` (newest first), not a plain `ls`: the version is a DATE, so an
 # alphabetical sort puts the OLDEST jar first, and `./mvnw package` never
 # removes the previous version's. Left as `ls | head -1`, this gate would
-# happily certify a months-old build as being at parity with the original --
+# happily certify a months-old build as being at parity with the original,
 # the one outcome it exists to make impossible.
 pick_jar() { ls -t target/eagleboardscheduler-*.jar 2>/dev/null | grep -v original- | head -1; }
 NEW_JAR=$(pick_jar)
@@ -33,7 +33,7 @@ PORT_A=18080
 PORT_B=18081
 FAILURES=0
 # Set here because the EXIT trap kills them, and the trap can fire before the
-# servers are started (any early exit) -- unset would abort it under `set -u`.
+# servers are started (any early exit); unset would abort it under `set -u`.
 PID_A=
 PID_B=
 
@@ -45,7 +45,7 @@ note() { echo "  ok: $1"; }
 # if a missing one is LOUD: a tool that is absent (or, worse, present as a stub
 # that exits quietly) empties out one side of a comparison further down, and an
 # empty comparison reads exactly like agreement. This has bitten this script
-# twice already -- see the notes on unzip wildcards and on python3 below.
+# twice already; see the notes on unzip wildcards and on python3 below.
 #
 #   scripts/verify-parity.sh --check
 #
@@ -57,11 +57,11 @@ CHECK_ONLY=0
 missing_prereq=0
 need() { # command "what it is needed for"
     command -v "$1" >/dev/null 2>&1 && return 0
-    echo "MISSING: $1 — $2"
+    echo "MISSING: $1 ($2)"
     missing_prereq=1
 }
 need java  "runs the two servers side by side"
-need javap "reads declared members for the structural comparison (a JDK, not just a JRE)"
+need javap "reads declared members for the structural comparison (a JDK, not only a JRE)"
 need unzip "extracts the classes and web assets from both jars"
 need curl  "drives the two servers"
 need awk   "normalizes CSV columns and log parameter maps"
@@ -71,7 +71,7 @@ need sed   "normalizes timestamps and branding"
 
 if [ ! -f "$ORIG_JAR" ]; then
     echo "MISSING: $ORIG_JAR"
-    echo "         The inherited binary is not in this repository -- it embeds a"
+    echo "         The inherited binary is not in this repository; it embeds a"
     echo "         SignUpGenius key. Ask the maintainer for it, check it against"
     echo "         the SHA-256 in PROVENANCE.md, and drop it at that path"
     echo "         (original/ is gitignored). Without it there is nothing to"
@@ -81,13 +81,13 @@ fi
 
 if [ "$missing_prereq" -ne 0 ]; then
     echo
-    echo "PARITY: PREREQUISITES MISSING — nothing was compared"
+    echo "PARITY: PREREQUISITES MISSING; nothing was compared"
     exit 1
 fi
 
 # Not fatal: the adult history is participant data and is never in the repo.
 # A synthetic header-only file is generated into the sandbox when it is absent,
-# so the gate still runs -- it just compares two empty adult lists instead of
+# so the gate still runs; it compares two empty adult lists instead of
 # two identical populated ones. Said out loud, because a silently weaker check
 # is the thing this script exists to prevent.
 if [ -f "$ADULT_FILE" ]; then
@@ -129,7 +129,7 @@ WORK=$(mktemp -d "${TMPDIR:-/tmp}/eb-parity.XXXXXX") || exit 1
 trap 'rm -rf "$WORK"; kill $PID_A $PID_B 2>/dev/null' EXIT
 mkdir -p "$WORK/orig" "$WORK/new"
 # '**' not '*': the MSYS2/Git-for-Windows unzip is built with WILD_STOP_AT_DIR,
-# so '*' stops at '/' and 'shkc/*' silently extracts nothing (exit 11) — which
+# so '*' stops at '/' and 'shkc/*' silently extracts nothing (exit 11), which
 # looks like a clean pass because the comparison then runs on empty trees.
 # '**' recurses on that build and on stock Info-ZIP alike, so it works on both.
 unzip -qo "$ORIG_JAR" 'shkc/**' 'monfox/**' -d "$WORK/orig"
@@ -139,13 +139,13 @@ unzip -qo "$NEW_JAR"  'shkc/**' 'monfox/**' -d "$WORK/new" 2>/dev/null  # monfox
 # unzip glob above extracted 0 files on one platform, and the CSV comparison
 # further down ran through a `python3` that printed a notice and produced no
 # output on another. Both looked like agreement. An empty extraction can never
-# be a real pass -- the original jar has hundreds of classes -- so refuse to
-# continue rather than let a future platform quietly repeat the trick.
+# be a real pass (the original jar has hundreds of classes), so refuse to
+# continue instead of letting a future platform quietly repeat the trick.
 #
 # Two checks, because there are two ways to end up comparing less than you
 # think. A floor on the class count catches a wildcard that matched nothing,
 # and counting what landed against what the jar says it holds catches entries
-# that collided on the way out -- which is a live risk on macOS and Windows,
+# that collided on the way out, which is a live risk on macOS and Windows,
 # where the filesystem is case-insensitive by default and two entries whose
 # names differ only in case overwrite each other silently.
 # `| wc -l | tr -d` because BSD wc pads its output with spaces.
@@ -165,7 +165,7 @@ for side in orig new; do
     if [ "$listed" -gt 0 ] && [ "$landed" -ne "$listed" ]; then
         echo "FAIL: $jar lists $listed entries under shkc/ and monfox/, but only"
         echo "      $landed file(s) landed in $WORK/$side."
-        echo "      Entries are being lost during extraction — on a case-insensitive"
+        echo "      Entries are being lost during extraction. On a case-insensitive"
         echo "      filesystem (the macOS and Windows default) two names differing"
         echo "      only in case overwrite each other, which would shrink what this"
         echo "      script compares without shrinking what it claims to compare."
@@ -206,15 +206,15 @@ REMOVED_VENDORED='^shkc/json/simple/|^monfox/'
 #    it never ran. Removed with the loop in the dead-code audit.
 #  - DataFileConverter$Filter: a per-field reject hook. Both converters passed
 #    null for it, so the filter branch never ran. Removed with the branch.
-# The trailing ([$]...)? also covers each class's anonymous inner classes —
+# The trailing ([$]...)? also covers each class's anonymous inner classes:
 # ConfigWindow carried five ActionListeners as ConfigWindow$1..$5.
 REMOVED_FEATURE='shkc/core/EagleBoardScheduler[$]VerifyBoardHandler([$][A-Za-z0-9_]+)?[.]class|shkc/core/ConfigWindow([$][A-Za-z0-9_]+)?[.]class|shkc/core/FileLocator[$]Resolver[.]class|shkc/core/DataFileConverter[$]Filter[.]class'
 
 # Members deleted in the dead-code audit: every one had zero references
 # anywhere in the repo (Java, JS, HTML, scripts), so removing it cannot change
-# behavior. They are listed PER CLASS rather than as one global pattern so a
+# behavior. They are listed PER CLASS, not as one global pattern, so a
 # deletion here can never mask a same-named member that still exists on another
-# class -- ScoutRecord.updateFields(boolean) is filtered, for instance, while
+# class: ScoutRecord.updateFields(boolean) is filtered, for instance, while
 # PersonRecord's and DataRecord's real implementations keep being compared.
 # A class with no entry gets NO_DELETIONS, a line javap can never emit.
 mkdir -p "$WORK/deleted"
@@ -269,7 +269,7 @@ cat > "$WORK/deleted/shkc_core_EagleBoardScheduler" <<'EOF'
  private void updateAdultScoutRatios(boolean);
 EOF
 # NameUtil: the whole variable-map API. Nothing ever put a variable in the map,
-# so ${...} expansion always fell through to the system properties -- which it
+# so ${...} expansion always fell through to the system properties, which it
 # still does. _props went with the setters.
 cat > "$WORK/deleted/shkc_core_NameUtil" <<'EOF'
  private java.util.Map _props;
@@ -286,7 +286,7 @@ cat > "$WORK/deleted/shkc_core_SignUpGeniusPlugin" <<'EOF'
 EOF
 # DataFileConverter: the always-null Filter hook. Both the old constructor
 # (which took it) and the new one (which does not) are filtered, because this
-# is the one place a signature CHANGED rather than simply going away.
+# is the one place a signature CHANGED instead of going away.
 cat > "$WORK/deleted/shkc_core_DataFileConverter" <<'EOF'
  private shkc.core.DataFileConverter$Filter _filter;
  public shkc.core.DataFileConverter(shkc.core.DataRecordFile<T>, shkc.core.DataFileConverter$Filter, java.util.Map<java.lang.String, java.lang.String>, java.lang.String[]);
@@ -294,7 +294,7 @@ cat > "$WORK/deleted/shkc_core_DataFileConverter" <<'EOF'
 EOF
 # FileLocator: the filesystem-lookup half (getFile/getDirectory) and the
 # resolver chain, neither of which any caller reached. What the app actually
-# uses -- getInputStream and the search path -- is untouched and still compared.
+# uses (getInputStream and the search path) is untouched and still compared.
 cat > "$WORK/deleted/shkc_core_FileLocator" <<'EOF'
  private java.util.List _resolverList;
  public java.io.File getDirectory(java.lang.String) throws java.io.IOException;
@@ -318,7 +318,7 @@ sig() { # $1 = class file, $2 = its jar-relative name (for the deletion list)
     # EMPTY <clinit> (verified: its bytecode is a single return) that javac 25
     # elides; real static state lives in field initializers, which still show.
     # javax.servlet and jakarta.servlet are the same API before/after the
-    # Jetty 12 migration — the rename is normalized so handler signatures
+    # Jetty 12 migration; the rename is normalized so handler signatures
     # still compare meaningfully.
     # Also filtered, as deliberate dead-code removals (see the commit that
     # introduced this): the 58 unused single-String column/value constants in
@@ -376,7 +376,7 @@ note "signature comparison complete"
 # original's operator instructions wrong (they described verifying paperwork
 # through the UI), so the page was rewritten to match the current workflow.
 # NegaScheduler.png, ScoutButton.png and LeaderButton.png were dropped in the
-# dead-code audit: no page, script or stylesheet referenced any of them, and
+# dead-code audit: no page, script, or stylesheet referenced any of them, and
 # the first also carried the old district's branding.
 PRESERVED="scheduler.css"
 for p in $PRESERVED; do
@@ -406,8 +406,8 @@ else
 fi
 # signup_genius_api.js was deleted. Nothing referenced it (the server takes the
 # key from -sugkey), and it was the only file in the tree carrying a third-party
-# copyright notice. Assert it stays gone, and — stronger than the old
-# placeholder check it replaces — that the real key the ORIGINAL jar still
+# copyright notice. Assert it stays gone, and (stronger than the old
+# placeholder check it replaces) that the real key the ORIGINAL jar still
 # embeds appears nowhere in the rebuilt jar. The key is never echoed.
 if [ -f "$WORK/new/shkc/core/WEBROOT/signup_genius_api.js" ]; then
     fail "signup_genius_api.js is back in the rebuilt jar; it was deliberately removed"
@@ -444,7 +444,7 @@ for d in parity/A parity/B; do
 done
 
 [ "$ADULT_FIXTURE" = synthetic ] && \
-    echo "  note: no $ADULT_FILE in the repo root — running on a synthetic"
+    echo "  note: no $ADULT_FILE in the repo root; running on a synthetic"
 [ "$ADULT_FIXTURE" = synthetic ] && \
     echo "        header-only adult history, so the adult lists compare empty."
 
@@ -468,15 +468,15 @@ note "both servers up (:$PORT_A original, :$PORT_B rebuilt)"
 # District" branding prefix that was deliberately removed from six pages
 # (stripping it from the original's responses makes them comparable to the
 # de-branded rebuild; any other divergence on those pages still fails).
-# LC_ALL=C so sed survives binary bodies (PNGs) — they still diff byte-wise.
+# LC_ALL=C so sed survives binary bodies (PNGs); they still diff byte-wise.
 # Normalizations applied to every compared response:
 #   TIMESTAMP        wall-clock stamps
 #   district name    de-branding
 #   unit type cells  UnitName widened from the original's first-letter form
 #                    ("T9999") to the whole word ("Troop9999"), because the
-#                    abbreviation collided -- Pack/Post both gave "P", and the
+#                    abbreviation collided (Pack/Post both gave "P"), and the
 #                    new District/Council/Community options would have put
-#                    Council, Community and Crew all on "C". Collapsing the
+#                    Council, Community, and Crew all on "C". Collapsing the
 #                    known unit types back to their initial is applied to BOTH
 #                    sides, so the unit number stays compared. It also folds
 #                    the separate UnitType cell (<cell>Troop</cell>) to
@@ -500,8 +500,8 @@ norm() {
 # NOTE: the list above must cover every unit type that appears in the data,
 # not only the ones the sign-in form offers. If this section starts failing
 # after a unit type is added, check the adult history for a value the list
-# does not know. csvnorm() needs no such list -- it takes the leading
-# alphabetic run whatever it is -- so prefer extending this list rather than
+# does not know. csvnorm() needs no such list (it takes the leading
+# alphabetic run whatever it is), so prefer extending this list to
 # skipping the column.
 #
 # Deliberately absent: "Team". Varsity Scout Teams were discontinued in 2017,
@@ -530,7 +530,7 @@ compare() { # method path [data]
 # were renamed from scout-* to youth-* to match the Scout->Youth rebrand, so
 # the original jar still serves the old name and the rebuilt one the new. The
 # response bodies must still be byte-identical: this is a rename, not a change
-# of behaviour, and that is exactly what this proves.
+# of behavior, and that is exactly what this proves.
 compare_renamed() { # method originalPath rebuiltPath [data]
     local method=$1 opath=$2 npath=$3 data=${4:-}
     if ! diff <(req $PORT_A "$method" "$opath" "$data") \
@@ -540,12 +540,12 @@ compare_renamed() { # method originalPath rebuiltPath [data]
     fi
 }
 
-compare_raw() { # path — status + raw bytes, no normalization at all.
+compare_raw() { # path: status + raw bytes, no normalization at all.
     # For the static assets. They carry no timestamp and no branding, so there
     # is nothing to normalize, and pushing binary bodies (the PNGs) through sed
     # is not portable: BSD sed on macOS is unreliable on data with embedded
     # NULs, and a normalizer that mangles both sides the same way would hide a
-    # real difference rather than reveal it. Bytes are stricter anyway.
+    # real difference instead of revealing it. Bytes are stricter anyway.
     local path=$1
     local a b
     a=$(curl -s -o "$WORK/raw.a" -w '%{http_code}' "http://127.0.0.1:$PORT_A$path")
@@ -557,7 +557,7 @@ compare_raw() { # path — status + raw bytes, no normalization at all.
     fi
 }
 
-compare_status() { # method path — status code only; body is Jetty's own
+compare_status() { # method path: status code only; body is Jetty's own
                    # error page, whose HTML differs between Jetty versions.
     local method=$1 path=$2
     local a b
@@ -629,7 +629,7 @@ note "write/error endpoints compared"
 # original on purpose. No-op on files that have none of them. Naive comma split
 # is safe: the fields written during a parity run contain no embedded commas.
 #
-#   AdultScoutRatio  dropped by header name -- the rebuilt no longer tracks it,
+#   AdultScoutRatio  dropped by header name; the rebuilt no longer tracks it,
 #                    so the original's scout files still carry the column.
 #   UnitName         shortened back to the original's form. The original wrote
 #                    only the FIRST LETTER of the unit type, so Pack 12 and
@@ -638,7 +638,7 @@ note "write/error endpoints compared"
 #                    Crew would all have collided on "C". The rebuilt writes
 #                    the whole word ("Troop9999"); this maps it back to "T9999"
 #                    so the unit number and the type's initial are still
-#                    compared rather than the column being skipped.
+#                    compared instead of the column being skipped.
 #   DOB, Phone       blanked on both sides in the youth files (the ones with a
 #                    DOB column; the adult files keep Phone). The rebuilt keeps
 #                    neither for a youth (SPEC.md D-7, D-8), and 3a checks that
@@ -646,7 +646,7 @@ note "write/error endpoints compared"
 #
 # awk, not python3. On Windows/MSYS2 `python3` resolves to the Microsoft Store
 # app-execution-alias stub, which prints a notice, exits 0 and writes NOTHING
-# to stdout -- which silently reduced BOTH sides of every file diff to empty
+# to stdout, which silently reduced BOTH sides of every file diff to empty
 # and made this entire section pass without comparing anything.
 csvnorm() {
     awk -F, -v OFS=, '
@@ -716,7 +716,7 @@ echo "== 4. startup logs =="
 # getResource/RESOURCE trace lines that no longer exist).
 #
 # SCOPE: startup only. Each log is cut at its first request, so what is
-# compared is the boot path -- argument handling, config load, and every
+# compared is the boot path: argument handling, config load, and every
 # record parsed out of the data files (the LOADED: lines, which on a real
 # adult history is ~900 records proving both jars read the file identically).
 #
@@ -731,7 +731,7 @@ echo "== 4. startup logs =="
 #   - Section 5 fetches 18 UI files from the rebuilt server only.
 # Nothing is lost by cutting here. Every one of those requests is already
 # compared far more strictly than a log line: 2a/2b diff the response bytes,
-# 3 diffs the write endpoints, and 3a diffs the data files they produced --
+# 3 diffs the write endpoints, and 3a diffs the data files they produced,
 # which is why, for instance, dropping the per-request "NEW ADULT RECORD:"
 # chatter is safe: the record it announces is compared in adults.csv.
 #
@@ -742,7 +742,7 @@ normlog() { norm <"$1" | LC_ALL=C sed -E "s/:1808[01]/:PORT/g; s/[0-9]{2}:[0-9]{
     | grep -vE '^(DATETIME|TIME)?[: ]*(INFO|WARN)[: ]|SLF4J|jetty|oejs|oeje|getResource: |RESOURCE: |Session workerName|Started |Logging initialized|^LOADED: CONFIG,|^NEW SCOUT RECORD:' \
     | LC_ALL=C awk '
 # Parameter-map dumps ({k=[v],...}) keep the same entries but a different
-# iteration order under Jetty 12 vs 8 — sort entries so order is irrelevant.
+# iteration order under Jetty 12 vs 8; sort entries so order is irrelevant.
 #
 # awk, not python3, for the same reason csvnorm above is awk: a `python3` that
 # is not really python is exactly how this section would pass without comparing
@@ -751,7 +751,7 @@ normlog() { norm <"$1" | LC_ALL=C sed -E "s/:1808[01]/:PORT/g; s/[0-9]{2}:[0-9]{
 # Xcode-tools notice. Either way it writes nothing to stdout, which empties
 # BOTH logs and makes the diff succeed. awk ships with every Unix.
 #
-# Insertion sort rather than a pipe to sort(1), because the entries have to
+# Insertion sort instead of a pipe to sort(1), because the entries have to
 # come back as one line. `x ""` forces string comparison, so numeric-looking
 # keys order byte-wise (like python did) instead of numerically. Tested to
 # produce byte-identical output to the python it replaces, under both mawk
@@ -767,8 +767,8 @@ normlog() { norm <"$1" | LC_ALL=C sed -E "s/:1808[01]/:PORT/g; s/[0-9]{2}:[0-9]{
 # leading-alphabetic-run rule csvnorm() uses: it is symmetric, so the original
 # and the rebuild both come out "C1109", and the unit number is still compared.
 # Field 9 by position, and a naive comma split, for the same reason csvnorm
-# splits naively -- these columns hold no embedded commas. Guarded on NF so a
-# row that ever did would be left alone rather than silently rewritten.
+# splits naively: these columns hold no embedded commas. Guarded on NF so a
+# row that ever did would be left alone, not silently rewritten.
 # ADULT only: the parity run starts with an empty testrun/, so the scout file
 # has no rows to load and "LOADED: SCOUT" never appears (its UnitName sits in a
 # different column, so it would need its own index).
@@ -833,10 +833,10 @@ for p in $UI_PAGES; do
     esac
     uicount=$((uicount + 1))
 done
-# The event is "Eagle Boards" -- that is what the district calls it everywhere
+# The event is "Eagle Boards"; that is what the district calls it everywhere
 # else, and the pages say so. (A generic "Review Board" wording was tried on the
 # grounds that boards of review exist for every rank, and reverted: nobody
-# recognised it.) The district name itself stays out; see the branding rule in
+# recognized it.) The district name itself stays out; see the branding rule in
 # CLAUDE.md. These headings are pinned deliberately, so a wording change is
 # taught here rather than worked around.
 curl -sf "http://127.0.0.1:$PORT_B/index.html" | grep -q "Welcome to Eagle Boards" || fail "index.html heading changed"
@@ -848,8 +848,8 @@ kill $PID_A $PID_B 2>/dev/null; wait 2>/dev/null
 
 echo
 if [ "$FAILURES" -eq 0 ]; then
-    echo "PARITY: PASS — rebuilt jar is behaviorally identical to the original"
+    echo "PARITY: PASS (rebuilt jar is behaviorally identical to the original)"
 else
-    echo "PARITY: $FAILURES FAILURE(S) — see above"
+    echo "PARITY: $FAILURES FAILURE(S); see above"
 fi
 exit $FAILURES

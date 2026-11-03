@@ -10,7 +10,7 @@ import java.util.Map;
  * <p>Which column feeds which field is decided by the converters registered in
  * the constructor; the converters themselves are in
  * {@link PreRegFieldConverters}. An adult already known by ID or by email is
- * updated rather than added a second time (see {@link #processNewRecord}).
+ * updated instead of added a second time (see {@link #processNewRecord}).
  */
 public class NegaPreRegAdultRecordConverter extends DataFileConverter<AdultRecord> {
    /**

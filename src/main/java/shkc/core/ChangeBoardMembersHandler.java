@@ -7,7 +7,7 @@ import jakarta.servlet.http.HttpServletResponse;
 
 /**
  * Handles {@code /change-board-members}: swaps who sits on a board that is
- * already seated or in review -- someone has to leave, or the chair changes
+ * already seated or in review: someone has to leave, or the chair changes
  * hands.
  *
  * <p>Request parameters: {@code ScoutID}, {@code ChairID} and {@code MemberIDs}
@@ -44,7 +44,7 @@ public class ChangeBoardMembersHandler extends BoardHandler {
             return;
          }
 
-         // By name, or -- for a room renamed under the board -- the card
+         // By name, or (for a room renamed under the board) the card
          // that still names the scout (see CompleteBoardHandler).
          RoomRecord room = this.data.findRoomOfBoard(scout);
          if (room == null) {

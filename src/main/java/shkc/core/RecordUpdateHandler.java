@@ -34,10 +34,10 @@ public class RecordUpdateHandler<T extends DataRecord> implements WebServer.WebH
 
    private final EventData data;
    private final DataRecordFile<T> records;
-   // Non-null only for the handlers O-2 covers (adult field edits --
-   // Disable/Enable/Link -- and room rename); null everywhere else
+   // Non-null only for the handlers O-2 covers (adult field edits,
+   // that is Disable/Enable/Link, and room rename); null everywhere else
    // (scout/room-admin edits, adult/scout-scheduled history), which
-   // just don't offer Undo. See UndoLog.
+   // offer no Undo. See UndoLog.
    private final String undoRecordType;
 
    /** A handler whose edits are not put on the Undo stack. */
@@ -137,7 +137,7 @@ public class RecordUpdateHandler<T extends DataRecord> implements WebServer.WebH
             record.put(column, value);
             // "Sel" is the operator's in-progress checkbox pick,
             // saved on every click (including auto-select's own
-            // programmatic checks) so it survives a refresh --
+            // programmatic checks) so it survives a refresh. It is
             // not a reversible action in the O-2 sense, and an
             // auto-select's Sel writes can land after the seat
             // they preceded, which would otherwise clobber that

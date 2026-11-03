@@ -13,13 +13,13 @@ import jakarta.servlet.http.HttpServletResponse;
 
 /**
  * Handles {@code /restore-board}: the Event page's Undo (SPEC.md O-2). It
- * reverses the last reversible action -- Seat, Start Review, Complete, a room
+ * reverses the last reversible action: Seat, Start Review, Complete, a room
  * change, or an adult Disable/Enable/Link. No request parameters.
  *
  * <p>Reset and Postpone never commit to the {@link UndoLog} (they stay
  * confirm-only), so there is nothing to check for those. This is a generic
  * "revert the last snapshot": it refuses if anything else has changed a value
- * since, rather than guessing, and refuses the whole restore if any field
+ * since instead of guessing, and refuses the whole restore if any field
  * fails so a board is never left half-undone.
  *
  * <p>Answers {@code OK.} (status 200) once every field is put back, or the

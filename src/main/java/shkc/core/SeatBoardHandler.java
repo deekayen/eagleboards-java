@@ -18,7 +18,7 @@ import jakarta.servlet.http.HttpServletResponse;
  * Event page cannot seat a board the rules forbid.
  *
  * <p>Seating convenes the board only: the members get the room to go over the
- * application, references and project workbook BEFORE the youth is called in.
+ * application, references, and project workbook BEFORE the youth is called in.
  * {@link InProgressBoardHandler} ("Start Review") admits the youth and makes the
  * board active.
  */
@@ -117,12 +117,12 @@ public class SeatBoardHandler extends BoardHandler {
       room.setLeaders(memberNameList);
       scout.setRoom(room.getRoom());
       // Seating convenes the board only: the members get the room
-      // to go over the application, references and project workbook
+      // to go over the application, references, and project workbook
       // BEFORE the scout is called in. "Start Review" (the
       // /inprogress-board endpoint) is what admits the scout and
       // makes the board active. Seat and Start were merged once, on
       // the view that the second step was redundant; separating
-      // them again is what lets the two phases be timed apart --
+      // them again is what lets the two phases be timed apart:
       // the preview is capped, the interview has its own window.
       scout.setStatus(ScoutStatus.SEATED);
       scout.setBoardMembers(memberNameList);

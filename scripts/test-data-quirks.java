@@ -1,5 +1,5 @@
 // ------------------------------------------------------------------------
-// test-data-quirks.java — regression checks for three small bugs that were
+// test-data-quirks.java: regression checks for three small bugs that were
 // found while tidying the source, each fixed with no change to anything
 // else:
 //
@@ -12,7 +12,7 @@
 //      request thread, which is not thread-safe; many threads creating
 //      records at once could produce unreadable stamps.
 //
-// No network, no running server and no test framework: each check prints
+// No network, no running server, and no test framework: each check prints
 // FAIL and the script exits non-zero if any of them fails. Run it against
 // the built jar (Java's single-file source launch):
 //

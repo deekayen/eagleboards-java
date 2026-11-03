@@ -12,16 +12,16 @@ import java.nio.charset.StandardCharsets;
  * they never poll (SPEC.md D-15). A server-sent event stream: each message is
  * just a change number, and the page re-reads what it shows when one arrives.
  *
- * <p>WebServer calls {@link #changed()} after every POST a handler answers --
- * every change to the data arrives as one (sign-in, seating, an Admin edit, a
+ * <p>WebServer calls {@link #changed()} after every POST a handler answers.
+ * Every change to the data arrives as one (sign-in, seating, an Admin edit, a
  * Settings save) and no read does, so a page's own re-read can never set off
  * another round. A refused POST sends a message too; the re-read it causes
  * finds nothing new, which is cheaper than working out which POSTs changed
  * something.
  *
  * <p>Each open page holds one request thread while it listens. That is a
- * handful of threads at an event -- the operator's screen, perhaps an Admin
- * tab -- well inside Jetty's pool.
+ * handful of threads at an event (the operator's screen, perhaps an Admin
+ * tab), well inside Jetty's pool.
  */
 public class ChangeFeed implements WebServer.WebHandler {
    // Sent when nothing has changed for this long, so a page whose connection

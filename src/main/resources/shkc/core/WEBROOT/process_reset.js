@@ -1,5 +1,5 @@
 // ------------------------------------------------------------------------
-// process_reset.js — Verified/Seated/InProgress -> Registered reset
+// process_reset.js: Verified/Seated/InProgress -> Registered reset
 // (/reset-board). Frees the room and board members.
 // ------------------------------------------------------------------------
 

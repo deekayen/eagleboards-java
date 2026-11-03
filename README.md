@@ -39,7 +39,7 @@ Java may ask whether to allow access on local or public networks. Click
 Two windows open:
 
 - a **black window** full of text. Leave it alone. Closing it stops the program.
-- a small **grey window** showing a web address, something like
+- a small **gray window** showing a web address, something like
   `http://192.168.1.50:8080`.
 
 That address is what you type into the check-in station's browser. You can
@@ -93,7 +93,7 @@ At the check-in station, a youth taps **I am a youth** and an adult taps
 
 ![The check-in page on a tablet: I am a youth and I am 21 or older buttons above the lists of youth and adults already signed in, with the time and unit of each](docs/images/checkin.png)
 
-A youth gives a name, an email address and a unit, picks which review they are
+A youth gives a name, an email address, and a unit, picks which review they are
 here for, and can name their unit leader. They are never asked for a phone
 number or a birthdate. Youth who reserved on SignUpGenius are recognized by
 email, and the rest of the form fills itself in.
@@ -107,13 +107,13 @@ introduce to their Eagle board of review, so you can find them when that
 youth's review starts. Adults who have served before are recognized by email and the form
 fills itself in.
 
-![The adult sign-in form: email, phone, name and unit; Member or Chair for Eagle boards of review and for project proposal reviews; a Wood Badge checkbox; and an optional list of the youth here for an Eagle board of review, to check the ones they'll introduce](docs/images/adult.png)
+![The adult sign-in form: email, phone, name, and unit; Member or Chair for Eagle boards of review and for project proposal reviews; a Wood Badge checkbox; and an optional list of the youth here for an Eagle board of review, to check the ones they'll introduce](docs/images/adult.png)
 
 Each youth appears in the **Youth** list on the Event page the moment they sign
 in, numbered `P1, P2…` if they reserved and `W1, W2…` if they walked in. The
 list holds everyone, in three groups, each with its count: **Waiting** (in
-sign-in order), **On a board** (by room) and **Finished** (the most recent
-first). The list has no find of its own: **Find a person**, under the Rooms
+sign-in order), **On a board** (by room), and **Finished** (the most recent
+first). It has no find of its own; **Find a person**, under the Rooms
 heading (Ctrl+F), says which room anyone is in, youth or adult. The room cards
 narrow to the rooms holding a match, or a room by that name, and a line says
 where anyone found in no room is (*is waiting*, *isn't on a board*, *has gone
@@ -190,7 +190,7 @@ separately.
 
 If someone has to leave a board, or the chair changes hands, press **Change
 members…**, remove and add people the same way as when seating, and save. The
-room's timer keeps running: it is the same board.
+room's timer keeps running; it is the same board.
 
 ### 5. Record the result
 
@@ -231,7 +231,7 @@ nothing stops a board that needs longer.
 
 | Step | Running long | Overdue |
 | --- | --- | --- |
-| Board reading the paperwork (Seated) | — | 30 minutes |
+| Board reading the paperwork (Seated) | None | 30 minutes |
 | Final board with the youth | 30 minutes | 45 minutes |
 | Project review with the youth | 25 minutes | 40 minutes |
 
@@ -246,10 +246,10 @@ history CSV (every adult who has ever signed in, read-only), and Rooms. Click a
 cell to change it.
 
 A youth's Status is read-only in the tables. It changes only through the Event
-page's steps (Seat board, Start review, Complete, Postpone, Reset and Undo),
+page's steps (Seat board, Start review, Complete, Postpone, Reset, and Undo),
 which take and free a room and its members.
 
-![The Admin tables' Boards tab: every youth with their board type, unit, status, result, chair, members and notes](docs/images/results.png)
+![The Admin tables' Boards tab: every youth with their board type, unit, status, result, chair, members, and notes](docs/images/results.png)
 
 **Correcting a result.** On the Boards tab, change the Result. If the result was
 recorded against the wrong youth, press **Undo** on the Event page straight
@@ -257,11 +257,11 @@ away: the tables no longer change a youth's status.
 
 **A youth without their signed proposal page.** The **Approved proposals** tab
 lists every project proposal approved at an earlier event in this data folder,
-however long ago: who, their unit, when, the chair and the other members. It
+however long ago: who, their unit, when, the chair, and the other members. It
 is read only; a mistake is corrected in the earlier event itself.
 
 **Making someone a chair.** On the Admin tables' Adults tab, change their Final
-or Project role to Chair. An adult's name, unit, contact and roles change in the
+or Project role to Chair. An adult's name, unit, contact, and roles change in the
 adult history too, so they are still a chair the next time they sign in.
 
 **Signing an adult in by hand.** For an adult who would rather not use the
@@ -299,7 +299,7 @@ choose **Mark gone home**. They won't be proposed for another board.
 **Mark back** returns them.
 
 **The check-in station cannot reach the address.** Both machines must be on the
-same network. Check the address in the grey window, and check that you clicked
+same network. Check the address in the gray window, and check that you clicked
 Allow when Java asked about network access.
 
 **The black window closed.** The program stopped. Start it again from the
@@ -344,12 +344,12 @@ The same links are on the scheduler's Settings page.
 Apache-2.0 (see [LICENSE](LICENSE) and [NOTICE](NOTICE)). The project was
 previously GPL-2.0, which the bundled dhtmlxSuite UI library required; that
 library has been replaced by MIT-licensed Tabulator, so nothing compels
-copyleft any more.
+copyleft anymore.
 
 ## Trademarks
 
 Not affiliated with, endorsed by, or sponsored by Scouting America (Boy Scouts
-of America). "Scouts BSA", "Eagle Scout" and related marks belong to their
+of America). "Scouts BSA", "Eagle Scout", and related marks belong to their
 owner and are used here only to describe what the software is for. The
 interface follows published brand guidance for visual consistency; that is not
 a claim of any trademark right, and Apache-2.0 §6 grants none.

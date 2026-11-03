@@ -36,7 +36,7 @@
 
   <dependencies>
     <!-- Current supported Jetty (the original bundled EOL Jetty 8; the
-         rebuild was proven against it, then migrated — see PROVENANCE.md).
+         rebuild was proven against it, then migrated; see PROVENANCE.md).
          Pulls jetty-server core and the jakarta.servlet API transitively. -->
     <dependency>
       <groupId>org.eclipse.jetty.ee11</groupId>

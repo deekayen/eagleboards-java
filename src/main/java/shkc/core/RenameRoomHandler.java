@@ -9,7 +9,7 @@ import jakarta.servlet.http.HttpServletResponse;
  * Renames a room from its card on the Event page, as the {@code /rename-room}
  * endpoint, not only in the Admin tables. The room keeps its ID; the youth and
  * adults in it move to the new name with it, so a board in progress is not
- * stranded looking for a room that no longer matches -- which is what an
+ * stranded looking for a room that no longer matches, which is what an
  * Admin-table edit of the Room column does (section 13 of the event test).
  * The Windows and Mac versions rename the same way.
  *

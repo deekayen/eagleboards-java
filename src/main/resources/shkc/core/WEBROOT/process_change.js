@@ -1,5 +1,5 @@
 // ------------------------------------------------------------------------
-// process_change.js — change the members of a board already seated or in
+// process_change.js: change the members of a board already seated or in
 // review (/change-board-members). Someone has to leave, or the chair changes
 // hands. The status and the room timer are unchanged: it is the same board.
 //

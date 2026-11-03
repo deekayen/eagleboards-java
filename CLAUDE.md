@@ -1,9 +1,9 @@
-# CLAUDE.md — working notes for this repo
+# CLAUDE.md: working notes for this repo
 
 Guidance for anyone (human or AI) making changes here. Read this before editing.
 
 **Read `SPEC.md` in `deekayen/eagleboards-shared` before changing the
-operator screen, the check-in pages, the board rules or the data files.**
+operator screen, the check-in pages, the board rules, or the data files.**
 It is the source of truth for anything more than one version of Eagle
 Boards does; this repo does not decide shared behavior on its own.
 
@@ -24,23 +24,23 @@ original source was received) and then modernized. See `PROVENANCE.md`.
   `eb-data.js` is the adapter that speaks the server's endpoints. The
   operator's **Event page** (`scheduler.html` + `scheduler_event.js`, styled
   by `eb-app.css`) is plain DOM, laid out like the Windows version's Event
-  page (SPEC.md O-3): youth queue, room cards and a details pane that builds
+  page (SPEC.md O-3): youth queue, room cards, and a details pane that builds
   the board, all visible at once. The Admin tables still use **Tabulator**
   (MIT), which replaced the original GPL dhtmlx; they really are
-  spreadsheets. Admin, Settings and Help share `eb-app.css` and the same top
+  spreadsheets. Admin, Settings, and Help share `eb-app.css` and the same top
   bar.
 - **The check-in pages are shared** (SPEC.md D-18): `index.html`,
-  `youth_register.html`, `adult_register.html`, `checkin.css` and
+  `youth_register.html`, `adult_register.html`, `checkin.css`, and
   `checkin.js` in `WEBROOT/` are copies of `eagleboards-shared/checkin`,
   pinned by `checkin-pages.lock`. **Never edit them here**; CI fails if they
   differ from the pinned commit. Change them in the shared repo (WCAG 2.2 AA:
   run its `check-contrast.js` and an axe scan), then copy all five and update
   the lock. They call `CheckInApi` (`/api/*`), the API all three versions
   serve.
-- **No birthdate** (SPEC.md D-7, O-5): nothing asks for, keeps, shows or
+- **No birthdate** (SPEC.md D-7, O-5): nothing asks for, keeps, shows, or
   exports one. `/register-youth` discards a `DOB` from an old cached page, and
-  the `-cells` and `-autofill` endpoints blank one already on file rather than
-  drop the column, so files still move between versions.
+  the `-cells` and `-autofill` endpoints blank one already on file instead of
+  dropping the column, so files still move between versions.
 - **No youth phone number** (SPEC.md D-8): the same, for a youth's `Phone`,
   which the pre-registration imports no longer bring in either. Only the youth
   files (`isYouthFile`) withhold it; the adult files share those handlers and
@@ -54,7 +54,7 @@ original source was received) and then modernized. See `PROVENANCE.md`.
 - Optional Swing popup (`PopupDialog`, only with `-w`) shows the check-in URL.
 - Optional **SignUpGenius** import (`SignUpGeniusPlugin`, Jackson JSON).
 
-## How an event actually runs
+## Event flow
 
 Read this before reasoning about statuses. The code's names do not explain
 the event on their own, and it is easy to build a wrong model from them.
@@ -66,7 +66,7 @@ the event on their own, and it is easy to build a wrong model from them.
    did not is a **walk-in** and gets `W#`. Walk-ins rank below every RSVP in
    the queue (`sort_regnum` in `scheduler_config.js`). Status `Registered`.
 3. **Pick a scout, assign adults, Seat Board** → `Seated`. The board goes in
-   ahead of the scout to preview the application, references and project
+   ahead of the scout to preview the application, references, and project
    workbook.
 4. **Start Review** → `InProgress`. The scout is brought in.
 5. **Complete** → `Completed`, with the **board's decision** as the Result:
@@ -86,20 +86,20 @@ as a Status only, never as a Result, and `/complete-board` refuses it.
 **A table never changes a scout's status** (SPEC.md P-6). The Admin page
 shows Status read-only; it changes only through the Event page's steps,
 which take and free a room and its members. `ScoutUpdateHandler.refusal`
-also refuses Seated, InProgress and a sitting board's status through
+also refuses Seated, InProgress, and a sitting board's status through
 `/youth-update`, whoever posts it (event test section 25): a scout set
 Seated from a table had no room and no members. `/youth-update` still takes
-Registered, Completed or Postponed on the record, which section 18's
+Registered, Completed, or Postponed on the record, which section 18's
 correction moves; nothing on the Admin page offers them. **Nor does a table
 delete someone a board holds** (P-6, amended 2026-10-24): Delete on a scout
 whose board is Seated or InProgress, or on an adult with a Room (not `N/A`),
 is refused with the reason by `ScoutUpdateHandler.refusal` and
 `AdultUpdateHandler.refusal`, and the Admin page keeps the row (event test
-section 29). The original's Delete took either, leaving a room held by
+section 29). The original's Delete took either and left a room held by
 nobody or a board a member short.
 
 **An adult's facts are shared, and the history is read-only** (P-6). Name,
-unit, contact and roles (`ADULT_REG_FIELDS`) edited on the Adults tab reach
+unit, contact, and roles (`ADULT_REG_FIELDS`) edited on the Adults tab reach
 the same adult in the adult history (`shareAdultFacts`), off the Undo stack;
 the Adult history CSV tab is read-only and `/adult-history-update` refuses
 edits (section 26). **Add adult…** and **Sign in for today** post to
@@ -118,9 +118,9 @@ columns; the admin page's tab shows it read-only (event test section 28).
 **Correcting a result.** Wrong result clicked: edit the Result on the Admin
 page's **Boards** tab. A result recorded against the wrong scout (mistaken
 identity): Undo on the Event page, straight away, since the Admin page no
-longer changes a status. The record-level move -- the wrong scout back to
-`Registered` with Result, Chair and Members cleared, the reviewed scout
-given the result -- still works through `/youth-update`, and Seat Board
+longer changes a status. The record-level move (the wrong scout back to
+`Registered` with Result, Chair, and Members cleared, the reviewed scout
+given the result) still works through `/youth-update`, and Seat Board
 accepts a `Registered` scout whose Room is still `N/A` from the mistaken
 Complete. Section 18 of `test-board-event.sh` covers both corrections and
 checks that the Admin page offers no status to choose.
@@ -130,7 +130,7 @@ checks that the Admin page offers no status to choose.
 - Build: `./mvnw package` → `target/eagleboardscheduler-*.jar` (JDK 25, targets 21).
 - Run: `scripts/run.sh` (reads `SUG_KEY` from env or `.env`; drops the `-w`
   popup automatically when there's no display, e.g. a headless Pi).
-- Board composition rules, auto-select and fill the rest:
+- Board composition rules, auto-select, and fill the rest:
   `node scripts/test-cases.js` (headless, no framework, no network) runs the
   cases all three versions share (SPEC.md D-5) through `process_seat.js`.
   They are in `scripts/cases/`, a copy of eagleboards-shared `cases/` pinned
@@ -139,18 +139,18 @@ checks that the Admin page offers no status to choose.
   copied here and the lock bumped. `node scripts/test-find-people.js` tests
   finding a person's room (D-21). Both run in CI on all four platforms.
   `java -cp target/eagleboardscheduler-*.jar scripts/test-board-composition.java`
-  unit-tests `BoardCompositionChecker`, `UndoLog` and `EventData` with no
+  unit-tests `BoardCompositionChecker`, `UndoLog`, and `EventData` with no
   server (also in CI).
-- Whole board event: `bash scripts/test-board-event.sh` — boots the jar on a
+- Whole board event: `bash scripts/test-board-event.sh`: boots the jar on a
   spare port against a throwaway data dir and runs a full event at the
   district's real shape (14 scouts, 12 rooms, 30 adults, and only **5** adults
   qualified to chair anything, so boards queue behind the chairs). It covers
   what the pure-function tests cannot: adults committed to one room and released
   at Complete, postpone/reset handing the room and members back, and the
   composition rules holding for requests that never went through our UI. Needs
-  `bash curl awk` and a JDK — **no Python**; see CONTRIBUTING "Running the shell
+  `bash curl awk` and a JDK (**no Python**); see CONTRIBUTING "Running the shell
   scripts off Linux" for why. Runs in CI on all four platforms. Add a case
-  here when you change how a board is seated, run or torn down.
+  here when you change how a board is seated, run, or torn down.
   **Copy every new scenario to the other two versions:** the Windows port
   (`deekayen/eagleboards-windows`) runs this same script, and the Mac
   version (`deekayen/eagleboards-macos`) mirrors it in
@@ -158,10 +158,10 @@ checks that the Admin page offers no status to choose.
 
 **Prefer pushing over re-running the suite locally.** `build.yml` already runs
 the build, the structural check, both test scripts, the runtime smoke test, the
-lifecycle check and `run.bat` across four platforms in about a minute.
+lifecycle check, and `run.bat` across four platforms in about a minute.
 Re-running those by hand proves nothing extra, and a local pass only describes
 the working tree at the moment it ran, not what landed. Run things locally to
-*debug* a failure CI has already found, or to iterate quickly — then let the
+*debug* a failure CI has already found, or to iterate quickly; then let the
 push be the verification.
 
 ## The golden rules
@@ -172,17 +172,17 @@ push be the verification.
    board lifecycle, checks the Windows launcher, checks the live SignUpGenius
    API (Linux/push, `SUG_KEY` secret), and guards specific past bugs. **Add a
    regression assertion when you fix a crash**, and a case in
-   `test-board-event.sh` when you change how a board is seated, run or torn
-   down — a rule with no test is a rule that comes back.
+   `test-board-event.sh` when you change how a board is seated, run, or torn
+   down. A rule with no test is a rule that comes back.
 2. **Never commit PII or secrets.** Participant data (all CSV/XLS, dated
    `YYYY-MM-DD/` folders, `Master_AdultHistory*`, `LOGIN_INFO*`) and the
    inherited jar are gitignored and blocked by `scripts/hooks/pre-commit`.
    Install the hook once per clone: `git config core.hooksPath scripts/hooks`.
    No CSV is committed; the only committed config is `config.properties`
-   (timings, no PII). The rebuilt jar contains no API key — it takes one
+   (timings, no PII). The rebuilt jar contains no API key; it takes one
    from `-sugkey`, sourced from `SUG_KEY` or an untracked `.env`. The inherited
    2019 binary is the exception: it hardcoded a key in a bundled
-   `signup_genius_api.js`, which is why that file was dropped rather than
+   `signup_genius_api.js`, which is why that file was dropped, not
    carried over. Keep that jar off GitHub.
 3. **Test in a sandbox, never against the live instance or real data.** Copy
    `config.properties` and use a *synthetic* header-only `Master_AdultHistory.csv`
@@ -194,7 +194,7 @@ push be the verification.
 - **Variable names say what the variable is for.** The decompiler emitted
   `var1`, `var10`… throughout; those were all renamed, and no `var##` remains
   anywhere in `src/main/java`. Do not reintroduce them, not even to match
-  surrounding style — matching a decompiler is not a style. CI greps for them
+  surrounding style; matching a decompiler is not a style. CI greps for them
   and fails the build (the "No decompiled variable names" step in `build.yml`).
 - **Server endpoints are the contract.** The UI rework kept every endpoint and
   wire format frozen; prefer client-only changes. If you must change the
@@ -208,7 +208,7 @@ push be the verification.
   Seating and starting are **two steps again**, after a period when they were
   merged into one:
   - **Seat Board** (`/seat-board`) → `Seated`. The members get the room and the
-    paperwork — application, references, project workbook — and the scout is
+    paperwork (application, references, project workbook), and the scout is
     still outside. GTA 8.0.3.0 #8.
   - **Start Review** (`/inprogress-board`) → `InProgress`. The scout is brought
     in. Only now may the board be completed.
@@ -216,7 +216,7 @@ push be the verification.
   They were merged on the view that the second step was redundant; separating
   them again is what lets the two phases be *timed apart*, which is the whole
   point. Room-card timers run on `MinsSinceLastUpdate`, so the clock restarts
-  by itself at each transition — `ConveneRedMins` caps the convening phase
+  by itself at each transition: `ConveneRedMins` caps the convening phase
   (red only, no yellow: it is a limit, not a target), and
   `FinalYellowMins`/`FinalRedMins` then time the interview from Start Review.
   **Watch for code that assumed `Seated` was unreachable.** `/complete-board`
@@ -225,8 +225,8 @@ push be the verification.
   moment it was restored; there is now a CI guard for exactly that.
 - **Changing a seated board's members** (`/change-board-members`) runs the
   same composition check as seating (`BoardCompositionChecker`), except that adults
-  already in the room may stay. It does not touch `LastUpdateTime`, so the
-  room timer keeps running: it is the same board.
+  already in the room may stay. It leaves `LastUpdateTime` alone, so the
+  room timer keeps running; it is the same board.
 - **Renaming a room** from the Event page goes through `/rename-room`, which
   moves the youth and adults in it to the new name (the room keeps its ID).
   Editing the Room column on the Admin page does not, and strands a board in
@@ -238,14 +238,14 @@ push be the verification.
   handlers both call it). The UI is the normal way in, not the
   only one, and a board seated past it is one nobody finds out about until they
   read the result of a review that should not have happened. Both must agree:
-  - **Size.** A board of review is three to six (GTA 8.0.0.3) — fewer refused,
+  - **Size.** A board of review is three to six (GTA 8.0.0.3): fewer refused,
     four to six asks to confirm, seven refused outright. A *project* proposal
-    review is not a board of review (GTA 9.0.2.4) and this district runs it with
+    review is not a board of review (GTA 9.0.2.4), and this district runs it with
     two, under the same ceiling of six. `checkBoardSize` / `checkProjectSize`.
   - **Chair is binding.** A board must be chaired by someone whose role for that
     board type is `Chair`, and the chair must be sitting on the board. When the
     qualified chairs are all busy the answer is to promote someone on the Admin
-    page — never to let a Member hold the gavel because the dropdown had nobody
+    page, never to let a Member hold the gavel because the dropdown had nobody
     else. The details pane therefore offers the Chair mark only beside
     qualified chairs, and the fallback chair dialog lists only them.
   - **One board at a time.** An adult with a `Room` is committed to it and
@@ -256,15 +256,15 @@ push be the verification.
   - **Same unit.** Adults from the scout's own unit raise an overridable warning
     naming every one of them: this council forbids them entirely, and the
     override falls back to the national rule (GTA 8.0.3.0 #2), which still
-    requires at least one member from outside the unit — so a board made
+    requires at least one member from outside the unit, so a board made
     *entirely* of the scout's unit is refused with no override. Client-side
-    only, deliberately: it is a judgement call, not an absolute.
+    only, deliberately: it is a judgment call, not an absolute.
 
 - **Auto-select** (`proposeBoard` in `process_seat.js`) proposes the board
   when a waiting scout is selected, and **Fill the rest** (`fillBoard`, the
   Windows `SchedulerLogic.FillBoard`) completes it around the adults the
   operator picked, using the same ranking (`rankFreeAdults`). It weighs the whole waiting line, not
-  just this scout: of every legal board, it takes the one that leaves the
+  only this scout: of every legal board, it takes the one that leaves the
   most other waiting scouts able to get a full board right now (chairs and
   troops both count), then the one using up the fewest chair qualifications
   (member-only adults in member seats, single-type chairs before
@@ -274,7 +274,7 @@ push be the verification.
   free (`freeSinceTimes`: sign-in, or when their last board completed). It
   is only a proposal, not a rule, but the same algorithm and the same test
   cases live in the Windows and Mac versions; change all three together.
-- **What an adult says at sign-in.** Each board type is Member, Chair or
+- **What an adult says at sign-in.** Each board type is Member, Chair, or
   "No thanks" (stored as the role `Unavailable`, which Seat Board refuses).
   Two per-event columns end the adult record: `WoodBadge` (`Y` or blank)
   and `Supporting` (IDs of the scouts they'll introduce to their board,
@@ -296,12 +296,12 @@ push be the verification.
   (columns must be listed in `ConfigRecord.COLUMNS` to be served via
   `/config-autofill`) and edited via the Settings page (`configure.html`).
   The format is chosen by file extension inside `DataRecordFile.load`/`store`
-  (`.properties` → key=value, else CSV — the CSV path is kept so the original
+  (`.properties` → key=value, else CSV; the CSV path is kept so the original
   binary still loads). Room-card warning timers are
   board-type specific: `ProjectYellowMins` / `ProjectRedMins` /
   `FinalYellowMins` / `FinalRedMins`, minutes since seating. Note: saving via
   the Settings page rewrites the file and does not preserve `#` comments.
-- **Branding is district-neutral** — never reintroduce "Etowah" or a specific
+- **Branding is district-neutral**: never reintroduce "Etowah" or a specific
   district/council name. This is the settled end state, not a waypoint:
   configurable branding was considered and declined (issue #1, closed not
   planned), so the app never displays whose district it is.
@@ -315,3 +315,22 @@ push be the verification.
   `deekayen/eagleboards-java`.
 - **No AI attribution** in commits, issues, PR text, or anywhere in history,
   as in every Eagle Boards repository.
+
+## Writing style
+
+Docs, comments, commit messages, and release notes follow the owner's
+technical writing rules. Not every workstation has the full guide or its
+Vale linter, so the rules that matter most here are:
+
+<!-- vale off -->
+- No em dashes, and no `--` standing in for one. Use a comma, parentheses,
+  a colon, or a new sentence.
+- Oxford commas in every list of three or more.
+- A colon introduces a list or an explanation, never a second independent
+  clause. No sentence starts with "But."
+- No sales or corporate words (robust, seamless, leverage, utilize,
+  comprehensive, streamline) and no minimizers (simply, just, easily).
+- No `-ing` tail that restates the sentence ("..., ensuring X"), no
+  "serves as" or "acts as" for "is," and no "rather than" by reflex.
+- US spelling. Name who acts. Vary sentence length and openings.
+<!-- vale on -->

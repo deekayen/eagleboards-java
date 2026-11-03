@@ -1,5 +1,5 @@
 // ------------------------------------------------------------------------
-// test-signup-dates.java — regression tests for finding today's sign-up.
+// test-signup-dates.java: regression tests for finding today's sign-up.
 //
 // The SignUpGenius import uses the active sign-up whose dates cover today.
 // The API's dates carry a time ("2026-09-22 18:30:00"), and comparing
@@ -7,7 +7,7 @@
 // so a sign-up was missed on its first day: January's event, for a
 // sign-up that runs the year. The Mac version found and fixed it first.
 //
-// coversDay is pure, so this needs no network, no key and no test framework.
+// coversDay is pure, so this needs no network, no key, and no test framework.
 // Run it against the built jar (Java's single-file source launch):
 //
 //   java -cp target/eagleboardscheduler-<version>.jar scripts/test-signup-dates.java

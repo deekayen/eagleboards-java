@@ -10,7 +10,7 @@ import jakarta.servlet.http.HttpServletResponse;
  * Swaps two rooms' boards, as the {@code /room-change} endpoint. The operator
  * uses it from the Event page to move a board to a different room: whatever
  * sits in the first room goes to the second, and whatever sat in the second
- * goes to the first (so moving into an empty room is just a swap with it).
+ * goes to the first (so moving into an empty room is a swap with it).
  *
  * <p>Request parameters: {@code RmID1} and {@code RmID2}, the IDs of the two
  * rooms.

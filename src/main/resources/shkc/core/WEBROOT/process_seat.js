@@ -1,5 +1,5 @@
 // ------------------------------------------------------------------------
-// process_seat.js — Registered -> Seated transition (/seat-board).
+// process_seat.js: Registered -> Seated transition (/seat-board).
 //
 // Validates the board built in the details pane (scout status, members, unit
 // conflicts, availability, member counts per board type, room), then posts
@@ -13,8 +13,8 @@
 var BOARD_MIN_MEMBERS = 3;
 var BOARD_MAX_MEMBERS = 6;
 
-// A project proposal review is not a board of review -- it is the GTA 9.0.2.4
-// approval of the service project proposal -- so the three-member floor does
+// A project proposal review is not a board of review. It is the GTA 9.0.2.4
+// approval of the service project proposal, so the three-member floor does
 // not apply and this district runs them with two. The ceiling is shared with
 // the board of review: six is as many people as belong in the room either way.
 var PROJECT_MIN_MEMBERS = 2;
@@ -22,8 +22,8 @@ var PROJECT_MIN_MEMBERS = 2;
 // Verdict for a proposed board size, kept separate from the dialogs so the
 // national limits can be unit-tested headless:
 //
-//   "too-few"        below the national minimum — refused
-//   "too-many"       above the national maximum — refused
+//   "too-few"        below the national minimum; refused
+//   "too-many"       above the national maximum; refused
 //   "over-preferred" legal, but more than the district's working size of
 //                    three, so the reviewer is asked to confirm
 //   "ok"             seat it
@@ -59,7 +59,7 @@ function checkProjectSize(count) {
 // hard stop that named only the FIRST offender, so a board with several
 // same-unit adults had to be fixed one alert at a time, and a district that
 // genuinely had no one else available could not seat at all. It is now an
-// overridable warning that lists every overlap at once — the council rule is
+// overridable warning that lists every overlap at once. The council rule is
 // enforced by making the conflict impossible to miss, not by making the
 // software refuse.
 //
@@ -67,7 +67,7 @@ function checkProjectSize(count) {
 // see scripts/test-cases.js and the shared cases in scripts/cases/.
 //
 //   scout_uname  the scout's UnitName, e.g. "Troop1234"
-//   members      [{ id, last, first, uname }, ...] — the checked adults
+//   members      [{ id, last, first, uname }, ...], the checked adults
 //   returns      the subset of members sharing the scout's unit
 function findUnitConflicts(scout_uname, members) {
    var conflicts = [];
@@ -89,7 +89,7 @@ function findUnitConflicts(scout_uname, members) {
 }
 
 // The council's rule (no adults from the scout's unit) is stricter than the
-// national one, so a reviewer may bypass it — but only down to the national
+// national one, so a reviewer may bypass it, though only down to the national
 // floor, GTA 8.0.3.0 #2: a unit-level board must still have at least one
 // member who is not affiliated with the unit. A board made up entirely of the
 // scout's own unit fails BOTH rules, so there is nothing left to fall back to
@@ -122,8 +122,8 @@ function hasNonUnitMember(scout_uname, members) {
 // the scouts still waiting, so it could spend the one adult a later scout
 // could use on a board anyone could have filled.
 //
-// Now every legal board for the scout is considered -- one qualified chair
-// plus the working number of members, none from the scout's unit -- and the
+// Now every legal board for the scout is considered (one qualified chair
+// plus the working number of members, none from the scout's unit), and the
 // one chosen is, in order of priority:
 //
 //   1. the one that leaves the most of the OTHER waiting scouts, taken in
@@ -131,18 +131,18 @@ function hasNonUnitMember(scout_uname, members) {
 //      left over (their chairs, and their units, both count);
 //   2. then the one that uses up the fewest chair qualifications, so
 //      member-only adults fill member seats and a chair who can chair only
-//      this kind of board is used before one who can chair both -- the
+//      this kind of board is used before one who can chair both; the
 //      chairs are what cap the event, and walk-ins have not arrived yet;
 //   3. then the one whose adults could serve the fewest other waiting scouts,
 //      keeping the flexible adults for later;
-//   4. then volunteers who came to serve on any board -- not linked to a
-//      scout at sign-in, or counting it toward a Wood Badge ticket -- so the
+//   4. then volunteers who came to serve on any board (not linked to a
+//      scout at sign-in, or counting it toward a Wood Badge ticket), so the
 //      people who came only to volunteer are not the ones left sitting idle;
 //   5. then the adults who have waited longest to volunteer since they were
 //      last free (freeSinceTimes, below), and sign-in order within a minute.
 //
 // When no full board exists it proposes what it can, in the same preference
-// order, and says what is missing -- as before.
+// order, and says what is missing, as before.
 //
 // Pure, so it is tested headless (scripts/test-cases.js), and the same
 // algorithm is in the Windows and Mac versions, which run the same cases
@@ -155,7 +155,7 @@ function hasNonUnitMember(scout_uname, members) {
 //            freeSinceTimes (blank sorts first); woodBadge is "Y" or blank;
 //            supporting is the linked scout IDs, blank if none
 //   waiting  the OTHER waiting scouts [{ id, uname, btype }] in queue order
-//   returns  { chairId, memberIds, problems } -- memberIds excludes the chair
+//   returns  { chairId, memberIds, problems }; memberIds excludes the chair
 var BOARD_TYPES = ["Final", "Project"];
 
 function adultRoleFor(adult, btype) {
@@ -304,8 +304,8 @@ function countSeatable(pool, waiting) {
 //
 // Times are the records' "yyyy-MM-dd_HH:mm-0400" stamps, which sort as text
 // within one event. The member list is joined with commas, which the
-// CSV writer turns into "~" on disk -- and an ID whose name had a comma holds
-// a "~" of its own -- so the list is not split: each adult's whole ID is
+// CSV writer turns into "~" on disk (and an ID whose name had a comma holds
+// a "~" of its own), so the list is not split: each adult's whole ID is
 // looked for between separators.
 //
 //   adults   [{ id, regTime }]
@@ -448,14 +448,14 @@ function proposeBoard(scout, adults, waiting) {
 }
 
 // Fill the rest (D-12): keep the adults the operator chose and complete the
-// board around them -- a chair if none of them may chair this board type,
+// board around them: a chair if none of them may chair this board type,
 // then members up to the working size. Same ranking as proposeBoard, and the
 // same algorithm as the Windows version's SchedulerLogic.FillBoard. Unlike
 // proposeBoard it does not search whole boards: the operator has already
 // decided who the board is built around.
 //
 //   pickedIds  the adults already on the board being built
-//   returns    { chairId, memberIds, problems } -- only the ADDED adults;
+//   returns    { chairId, memberIds, problems }: only the ADDED adults;
 //              chairId is null when a picked adult can already chair
 function fillBoard(scout, adults, pickedIds, waiting) {
    var result = { chairId: null, memberIds: [], problems: [] };
@@ -642,7 +642,7 @@ function ProcessSeatBoard(s_id) {
    var member_name_arr = [];
    var member_ids_arr = [];
    var member_arr = [];
-   // Just the selected members qualified to chair THIS board type. The dialog
+   // Only the selected members qualified to chair THIS board type. The dialog
    // below used to offer every selected member, so once the qualified chairs
    // were all sitting on other boards the operator could hand the gavel to a
    // plain Member and the server took it. The Chair designation is binding:
@@ -684,7 +684,7 @@ function ProcessSeatBoard(s_id) {
       // Same-unit overlap is collected, not rejected here: every offender is
       // reported together in one warning after this loop, and the reviewer
       // may override it. The blocks above (already seated, Unavailable) stay
-      // hard failures — those are impossible, not merely inadvisable.
+      // hard failures; those are impossible, not merely inadvisable.
       member_arr.push({ id: l_id, last: l_last, first: l_first, uname: l_uname });
 
       var is_chair = ((s_btype == "Project") && (l_project == "Chair"))
@@ -750,7 +750,7 @@ function ProcessSeatBoard(s_id) {
       // The details pane marks the chair with a radio beside each qualified
       // member, so clicking Seat board already answered this; the dialog is
       // only for the case where that choice is somehow not among the
-      // qualified picks (and never offers anyone else -- see chair_ids_arr).
+      // qualified picks (and never offers anyone else; see chair_ids_arr).
       var chosen = boardBuilder.chairId;
       if (chair_ids_arr.indexOf(chosen) < 0 && chair_ids_arr.length === 1) {
          chosen = chair_ids_arr[0];
@@ -779,7 +779,7 @@ function ProcessSeatBoard(s_id) {
 
    // A board must be chaired by someone designated Chair for that board type.
    // When the qualified chairs are all busy the answer is to promote someone
-   // on the Admin page (Adults tab), not to seat a Member in the chair -- so
+   // on the Admin page (Adults tab), not to seat a Member in the chair, so
    // this is a hard stop, and the message says where to go to fix it.
    var requireQualifiedChair = function () {
       if (chair_ids_arr.length > 0) {
@@ -943,8 +943,8 @@ function SendSeatRequest(room_id, s_id, chair_id, member_ids) {
             // The row's own Status/room columns already show the result
             // (D-14); the message here is only to offer Undo (O-2).
             ebMessage("Seated", s_first + " " + s_last + ".", "scout", "Undo");
-            // Patch these adults' Room in the local grid right away, rather
-            // than waiting on refresh_all() below: without this, a fast
+            // Patch these adults' Room in the local grid right away, instead
+            // of waiting on refresh_all() below: without this, a fast
             // click to the next Registered scout re-runs auto-select
             // against the pre-seat local data (the server round trip
             // hasn't landed yet) and re-picks members who are now in this
