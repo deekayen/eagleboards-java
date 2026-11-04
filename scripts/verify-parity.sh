@@ -6,11 +6,20 @@
 # to original/EagleBoardScheduler_20190618.jar without reading the code.
 #
 #   1. Structure: every class's declared members match (javap), modulo
-#                 compiler-internal synthetics (access$ bridges, switch maps)
+#                 compiler-internal synthetics (access$ bridges, switch maps).
+#                 Classes that were split up or moved compare their public
+#                 surface only; each deliberate difference is listed by name.
 #   2. Reads: both servers return identical bytes for every page,
 #             asset, and data endpoint
 #   3. Writes: identical registration/update requests produce identical
-#              data files on disk
+#              data files on disk, and a whole board event (3b: about 50
+#              requests, every ending) gets identical responses and leaves
+#              identical files
+#
+# What the output means: a FAIL is a difference nobody has written down as
+# intentional. The structure check is the weakest of the four, because the
+# rebuilt source was reorganized; the runtime sections (2 through 4) are the
+# ones that show the two programs behave the same.
 #
 # Timestamps (RegTime/LastUpdateTime fields, HTTP Date headers) are the only
 # normalized difference. Everything else must match byte-for-byte.
@@ -31,11 +40,15 @@ pick_jar() { ls -t target/eagleboardscheduler-*.jar 2>/dev/null | grep -v origin
 NEW_JAR=$(pick_jar)
 PORT_A=18080
 PORT_B=18081
+LIFE_PORT_A=18082
+LIFE_PORT_B=18083
 FAILURES=0
 # Set here because the EXIT trap kills them, and the trap can fire before the
 # servers are started (any early exit); unset would abort it under `set -u`.
 PID_A=
 PID_B=
+PID_C=
+PID_D=
 
 fail() { echo "FAIL: $1"; FAILURES=$((FAILURES + 1)); }
 note() { echo "  ok: $1"; }
@@ -126,7 +139,7 @@ echo "== 1. structural comparison (javap declared members) =="
 # a template or -t. GNU mktemp accepts the template form too, so this is the
 # one spelling that works on both.
 WORK=$(mktemp -d "${TMPDIR:-/tmp}/eb-parity.XXXXXX") || exit 1
-trap 'rm -rf "$WORK"; kill $PID_A $PID_B 2>/dev/null' EXIT
+trap 'rm -rf "$WORK"; kill $PID_A $PID_B $PID_C $PID_D 2>/dev/null' EXIT
 mkdir -p "$WORK/orig" "$WORK/new"
 # '**' not '*': the MSYS2/Git-for-Windows unzip is built with WILD_STOP_AT_DIR,
 # so '*' stops at '/' and 'shkc/*' silently extracts nothing (exit 11), which
@@ -209,6 +222,38 @@ REMOVED_VENDORED='^shkc/json/simple/|^monfox/'
 # The trailing ([$]...)? also covers each class's anonymous inner classes:
 # ConfigWindow carried five ActionListeners as ConfigWindow$1..$5.
 REMOVED_FEATURE='shkc/core/EagleBoardScheduler[$]VerifyBoardHandler([$][A-Za-z0-9_]+)?[.]class|shkc/core/ConfigWindow([$][A-Za-z0-9_]+)?[.]class|shkc/core/FileLocator[$]Resolver[.]class|shkc/core/DataFileConverter[$]Filter[.]class'
+
+# The pre-registration converters' 15 inner field converters (FirstNameConverter,
+# PhoneConverter, and so on) were identical between the scout and adult
+# converters, and became the shared constants in PreRegFieldConverters. No class
+# of the same name exists to compare. What they DO is checked by behavior: CI's
+# test-board-event.sh section 30 imports a sheet through the rebuilt jar, and
+# the same sheet was run through both jars when this was written (identical
+# scouts and adults, apart from UnitName and the dropped AdultScoutRatio column).
+REFACTORED_AWAY='shkc/core/NegaPreReg(Scout|Adult)RecordConverter[$][A-Za-z]+Converter[.]class'
+
+# The 24 request handlers that were inner classes of EagleBoardScheduler are now
+# top-level classes of their own. Same class, same members, new name; three of
+# them also lost a Core/Data prefix. moved_to prints the rebuilt path for an
+# original handler, or nothing for any other class.
+moved_to() { # original class path
+    local name
+    case "$1" in
+        shkc/core/EagleBoardScheduler'$'*Handler.class) ;;
+        *) return 0 ;;
+    esac
+    name=${1#shkc/core/EagleBoardScheduler\$}
+    name=${name%.class}
+    case "$name" in
+        CoreBoardHandler)       name=BoardHandler ;;
+        DataRecordCellsHandler)  name=RecordCellsHandler ;;
+        DataRecordUpdateHandler) name=RecordUpdateHandler ;;
+    esac
+    echo "shkc/core/$name.class"
+}
+# The same renames, as they appear inside signatures (a handler's own name, and
+# the others it mentions).
+HANDLER_RENAMES='s/shkc[.]core[.]EagleBoardScheduler[$]CoreBoardHandler/shkc.core.BoardHandler/g; s/shkc[.]core[.]EagleBoardScheduler[$]DataRecordCellsHandler/shkc.core.RecordCellsHandler/g; s/shkc[.]core[.]EagleBoardScheduler[$]DataRecordUpdateHandler/shkc.core.RecordUpdateHandler/g; s/shkc[.]core[.]EagleBoardScheduler[$]([A-Za-z]+Handler)/shkc.core.\1/g'
 
 # Members deleted in the dead-code audit: every one had zero references
 # anywhere in the repo (Java, JS, HTML, scripts), so removing it cannot change
@@ -309,6 +354,150 @@ cat > "$WORK/deleted/shkc_core_FileLocator" <<'EOF'
  public void setVariable(java.lang.String, java.lang.String);
 EOF
 
+# Changes to the non-private surface made by the readability pass and the
+# feature work since. Each list holds BOTH sides of a change (the line the
+# original has and the line the rebuild has instead), because a line filtered
+# from one side only would show as a difference. Appended (>>) to the lists
+# above for classes that already have one. The class name in each file name is
+# the REBUILT name.
+#
+# updateFrom(X, String[]): AdultRecord, ConfigRecord and ScoutRecord each
+# carried the same one-line override of updateFrom; the method is now declared
+# once on DataRecord, which they inherit.
+for cls in AdultRecord ConfigRecord ScoutRecord; do
+    printf ' public void updateFrom(shkc.core.%s, java.lang.String[]);\n' "$cls" \
+        >> "$WORK/deleted/shkc_core_$cls"
+done
+cat >> "$WORK/deleted/shkc_core_DataRecord" <<'EOF'
+ public void updateFrom(shkc.core.DataRecord, java.lang.String[]);
+ static final java.lang.String COLUMN_ID;
+ static final java.lang.String COLUMN_LAST_UPDATE_TIME;
+ static final java.lang.String COLUMN_REG_TIME;
+ static final java.lang.String COLUMN_TYPE;
+EOF
+# procesNewRecord -> processNewRecord: a typo in the original's method name,
+# fixed in the converter base class, its two subclasses, and their callers.
+cat >> "$WORK/deleted/shkc_core_DataFileConverter" <<'EOF'
+ public void procesNewRecord(T);
+ public void processNewRecord(T);
+EOF
+cat > "$WORK/deleted/shkc_core_NegaPreRegAdultRecordConverter" <<'EOF'
+ public void procesNewRecord(shkc.core.AdultRecord);
+ public void procesNewRecord(shkc.core.DataRecord);
+ public void processNewRecord(shkc.core.AdultRecord);
+ public void processNewRecord(shkc.core.DataRecord);
+EOF
+# cvtname moved with the field converters into PreRegFieldConverters.
+cat > "$WORK/deleted/shkc_core_NegaPreRegScoutRecordConverter" <<'EOF'
+ public static java.lang.String cvtname(java.lang.String);
+ public void processNewRecord(shkc.core.DataRecord);
+ public void processNewRecord(shkc.core.ScoutRecord);
+EOF
+cat >> "$WORK/deleted/shkc_core_DataRecordFile" <<'EOF'
+ shkc.core.DataRecord$Factory _factory;
+EOF
+# The shared logging helpers left EagleBoardScheduler for the Log class.
+cat >> "$WORK/deleted/shkc_core_EagleBoardScheduler" <<'EOF'
+ public static void error(java.lang.String);
+ public static void verbose(java.lang.Object);
+EOF
+# SignUpGeniusPlugin: the import step takes the fetched JSON, so a test can
+# drive it without the network (the fetch is SignUpGeniusClient).
+cat >> "$WORK/deleted/shkc_core_SignUpGeniusPlugin" <<'EOF'
+ public void importReport(JSON_TREE, java.lang.String) throws java.io.IOException;
+EOF
+# Commandline: the hand-rolled option bookkeeping (a Hashtable and four
+# package-private helpers) became one Map and a private helper; a public
+# `debug` flag nothing read went with it. The CLI itself is compared by running
+# both jars (bad options, missing values, bad ports: same messages and codes).
+cat >> "$WORK/deleted/shkc_core_Commandline" <<'EOF'
+ boolean isoptlist(java.lang.String);
+ java.lang.String paramfor(java.lang.String[], int, int);
+ java.util.Hashtable optionlist;
+ public boolean debug;
+ void doParse(java.lang.String[], java.lang.String, java.lang.String, java.lang.String[], java.lang.String[]) throws shkc.core.InvalidCommandlineArgument;
+ void sethasflag(java.lang.String);
+ void sethasoption(java.lang.String, java.lang.String);
+EOF
+# The two argument exceptions are Exceptions now, not bare Throwables, so a
+# catch (Exception) in main handles them. Nothing during argument parsing
+# throws an Error.
+for cls in InvalidCommandlineArgument MissingCommandlineArgument; do
+    cat >> "$WORK/deleted/shkc_core_$cls" <<EOF
+ private static final long serialVersionUID;
+class shkc.core.$cls extends java.lang.Throwable {
+public class shkc.core.$cls extends java.lang.Exception {
+EOF
+done
+# Handlers. Hooks the update handlers gained from the table rules (SPEC.md
+# P-6: a table never changes a status or deletes someone a board holds), and
+# the constructors that now take the EventData.
+REFUSAL=' protected java.lang.String refusal(shkc.core.DataRecord, SERVLET_API.http.HttpServletRequest, java.lang.String);'
+for cls in AdultHistoryUpdateHandler ScoutUpdateHandler; do
+    printf '%s\n' "$REFUSAL" >> "$WORK/deleted/shkc_core_$cls"
+done
+cat >> "$WORK/deleted/shkc_core_AdultUpdateHandler" <<EOF
+$REFUSAL
+ protected boolean keepsOffUndo(java.lang.String);
+ protected void afterEdit(shkc.core.DataRecord, SERVLET_API.http.HttpServletRequest, java.lang.String) throws java.io.IOException;
+EOF
+cat >> "$WORK/deleted/shkc_core_RecordUpdateHandler" <<EOF
+$REFUSAL
+ protected boolean keepsOffUndo(java.lang.String);
+ protected static final java.lang.String EDIT_DELETED;
+ protected static final java.lang.String EDIT_INSERTED;
+ protected static final java.lang.String EDIT_UPDATED;
+ protected void afterEdit(shkc.core.DataRecord, SERVLET_API.http.HttpServletRequest, java.lang.String) throws java.io.IOException;
+ public shkc.core.RecordUpdateHandler(shkc.core.DataRecordFile);
+ public shkc.core.RecordUpdateHandler(shkc.core.EventData, shkc.core.DataRecordFile);
+ public shkc.core.RecordUpdateHandler(shkc.core.EventData, shkc.core.DataRecordFile, java.lang.String);
+EOF
+cat >> "$WORK/deleted/shkc_core_RecordCellsHandler" <<'EOF'
+ public shkc.core.RecordCellsHandler(shkc.core.DataRecordFile);
+ public shkc.core.RecordCellsHandler(shkc.core.EventData, shkc.core.DataRecordFile);
+EOF
+cat >> "$WORK/deleted/shkc_core_AutoFillHandler" <<'EOF'
+ public shkc.core.AutoFillHandler(shkc.core.DataRecordFile, java.lang.String);
+ public shkc.core.AutoFillHandler(shkc.core.EventData, shkc.core.DataRecordFile, java.lang.String, boolean);
+EOF
+# The base class of the board handlers: the public constructor that took the
+# scheduler became a protected one that takes the shared data, with a request
+# logger the subclasses share.
+cat >> "$WORK/deleted/shkc_core_BoardHandler" <<'EOF'
+ protected final shkc.core.EventData data;
+ protected shkc.core.BoardHandler(shkc.core.EventData);
+ protected void logRequest(SERVLET_API.http.HttpServletRequest);
+ public shkc.core.BoardHandler(shkc.core.EventData);
+EOF
+
+# Type arguments are erased before comparing. The rebuild added generics the
+# decompiler could not recover (Map became Map<String, ?>, and so on); they
+# are gone from the bytecode at run time, so they cannot change behavior. The
+# deletion lists above are erased the same way so their lines still match.
+for f in "$WORK"/deleted/*; do
+    sed -E -e ':a' -e 's/<[^<>]*>//g' -e 'ta' "$f" > "$f.tmp" && mv "$f.tmp" "$f"
+done
+
+# Classes whose insides were reorganized: the 24 handlers that moved out of
+# EagleBoardScheduler, and the record, file, converter, and utility classes
+# the readability pass split up (DataRecordFile into the CSV and properties
+# formats, SignUpGeniusPlugin into import and HTTP, and so on). Their private
+# fields and helpers were renamed, added, and moved, which a line-by-line diff
+# can only report as noise. For these classes only the non-private surface is
+# compared (every public and protected method, constructor, and field, plus
+# package-private ones), so a changed or missing API still fails. What happens
+# inside is covered by sections 2 through 4 and the lifecycle in 3b.
+#
+# Also normalized here: a moved handler's constructor took the enclosing
+# EagleBoardScheduler and now takes the EventData it used to reach through it,
+# and `synchronized` on handle() is gone because each of those bodies already
+# runs inside synchronized (data.getLock()), the same lock as before (LOCK).
+RESTRUCTURED='^shkc/core/(Adult(History)?(Cells|Update)Handler|AutoFillHandler|BoardHandler|(Complete|InProgress|Postpone|Reset|Seat)BoardHandler|RecordCellsHandler|RecordUpdateHandler|Register(Adult|Scout)Handler|Room(Cells|Change|Update)Handler|Scout(Cells|Update)Handler|ScoutsScheduled(Cells|Update)Handler|UpdateConfigHandler|DataFileConverter|DataRecord|DataRecordFile|EagleBoardScheduler|FileLocator|NameUtil|NegaPreReg(Scout|Adult)RecordConverter|SignUpGeniusPlugin|Commandline)[.]class$'
+surface() {
+    sed -E 's/ synchronized / /; s/[(]shkc[.]core[.]EagleBoardScheduler[)]/(shkc.core.EventData)/' \
+        | grep -v '^ private '
+}
+
 sig() { # $1 = class file, $2 = its jar-relative name (for the deletion list)
     # Filtered as compiler-internal (verified behaviorally equivalent in the
     # bytecode): access$ bridges, enum $values()/switch-maps, and anonymous-
@@ -338,7 +527,10 @@ sig() { # $1 = class file, $2 = its jar-relative name (for the deletion list)
       | grep -vE '^ *public static final java\.lang\.String [A-Z_]+;|^ *public static void main\(java\.lang\.String\[\]\)' \
       | sed -E "s/[$][0-9]+\((, )?[a-zA-Z0-9_.$]+(, [a-zA-Z0-9_.$]+)*\);/\$N(CAPTURES);/; s/[$][0-9]+\(\);/\$N(CAPTURES);/; s/(javax|jakarta)\.servlet/SERVLET_API/g; s/(shkc\.json\.simple\.JSONArray|com\.fasterxml\.jackson\.databind\.JsonNode)/JSON_TREE/g; s/(monfox\.log|java\.util\.logging)\.Logger/LOGGER/g" \
       | grep -v '_debugLogger' \
+      | sed -E "$HANDLER_RENAMES" \
+      | sed -E -e ':a' -e 's/<[^<>]*>//g' -e 'ta' \
       | sed -E 's/[[:space:]]+/ /g' \
+      | if echo "$2" | grep -qE "$RESTRUCTURED"; then surface; else cat; fi \
       | grep -vxF -f "$deleted" \
       | LC_ALL=C sort
 }
@@ -354,12 +546,15 @@ while IFS= read -r cls; do
     if echo "$rel" | grep -qE "$MIGRATED"; then continue; fi
     if echo "$rel" | grep -qE "$REMOVED_VENDORED"; then continue; fi
     if echo "$rel" | grep -qE "$REMOVED_FEATURE"; then continue; fi
-    if [ ! -f "$WORK/new/$rel" ]; then
-        fail "class missing from rebuilt jar: $rel"
+    if echo "$rel" | grep -qE "$REFACTORED_AWAY"; then continue; fi
+    newrel=$(moved_to "$rel")
+    [ -n "$newrel" ] || newrel=$rel
+    if [ ! -f "$WORK/new/$newrel" ]; then
+        fail "class missing from rebuilt jar: $rel (looked for $newrel)"
         missing=1
         continue
     fi
-    if ! diff <(sig "$WORK/orig/$rel" "$rel") <(sig "$WORK/new/$rel" "$rel") >"$WORK/sigdiff" 2>&1; then
+    if ! diff <(sig "$WORK/orig/$rel" "$newrel") <(sig "$WORK/new/$newrel" "$newrel") >"$WORK/sigdiff" 2>&1; then
         fail "member signatures differ: $rel"
         sed 's/^/      /' "$WORK/sigdiff" | head -10
     fi
@@ -394,6 +589,9 @@ done
 imgdiff=
 while IFS= read -r img; do
     case "$img" in */CVS/*) continue ;; esac
+    # Added since the original, on purpose: the Venmo QR code in the Settings
+    # page's Support section (SPEC.md D-17). It has no original to match.
+    [ ! -f "$WORK/orig/shkc/core/WEBROOT/images/$img" ] && [ "$img" = venmo-qr.svg ] && continue
     if ! cmp -s "$WORK/orig/shkc/core/WEBROOT/images/$img" "$WORK/new/shkc/core/WEBROOT/images/$img"; then
         imgdiff="$imgdiff$img"$'\n'
     fi
@@ -616,7 +814,10 @@ compare POST /register-adult "Last=Boardmember&First=Check&Email=board@example.o
 # and Phone, which the rebuilt never serves for a youth (D-8).
 compare_renamed GET "/scout-cells?cols=RegNum,Last,First,Email,BoardType,Status" \
                     "/youth-cells?cols=RegNum,Last,First,Email,BoardType,Status"
-compare GET /adult-cells
+# Same for the adult list: explicit columns, so WoodBadge and Supporting (new
+# columns at the end of the rebuilt's adult record) are not asked for.
+ADULT_COLS="Type,ID,Last,First,Email,Phone,UnitType,Unit,UnitName,ProjectReview,FinalBoard,RegTime,Room,Flags,Sel,BoardHistory"
+compare GET "/adult-cells?cols=$ADULT_COLS"
 compare POST /room-update  '!nativeeditor_status=inserted&gr_id=1&c0=1&c1=Room+101&c2=&c3='
 compare GET /room-cells
 # /verify-board is intentionally gone (the Verify step was removed), so there is
@@ -631,6 +832,8 @@ note "write/error endpoints compared"
 #
 #   AdultScoutRatio  dropped by header name; the rebuilt no longer tracks it,
 #                    so the original's scout files still carry the column.
+#   WoodBadge,       dropped by header name; the rebuilt's adult files end with
+#   Supporting       these two per-event columns, which the original never had.
 #   UnitName         shortened back to the original's form. The original wrote
 #                    only the FIRST LETTER of the unit type, so Pack 12 and
 #                    Post 12 both came out "P12"; adding District, Council and
@@ -652,7 +855,7 @@ csvnorm() {
     awk -F, -v OFS=, '
     NR == 1 {
         for (i = 1; i <= NF; i++) {
-            if ($i == "AdultScoutRatio") drop = i
+            if ($i == "AdultScoutRatio" || $i == "WoodBadge" || $i == "Supporting") dropped[i] = 1
             if ($i == "UnitName")        un   = i
             if ($i == "DOB")             dob  = i
             if ($i == "Phone")           ph   = i
@@ -670,14 +873,13 @@ csvnorm() {
                 $un = substr(head, 1, 1) substr($un, length(head) + 1)
             }
         }
-        if (drop > 0) {
-            s = ""
-            for (i = 1; i <= NF; i++) if (i != drop) s = (s == "" ? $i : s OFS $i)
-            print s
-        } else {
-            $1 = $1
-            print
+        s = ""
+        kept = 0
+        for (i = 1; i <= NF; i++) {
+            if (i in dropped) continue
+            s = (kept++ == 0 ? $i : s OFS $i)
         }
+        print s
     }
     '
 }
@@ -705,6 +907,166 @@ if [ "$kept" = "|" ]; then
 else
     fail "a youth's birthdate or phone number was kept (DOB|Phone = '$kept')"
 fi
+
+echo "== 3b. a whole event, request by request =="
+# Section 3 sends a handful of requests. This one runs a board event through
+# both jars on a second, fresh pair of servers: rooms, adults and youth signing
+# in (and again), seating, starting, completing every kind of result, reset,
+# postpone, and the edits and deletes the Admin page makes. Every response is
+# compared, then the five data files the two servers are left with.
+#
+# The flow is the one both versions handle the same way. It leaves out what the
+# rebuild refuses on purpose, which would send the two servers down different
+# paths from then on and make every later step differ: an unqualified chair,
+# a busy or unavailable adult, a board of the wrong size, a Result that is not
+# Approved, Adjourned, or NotApproved, and completing a scout who was seated
+# but never started. test-board-event.sh covers those against the rebuilt jar.
+# The original also requires the Verify step before a scout can be seated, so
+# it is called on the original's side only (/verify-board is gone by design).
+rm -rf parity/LA parity/LB
+mkdir -p parity/LA parity/LB
+for d in parity/LA parity/LB; do
+    echo 'Type,ID,Last,First,Email,Phone,UnitType,Unit,UnitName,ProjectReview,FinalBoard,RegTime,Room,Flags,Sel,BoardHistory' > "$d/$ADULT_FILE"
+    cp parity/A/config.csv "$d/config.csv"
+done
+( cd parity/LA && exec java -jar "../../$ORIG_JAR" \
+    -a "$ADULT_FILE" -c config.csv -port $LIFE_PORT_A -d testrun \
+    >server.log 2>&1 ) & PID_C=$!
+( cd parity/LB && exec java -jar "../../$NEW_JAR" \
+    -a "$ADULT_FILE" -c config.csv -port $LIFE_PORT_B -d testrun \
+    >server.log 2>&1 ) & PID_D=$!
+for port in $LIFE_PORT_A $LIFE_PORT_B; do
+    for i in $(seq 1 30); do
+        curl -sf -o /dev/null "http://127.0.0.1:$port/index.html" && break
+        sleep 1
+        [ "$i" = 30 ] && { fail "lifecycle server on :$port never became ready"; }
+    done
+done
+
+life_steps=0
+life_diffs=0
+life() { # label originalPath rebuiltPath [curl args]: POST both, compare the responses
+    local label=$1 opath=$2 npath=$3 a b
+    shift 3
+    life_steps=$((life_steps + 1))
+    a=$(curl -s -w '\n%{http_code}' -X POST "$@" "http://127.0.0.1:$LIFE_PORT_A$opath" | norm | tr -d '\r')
+    b=$(curl -s -w '\n%{http_code}' -X POST "$@" "http://127.0.0.1:$LIFE_PORT_B$npath" | norm | tr -d '\r')
+    case "$b" in *$'\n'000)
+        fail "lifecycle step $life_steps ($label): the rebuilt server did not answer"; return ;;
+    esac
+    if [ "$a" != "$b" ]; then
+        life_diffs=$((life_diffs + 1))
+        fail "lifecycle step $life_steps ($label) differs:"
+        echo "      original: $(echo "$a" | tr '\n' '|' | cut -c1-200)"
+        echo "      rebuilt : $(echo "$b" | tr '\n' '|' | cut -c1-200)"
+    fi
+}
+life_seat() { # room scout label chair members
+    curl -s -X POST --data-urlencode "ScoutID=$2" "http://127.0.0.1:$LIFE_PORT_A/verify-board" -o /dev/null
+    life "seat $2 in room $1 ($3)" /seat-board /seat-board \
+        --data-urlencode "RoomID=ROOM:$1" --data-urlencode "ScoutID=$2" \
+        --data-urlencode "ChairID=$4" --data-urlencode "MemberIDs=$5"
+}
+life_adult() { # last first unit projectRole finalRole
+    life "register adult $1" /register-adult /register-adult \
+        --data-urlencode "Last=$1" --data-urlencode "First=$2" --data-urlencode "Email=$2@example.org" \
+        --data-urlencode "UnitType=Troop" --data-urlencode "Unit=$3" --data-urlencode "UnitName=Troop$3" \
+        --data-urlencode "ProjectReview=$4" --data-urlencode "FinalBoard=$5" --data-urlencode "Phone=555-100-000$3"
+}
+life_youth() { # last first unit boardType
+    life "register youth $1 ($4)" /register-scout /register-youth \
+        --data-urlencode "Last=$1" --data-urlencode "First=$2" --data-urlencode "Email=$2@example.org" \
+        --data-urlencode "UnitType=Troop" --data-urlencode "Unit=$3" --data-urlencode "UnitName=Troop$3" \
+        --data-urlencode "BoardType=$4" --data-urlencode "Leader=Lead $3"
+}
+
+life "room 101 (Final)"   /room-update /room-update --data "!nativeeditor_status=inserted&gr_id=ROOM:101&Room=101&BoardType=Final"
+life "room 102 (Final)"   /room-update /room-update --data "!nativeeditor_status=inserted&gr_id=ROOM:102&Room=102&BoardType=Final"
+life "room 200 (Project)" /room-update /room-update --data "!nativeeditor_status=inserted&gr_id=ROOM:200&Room=200&BoardType=Project"
+life_adult Ames Ann 1 Chair Chair
+life_adult Bell Bo 2 Member Chair
+life_adult Cole Cy 3 Chair Member
+life_adult Dunn Di 4 Member Member
+life_adult Epps Ed 5 Member Member
+life_adult Frye Fay 6 Member Member
+life_adult Gill Gus 7 Member Member
+life_adult Hart Hal 8 Member Member
+life_youth Aldridge Abe 11 Final
+life_youth Brook Ben 12 Final
+life_youth Crane Cal 13 Project
+life_youth Drake Dan 14 Final
+life_youth Egan Eli 15 Final
+life "sign in again (same youth)" /register-scout /register-youth \
+    --data-urlencode "Last=Aldridge" --data-urlencode "First=Abe" --data-urlencode "Email=abe2@example.org" \
+    --data-urlencode "UnitType=Troop" --data-urlencode "Unit=11" --data-urlencode "UnitName=Troop11" --data-urlencode "BoardType=Final"
+life "sign in again (same adult)" /register-adult /register-adult \
+    --data-urlencode "Last=Epps" --data-urlencode "First=Ed" --data-urlencode "Email=ed2@example.org" \
+    --data-urlencode "UnitType=Troop" --data-urlencode "Unit=5" --data-urlencode "UnitName=Troop5" \
+    --data-urlencode "ProjectReview=Chair" --data-urlencode "FinalBoard=Member" --data-urlencode "Phone=555-100-9999"
+
+S1='SCOUT:Aldridge:Abe:11'; S2='SCOUT:Brook:Ben:12'; S3='SCOUT:Crane:Cal:13'; S4='SCOUT:Drake:Dan:14'; S5='SCOUT:Egan:Eli:15'
+A1='ADULT:Ames:Ann:1'; A2='ADULT:Bell:Bo:2'; A3='ADULT:Cole:Cy:3'; A4='ADULT:Dunn:Di:4'
+A5='ADULT:Epps:Ed:5'; A6='ADULT:Frye:Fay:6'; A7='ADULT:Gill:Gus:7'; A8='ADULT:Hart:Hal:8'
+scout_step() { life "$1 $4" "/$2-board" "/$2-board" --data-urlencode "ScoutID=$3"; }
+done_step() { # label room scout result
+    life "$1" /complete-board /complete-board --data-urlencode "RoomID=ROOM:$2" \
+        --data-urlencode "ScoutID=$3" --data-urlencode "Result=$4"
+}
+life_seat 101 "$S1" "chair + two members" "$A1" "$A1,$A4,$A5"
+life_seat 102 "$S2" "chair + two members" "$A2" "$A2,$A6,$A7"
+life_seat 200 "$S3" "project review, two adults" "$A3" "$A3,$A8"
+scout_step "start" inprogress "$S1" "(Seated)"
+scout_step "start" inprogress "$S3" "(Seated)"
+done_step "complete S1 Approved" 101 "$S1" Approved
+done_step "complete S1 again" 101 "$S1" Approved
+done_step "complete S3 Adjourned" 200 "$S3" Adjourned
+scout_step "reset" reset "$S2" "(Seated)"
+life_seat 101 "$S2" "after a reset" "$A1" "$A1,$A4,$A5"
+scout_step "start" inprogress "$S2" "(Seated again)"
+scout_step "reset" reset "$S2" "(InProgress)"
+life_seat 102 "$S2" "after a second reset" "$A2" "$A2,$A6,$A7"
+scout_step "start" inprogress "$S2" "(Seated again)"
+done_step "complete S2 NotApproved" 102 "$S2" NotApproved
+scout_step "postpone" postpone "$S4" "(Registered)"
+scout_step "postpone" postpone "$S4" "(already Postponed)"
+scout_step "postpone" postpone "$S1" "(Completed)"
+scout_step "reset" reset "$S4" "(Postponed)"
+scout_step "reset" reset "$S5" "(Registered)"
+scout_step "start" inprogress "$S5" "(Registered)"
+life "seat an unknown youth" /seat-board /seat-board --data-urlencode "RoomID=ROOM:101" \
+    --data-urlencode "ScoutID=SCOUT:No:Body:1" --data-urlencode "ChairID=$A1" --data-urlencode "MemberIDs=$A1"
+done_step "complete an unknown youth" 101 "SCOUT:No:Body:1" Approved
+life "seat with no parameters" /seat-board /seat-board --data ""
+life "adult sent home (Room=N/A)" /adult-update /adult-update --data-urlencode "!nativeeditor_status=updated" \
+    --data-urlencode "gr_id=$A6" --data-urlencode "Room=N/A"
+life "room 101 edited" /room-update /room-update --data "!nativeeditor_status=updated&gr_id=ROOM:101&Room=111&BoardType=Final"
+life "room 102 deleted" /room-update /room-update --data "!nativeeditor_status=deleted&gr_id=ROOM:102"
+life "youth edited (Leader)" /scout-update /youth-update --data-urlencode "!nativeeditor_status=updated" \
+    --data-urlencode "gr_id=$S5" --data-urlencode "Leader=Changed Leader"
+life "youth deleted" /scout-update /youth-update --data-urlencode "!nativeeditor_status=deleted" --data-urlencode "gr_id=$S5"
+life "adult deleted" /adult-update /adult-update --data-urlencode "!nativeeditor_status=deleted" --data-urlencode "gr_id=$A8"
+life "two rooms swapped" /room-change /room-change --data "RmID1=ROOM:101&RmID2=ROOM:200"
+sleep 1
+
+# Files the two servers were left with, normalized like section 3a. The flow
+# must also have reached every kind of ending, or it compared less than it says.
+for f in scouts.csv adults.csv rooms.csv scouts_scheduled.csv; do
+    if [ ! -f "parity/LA/testrun/$f" ] || [ ! -f "parity/LB/testrun/$f" ]; then
+        fail "lifecycle: $f was not written by both servers"; continue
+    fi
+    if ! diff <(csvnorm <"parity/LA/testrun/$f" | norm) <(csvnorm <"parity/LB/testrun/$f" | norm) >"$WORK/fdiff" 2>&1; then
+        fail "lifecycle: data file differs: $f"; sed 's/^/      /' "$WORK/fdiff" | head -8
+    fi
+done
+if ! diff <(csvnorm <"parity/LA/$ADULT_FILE" | norm) <(csvnorm <"parity/LB/$ADULT_FILE" | norm) >"$WORK/fdiff" 2>&1; then
+    fail "lifecycle: adult history differs"; sed 's/^/      /' "$WORK/fdiff" | head -8
+fi
+for ending in Approved Adjourned NotApproved Postponed; do
+    grep -q ",$ending," parity/LB/testrun/scouts.csv 2>/dev/null \
+        || fail "lifecycle: no youth ended as $ending, so that path was not compared"
+done
+[ "$life_steps" -ge 40 ] || fail "lifecycle ran only $life_steps requests; expected at least 40"
+note "$life_steps lifecycle requests compared ($life_diffs differ), plus the five data files"
 
 echo "== 4. startup logs =="
 # Normalized: sandbox path A/B, port, times, object identity hashes, and
@@ -844,7 +1206,7 @@ curl -sf "http://127.0.0.1:$PORT_B/admin.html" | grep -qi "Eagle Board Admin Pag
 curl -sf "http://127.0.0.1:$PORT_B/scheduler.html" | grep -qi "Eagle Board Scheduler" || fail "scheduler.html heading changed"
 note "$uicount first-party UI files served clean"
 
-kill $PID_A $PID_B 2>/dev/null; wait 2>/dev/null
+kill $PID_A $PID_B $PID_C $PID_D 2>/dev/null; wait 2>/dev/null
 
 echo
 if [ "$FAILURES" -eq 0 ]; then

@@ -213,11 +213,14 @@ a spare port. **Never copy live event data in to make a test look busier.**
 
 `scripts/verify-parity.sh` also exists. It boots the inherited 2019 binary
 beside the rebuilt one and reports every difference in class signatures, served
-bytes, endpoint responses, data files, and startup logs. It was the acceptance
-gate while the rebuild was being proved correct against the original; that job
-is finished, and it is now **an optional diagnostic**: reach for it if you
-suspect a change disturbed behavior inherited from the original and you want to
-see exactly what moved. It is not required for a pull request, it does not run
+bytes, endpoint responses, data files, and startup logs. Section 3b also sends
+both jars the same 49 requests of a whole board event (sign-ins, seating,
+starting, every result, resets, postpones, and Admin edits) and compares each
+response and the five files left behind. It was the acceptance gate while the
+rebuild was being proved correct against the original; that job is finished,
+and it is now **an optional diagnostic**: reach for it if you suspect a change
+disturbed behavior inherited from the original and you want to see exactly what
+moved. It is not required for a pull request, it does not run
 in CI, and it needs the inherited jar, which is deliberately kept out of the
 repository and off GitHub.
 
@@ -280,8 +283,11 @@ looks like a pass**, because a tool that quietly produces nothing empties out
   still reports that as a diagnostic; a targeted filter in its `sig()` keeps
   the rest of that class compared, where exempting the class skips every
   signature in it. The handlers used to be inner classes of
-  `EagleBoardScheduler` and are now top-level classes, so that report shows them
-  as moved; compare behavior, not class names.
+  `EagleBoardScheduler` and are now top-level classes; the script maps each to
+  its new name (`moved_to`) and, for them and the other classes that were
+  reorganized, compares only the non-private members (`RESTRUCTURED`). A new
+  public or protected member, or a changed one, fails until you add it to that
+  class's list in the script with a comment saying why.
 - **Server endpoints are the contract.** The UI rework froze every endpoint and
   wire format. Prefer client-only changes; if you must touch the server, add a
   case to `scripts/test-board-event.sh` covering it.
