@@ -362,6 +362,19 @@ all the web server's threads, which is not safe (each use now has its own); and
 the command line's required-option check crashed instead of naming the missing
 option.
 
+Two more classes got the same treatment. The SignUpGenius import
+fetched its report and turned it into records in one class, so the second half
+could not be tried without a live key; `SignUpGeniusClient` now makes the web
+calls and `SignUpGeniusPlugin.importReport` turns a report into records, with
+a test that feeds it a canned one (`scripts/test-signup-import.java`).
+`DataRecordFile` kept the records and also knew how to read and write both file
+formats, choosing between them in two places; it now holds the records and
+leaves the formats to `CsvRecordFormat` and `PropertiesRecordFormat`.
+Behavior is unchanged. Section 30 of `scripts/test-board-event.sh` checks the
+phone-number fix through the running server, and that sign-ins sent at once are
+all recorded with a readable timestamp. The timestamp race itself is checked in
+`scripts/test-data-quirks.java`, because the server serializes record creation.
+
 ### Dead code removed
 
 `ConfigWindow` and `NetTest` (unused classes), `old_saved_script.js`,

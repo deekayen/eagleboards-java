@@ -48,6 +48,7 @@ B="http://127.0.0.1:$PORT"
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
 WORK="${TMPDIR:-/tmp}/eb-event-$$"
 SRV=""
+PREREG_SRV=""
 
 PASS=0
 FAIL=0
@@ -70,6 +71,10 @@ cleanup() {
     if [ -n "$SRV" ]; then
         kill "$SRV" 2>/dev/null
         wait "$SRV" 2>/dev/null
+    fi
+    if [ -n "$PREREG_SRV" ]; then
+        kill "$PREREG_SRV" 2>/dev/null
+        wait "$PREREG_SRV" 2>/dev/null
     fi
     rm -rf "$WORK"
 }
@@ -1390,6 +1395,77 @@ case "$(admin_delete /youth-update "$HELD")" in
     *) bad "a youth whose board is over could not be deleted" ;;
 esac
 chk "nobody committed after section 29" "$(busy_adults)" "0"
+
+# ------ 30. sign-ins arriving together, and a pre-registration phone number
+echo
+echo "== 30. simultaneous sign-ins, and a pre-registration phone number =="
+
+# Two small data bugs were fixed together with no change to anything else.
+# A pre-registration phone number such as "(555) 123-4567" used to be stored
+# garbled instead of as 555-123-4567; the second half of this section fails on
+# the old code. Every record also stamps itself with the time it was made, and
+# that stamp used to come from one SimpleDateFormat shared by every thread,
+# which is not thread-safe. The first half checks that thirty sign-ins sent at
+# once are all recorded with a readable stamp, but it cannot reproduce that
+# race: the server builds each record while holding the event lock, so the
+# requests queue up. The race itself is checked in-process, on many threads, by
+# scripts/test-data-quirks.java, which is also where a missing required
+# command-line option is checked (the app asks for none, so no request or
+# startup can reach that fix).
+#
+# The sheet half uses the Java version's -p option, so it is not copied to the
+# other versions' tests unless they load the same sheet.
+racers=""
+for n in $(seq 1 30); do
+    curl -s -o /dev/null -X POST --data "Last=Racer$n&First=Stamp&Email=racer$n@example.org&UnitType=Troop&Unit=$((4000 + n))&UnitName=Troop$((4000 + n))&BoardType=Final" \
+        "$B/register-youth" &
+    racers="$racers $!"
+done
+# Named pids: a bare `wait` would also wait for the server itself.
+wait $racers
+
+# Written out in full because some awks have no {n} repeat in a pattern.
+STAMP_FORMAT='^[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]_[0-9][0-9]:[0-9][0-9][+-][0-9][0-9][0-9][0-9]$'
+chk "all 30 simultaneous sign-ins were recorded" \
+    "$(awk -F, 'NR>1 && $5=="Stamp" {n++} END {print n+0}' "$SCOUTS")" "30"
+chk "every youth's sign-in and update time reads back as a time" \
+    "$(awk -F, -v fmt="$STAMP_FORMAT" 'NR>1 && ($14 !~ fmt || $15 !~ fmt) {n++} END {print n+0}' "$SCOUTS")" "0"
+
+# A second server on the next port, loading a pre-registration sheet at
+# startup. One row for each way a phone number gets typed.
+PREREG="$WORK/prereg"
+mkdir -p "$PREREG"
+cp "$ROOT/config.properties" "$PREREG/config.properties"
+echo 'Type,ID,Last,First,Email,Phone,UnitType,Unit,UnitName,ProjectReview,FinalBoard,RegTime,Room,Flags,Sel,BoardHistory' \
+    > "$PREREG/AdultHistory.csv"
+cat > "$PREREG/sheet.csv" <<'SHEET'
+Email,First Name,Last Name,Scouts Contact Number,Scoutmasters Name,Unit Number
+paren@example.org,Pat,Paren,(555) 123-4567,Sam Master,Troop 1
+plain@example.org,Pia,Plain,5551234567,Sam Master,Troop 1
+dashed@example.org,Dee,Dashed,555-123-4567,Sam Master,Troop 1
+tight@example.org,Tia,Tight,(555)123-4567,Sam Master,Troop 1
+SHEET
+
+PREREG_PORT=$((PORT + 1))
+( cd "$PREREG" && exec java -jar "$JAR" \
+    -a AdultHistory.csv -c config.properties -p sheet.csv -port "$PREREG_PORT" -d run ) \
+    > "$PREREG/server.log" 2>&1 &
+PREREG_SRV=$!
+if curl -sf --retry 40 --retry-delay 1 --retry-connrefused --retry-all-errors \
+     -o /dev/null "http://127.0.0.1:$PREREG_PORT/index.html"; then
+    ok "a server loading a pre-registration sheet started"
+else
+    bad "the pre-registration server never became ready on port $PREREG_PORT"
+    tail -20 "$PREREG/server.log"
+fi
+kill "$PREREG_SRV" 2>/dev/null
+wait "$PREREG_SRV" 2>/dev/null
+
+phone_of() { awk -F, -v e="$1" 'NR>1 && $5==e {print $6}' "$PREREG/AdultHistory.csv"; }
+chk "(555) 123-4567 is stored as 555-123-4567"  "$(phone_of paren@example.org)" "555-123-4567"
+chk "5551234567 is stored as 555-123-4567"      "$(phone_of plain@example.org)" "555-123-4567"
+chk "555-123-4567 is kept as typed"             "$(phone_of dashed@example.org)" "555-123-4567"
+chk "(555)123-4567 is stored as 555-123-4567"   "$(phone_of tight@example.org)" "555-123-4567"
 
 echo
 echo "== the event ends clean =="

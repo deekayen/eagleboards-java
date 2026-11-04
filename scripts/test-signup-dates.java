@@ -15,7 +15,7 @@
 // Runs on all four CI platforms (see .github/workflows/build.yml).
 // ------------------------------------------------------------------------
 
-import shkc.core.SignUpGeniusPlugin;
+import shkc.core.SignUpGeniusClient;
 
 public class TestSignUpDates {
    private static int failures = 0;
@@ -23,18 +23,18 @@ public class TestSignUpDates {
    public static void main(String[] args) {
       String oneDayStart = "2026-09-22 18:30:00";
       String oneDayEnd = "2026-09-22 21:00:00";
-      check("first day of a one-day sign-up", true, SignUpGeniusPlugin.coversDay("2026-09-22", oneDayStart, oneDayEnd));
-      check("day before it", false, SignUpGeniusPlugin.coversDay("2026-09-21", oneDayStart, oneDayEnd));
-      check("day after it", false, SignUpGeniusPlugin.coversDay("2026-09-23", oneDayStart, oneDayEnd));
+      check("first day of a one-day sign-up", true, SignUpGeniusClient.coversDay("2026-09-22", oneDayStart, oneDayEnd));
+      check("day before it", false, SignUpGeniusClient.coversDay("2026-09-21", oneDayStart, oneDayEnd));
+      check("day after it", false, SignUpGeniusClient.coversDay("2026-09-23", oneDayStart, oneDayEnd));
 
       String yearStart = "2027-01-26 18:30:00";
       String yearEnd = "2027-12-14 21:00:00";
-      check("first day of a year-long sign-up", true, SignUpGeniusPlugin.coversDay("2027-01-26", yearStart, yearEnd));
-      check("a day in the middle of it", true, SignUpGeniusPlugin.coversDay("2027-06-22", yearStart, yearEnd));
-      check("its last day", true, SignUpGeniusPlugin.coversDay("2027-12-14", yearStart, yearEnd));
-      check("the year after it", false, SignUpGeniusPlugin.coversDay("2028-01-25", yearStart, yearEnd));
+      check("first day of a year-long sign-up", true, SignUpGeniusClient.coversDay("2027-01-26", yearStart, yearEnd));
+      check("a day in the middle of it", true, SignUpGeniusClient.coversDay("2027-06-22", yearStart, yearEnd));
+      check("its last day", true, SignUpGeniusClient.coversDay("2027-12-14", yearStart, yearEnd));
+      check("the year after it", false, SignUpGeniusClient.coversDay("2028-01-25", yearStart, yearEnd));
 
-      check("dates with no time", true, SignUpGeniusPlugin.coversDay("2026-09-22", "2026-09-22", "2026-09-22"));
+      check("dates with no time", true, SignUpGeniusClient.coversDay("2026-09-22", "2026-09-22", "2026-09-22"));
 
       if (failures > 0) {
          System.out.println(failures + " sign-up date check(s) failed");

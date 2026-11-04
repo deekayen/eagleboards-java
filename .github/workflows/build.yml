@@ -135,6 +135,13 @@ jobs:
         run: |
           NEW_JAR=$(ls target/eagleboardscheduler-*.jar | grep -v original- | head -1)
           java -cp "$NEW_JAR" scripts/test-data-quirks.java
+      - name: SignUpGenius import and file formats (no network)
+        shell: bash
+        # Hands the importer a canned SignUpGenius report, so no key or network
+        # is needed, and checks the CSV and .properties files it saves through.
+        run: |
+          NEW_JAR=$(ls target/eagleboardscheduler-*.jar | grep -v original- | head -1)
+          java -cp "$NEW_JAR" scripts/test-signup-import.java
       - name: Runtime smoke test (start server, exercise endpoints)
         shell: bash
         run: |

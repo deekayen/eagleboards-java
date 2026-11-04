@@ -1,10 +1,7 @@
 package shkc.core;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
@@ -19,10 +16,11 @@ import java.util.List;
  *
  * <p>If no sign-up ID was given, the plugin looks one up: the active sign-up
  * whose dates cover today and whose title mentions both "eagle" and "board".
+ * Talking to the web service is {@link SignUpGeniusClient}'s job; this class
+ * only turns the report it brings back into records, which {@link #importReport}
+ * does without any network.
  */
 public class SignUpGeniusPlugin {
-   private static final String API_BASE = "https://api.signupgenius.com/v2/k/signups/";
-
    /** Positions of the custom questions on the sign-up form, in the order they are asked. */
    private static final int UNIT_FIELD_INDEX = 0;
    private static final int PHONE_FIELD_INDEX = 1;
@@ -32,6 +30,7 @@ public class SignUpGeniusPlugin {
    private static final String[] ADULT_COLUMNS_TO_REFRESH = {"Phone"};
 
    private final String key;
+   private final SignUpGeniusClient client;
    private String signupId;
    private final DataRecordFile<AdultRecord> adultHistoryRecords;
    private final DataRecordFile<ScoutRecord> scoutsScheduledRecords;
@@ -44,6 +43,7 @@ public class SignUpGeniusPlugin {
     */
    public SignUpGeniusPlugin(String key, String signupId, DataRecordFile<AdultRecord> adultHistory, DataRecordFile<ScoutRecord> scoutsScheduled) {
       this.key = key;
+      this.client = new SignUpGeniusClient(key);
       this.signupId = signupId;
       this.adultHistoryRecords = adultHistory;
       this.scoutsScheduledRecords = scoutsScheduled;
@@ -58,37 +58,33 @@ public class SignUpGeniusPlugin {
       System.out.println("\n\n   Loading Preregistrations from SignupGenius: " + this.key + "\n");
       if (this.signupId == null) {
          System.out.println("\n   Looking up SignupID from SignupGenius...\n");
-         this.signupId = this.findTodaysSignupId();
+         this.signupId = this.client.findTodaysSignupId();
       }
 
       System.out.println("\n   SignupID : " + this.signupId + "\n");
-      String url = API_BASE + "report/filled/" + this.signupId + "/?user_key=" + this.key;
-      Log.verbose("REQUESTING: signup data (URL: " + url + ")");
-      JsonNode response = this.fetchJson(url);
+      JsonNode report = this.client.fetchFilledReport(this.signupId);
 
       String thisMonth = new SimpleDateFormat("yyyy-MM").format(new Date());
-      JsonNode signups = response.get("data").get("signup");
+      this.importReport(report, thisMonth);
+   }
+
+   /**
+    * Adds everyone in a downloaded report whose slot is in {@code month}, then
+    * saves the youth file.
+    *
+    * @param report the parsed {@code report/filled} response
+    * @param month  the month to import, as {@code yyyy-MM}; other months' slots are skipped
+    */
+   public void importReport(JsonNode report, String month) throws IOException {
+      JsonNode signups = report.get("data").get("signup");
       for (int i = 0; i < signups.size(); i++) {
          JsonNode entry = signups.get(i);
-         if (entry.get("startdatestring").asText().startsWith(thisMonth)) {
+         if (entry.get("startdatestring").asText().startsWith(month)) {
             this.importEntry(entry);
          }
       }
 
       this.scoutsScheduledRecords.store();
-   }
-
-   /** Sends the request and parses the JSON that comes back. */
-   private JsonNode fetchJson(String url) throws Exception {
-      InputStream responseStream;
-      try {
-         responseStream = new FileLocator(".").getInputStream(url);
-      } catch (IOException connectFailure) {
-         Log.verbose("signup request error: " + connectFailure);
-         throw new Exception("error connecting to SignUpGenius server (" + connectFailure.getMessage());
-      }
-
-      return new ObjectMapper().readTree(new InputStreamReader(responseStream));
    }
 
    /** Adds one person from the report: a volunteer if their item says "adult", otherwise a youth. */
@@ -160,51 +156,5 @@ public class SignUpGeniusPlugin {
       } catch (Exception missing) {
          return "";
       }
-   }
-
-   /** Finds the active sign-up for the Eagle board that covers today. */
-   private String findTodaysSignupId() throws Exception {
-      JsonNode response = this.fetchJson(API_BASE + "created/active/?user_key=" + this.key);
-      String today = new SimpleDateFormat("yyyy-MM-dd").format(new Date());
-      JsonNode data = response.get("data");
-
-      for (int i = 0; i < data.size(); i++) {
-         JsonNode entry = data.get(i);
-         String foundId = entry.get("signupid").asText();
-         String endDate = entry.get("enddatestring").asText();
-         String title = entry.get("title").asText();
-         String startDate = entry.get("startdatestring").asText();
-         if (coversDay(today, startDate, endDate) && isEagleBoardTitle(title)) {
-            System.out.println(
-               "Using SignUp {\n   id         : " + foundId
-                  + "\n   title      : " + title
-                  + "\n   start-date : " + startDate
-                  + "\n   end-date   : " + endDate
-                  + "\n}");
-            return foundId;
-         }
-
-         System.out.println("out of date range: " + title + "(" + foundId + ")");
-      }
-
-      throw new Exception("no valid )in range SignUpIds found.");
-   }
-
-   private static boolean isEagleBoardTitle(String title) {
-      String lowerCaseTitle = title.toLowerCase();
-      return lowerCaseTitle.contains("board") && lowerCaseTitle.contains("eagle");
-   }
-
-   /**
-    * Whether a sign-up's dates cover {@code day} (yyyy-MM-dd). Compared on the
-    * date alone: the API's strings carry a time too, and "2026-09-22" sorts
-    * before "2026-09-22 18:30:00", which missed a sign-up on its first day.
-    */
-   public static boolean coversDay(String day, String startDate, String endDate) {
-      return day.compareTo(dateOnly(startDate)) >= 0 && day.compareTo(dateOnly(endDate)) <= 0;
-   }
-
-   private static String dateOnly(String stamp) {
-      return stamp.length() > 10 ? stamp.substring(0, 10) : stamp;
    }
 }

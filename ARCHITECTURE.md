@@ -88,10 +88,11 @@ There is no database. Records live in CSV files, read and written through
 and is **modified in place**, both by adult check-in and by the SignUpGenius
 import.
 
-`DataRecordFile.load`/`store` picks its format from the file extension:
-`.properties` uses `java.util.Properties` (`key=value`, `#` comments), anything
-else is CSV. The CSV path is kept so the original binary and its comparison
-still work. Saving config from the Settings page rewrites the file and
+`DataRecordFile` keeps the records in memory and hands reading and writing to a
+`RecordFileFormat`, picked from the file extension: `PropertiesRecordFormat`
+for `.properties` (`java.util.Properties`, `key=value`, `#` comments),
+`CsvRecordFormat` for anything else. The CSV path is kept so the original
+binary and its comparison still work. Saving config from the Settings page rewrites the file and
 does **not** preserve comments.
 
 Each record class declares a `COLUMNS` array. A column must be listed there to
@@ -185,9 +186,10 @@ A class's Javadoc says what it is for; this is the map.
 | `AutoFillHandler`, `UpdateConfigHandler`, `ApprovedProposalsCellsHandler` | email lookup, the Settings page, earlier events' approved proposals |
 | `CheckInApi`, `CheckInAddress` | the shared check-in pages' `/api/*` calls and the address and QR code |
 
-**Data and imports**: `DataRecordFile`, `DataRecord` and its subclasses, `DataFileConverter`,
+**Data and imports**: `DataRecordFile` with `RecordFileFormat` (`CsvRecordFormat`,
+`PropertiesRecordFormat`), `DataRecord` and its subclasses, `DataFileConverter`,
 `NegaPreRegScoutRecordConverter`, `NegaPreRegAdultRecordConverter`, `PreRegFieldConverters`,
-`SignUpGeniusPlugin`. **Web**: `WebServer`, `FileLocator`, `ChangeFeed`.
+`SignUpGeniusClient` (the web calls), `SignUpGeniusPlugin` (the report into records). **Web**: `WebServer`, `FileLocator`, `ChangeFeed`.
 **Small helpers**: `Log`, `RequestFields`, `XmlText`, `NameUtil`.
 
 ### Adding an endpoint
@@ -250,10 +252,11 @@ clock, and its colors are the shared status palette (SPEC.md D-13), in
 ## SignUpGenius import
 
 `SignUpGeniusPlugin` (Jackson for JSON) runs at startup when `-sugkey` is given
-and no `-prereg` file was supplied. It makes two calls to
+and no `-prereg` file was supplied. `SignUpGeniusClient` makes two calls to
 `api.signupgenius.com`: one to find the active signup whose title contains both
 "eagle" and "board" and whose date range covers today, and one for that signup's
-filled-slots report.
+filled-slots report. The plugin turns the report into records (`importReport`,
+which needs no network and is tested with a canned report).
 
 Entries whose `item` text contains "adult" become `AdultRecord`s merged into
 `Master_AdultHistory.csv` **by email**: matched records get their phone

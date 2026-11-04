@@ -196,6 +196,8 @@ node scripts/test-find-people.js        # finding a person's room (D-21)
 bash scripts/test-board-event.sh        # a whole event against a real server
 java -cp target/eagleboardscheduler-*.jar scripts/test-board-composition.java
                                         # BoardCompositionChecker, UndoLog, EventData: no server
+java -cp target/eagleboardscheduler-*.jar scripts/test-signup-import.java
+                                        # SignUpGenius import (canned report) and the file formats
 ```
 
 The rule, auto-select, and fill-the-rest cases in `scripts/cases/` are shared by

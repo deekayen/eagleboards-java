@@ -52,7 +52,7 @@ original source was received) and then modernized. See `PROVENANCE.md`.
   load when the welcome page opens. `RefreshTimeSecs` stays in the config file
   for older builds but nothing reads it.
 - Optional Swing popup (`PopupDialog`, only with `-w`) shows the check-in URL.
-- Optional **SignUpGenius** import (`SignUpGeniusPlugin`, Jackson JSON).
+- Optional **SignUpGenius** import (`SignUpGeniusClient` fetches, `SignUpGeniusPlugin` makes records; Jackson JSON).
 
 ## Event flow
 
@@ -295,9 +295,9 @@ push be the verification.
   `key=value`, `#` comments) as one CONFIG record, loaded into `ConfigRecord`
   (columns must be listed in `ConfigRecord.COLUMNS` to be served via
   `/config-autofill`) and edited via the Settings page (`configure.html`).
-  The format is chosen by file extension inside `DataRecordFile.load`/`store`
-  (`.properties` → key=value, else CSV; the CSV path is kept so the original
-  binary still loads). Room-card warning timers are
+  The format is chosen by file extension (`RecordFileFormat.forFile`:
+  `.properties` → `PropertiesRecordFormat`, key=value, else `CsvRecordFormat`;
+  the CSV path is kept so the original binary still loads). Room-card warning timers are
   board-type specific: `ProjectYellowMins` / `ProjectRedMins` /
   `FinalYellowMins` / `FinalRedMins`, minutes since seating. Note: saving via
   the Settings page rewrites the file and does not preserve `#` comments.
