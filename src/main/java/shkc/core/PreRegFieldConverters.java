@@ -35,11 +35,14 @@ final class PreRegFieldConverters {
    private static final String UNIT_TYPE_PACK = "Pack";
    private static final String UNIT_TYPE_TROOP = "Troop";
 
-   /** A phone number already written as 555-123-4567 has this many characters. */
-   private static final int DASHED_PHONE_LENGTH = 12;
-   /** The dashes of 555-123-4567 go in front of the digits at these positions. */
-   private static final int FIRST_DASH_POSITION = 3;
-   private static final int SECOND_DASH_POSITION = 6;
+   /** A full phone number is 555-123-4567: ten digits. A local one is 123-4567: seven. */
+   private static final int FULL_PHONE_DIGITS = 10;
+   private static final int LOCAL_PHONE_DIGITS = 7;
+   /** The 1 some people put in front of an area code. */
+   private static final char COUNTRY_CODE = '1';
+   /** The first dash of 555-123-4567 and of 123-4567 goes in front of the digit at this position. */
+   private static final int AREA_CODE_END = 3;
+   private static final int EXCHANGE_END = 6;
 
    /** A sheet's words are separated by plain spaces only. */
    private static final String WORD_SEPARATOR = " ";
@@ -106,28 +109,34 @@ final class PreRegFieldConverters {
       return true;
    };
 
-   /**
-    * Stores a phone number. One that is already 12 characters long is kept
-    * as typed; anything else is rebuilt from its digits as 555-123-4567, so
-    * "(555) 123-4567" and "5551234567" both come out that way.
-    */
+   /** Stores a phone number as {@link #formatPhone} writes it. */
    static final DataFileConverter.FieldConverter PHONE = (record, column, value) -> {
-      if (value.length() == DASHED_PHONE_LENGTH) {
-         record.setValue(COLUMN_PHONE, value);
-         return true;
-      }
-
-      String digits = digitsOnly(value);
-      StringBuilder dashed = new StringBuilder();
-      for (int position = 0; position < digits.length(); position++) {
-         if (position == FIRST_DASH_POSITION || position == SECOND_DASH_POSITION) {
-            dashed.append("-");
-         }
-         dashed.append(digits.charAt(position));
-      }
-      record.setValue(COLUMN_PHONE, dashed.toString());
+      record.setValue(COLUMN_PHONE, formatPhone(value));
       return true;
    };
+
+   /**
+    * Writes a phone number as 555-123-4567, so "(555) 123-4567", "5551234567",
+    * "555.123.4567", and "+1 (555) 123-4567" all come out that way. Seven
+    * digits are a local number and come out as 123-4567. Anything else, such
+    * as a number with an extension or too few digits, is kept as typed (minus
+    * the blanks around it): guessing where its dashes go only garbles it.
+    */
+   static String formatPhone(String typed) {
+      String digits = asciiDigitsOnly(typed);
+      if (digits.length() == FULL_PHONE_DIGITS + 1 && digits.charAt(0) == COUNTRY_CODE) {
+         digits = digits.substring(1);
+      }
+
+      if (digits.length() == FULL_PHONE_DIGITS) {
+         return digits.substring(0, AREA_CODE_END) + "-"
+            + digits.substring(AREA_CODE_END, EXCHANGE_END) + "-" + digits.substring(EXCHANGE_END);
+      }
+      if (digits.length() == LOCAL_PHONE_DIGITS) {
+         return digits.substring(0, AREA_CODE_END) + "-" + digits.substring(AREA_CODE_END);
+      }
+      return typed.trim();
+   }
 
    /** Rejects a row whose status says it was cancelled (any case). */
    static final DataFileConverter.FieldConverter NOT_CANCELLED =
@@ -179,6 +188,18 @@ final class PreRegFieldConverters {
       }
       char first = name.charAt(0);
       return Character.isLetter(first) ? Character.toUpperCase(first) + name.substring(1) : name;
+   }
+
+   /** Just the digits 0 to 9 of the text, in order (not other scripts' digits, which are not dialable). */
+   private static String asciiDigitsOnly(String text) {
+      StringBuilder digits = new StringBuilder();
+      for (int i = 0; i < text.length(); i++) {
+         char character = text.charAt(i);
+         if (character >= '0' && character <= '9') {
+            digits.append(character);
+         }
+      }
+      return digits.toString();
    }
 
    /** Just the digits of the text, in order. */

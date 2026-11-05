@@ -4,7 +4,11 @@
 // else:
 //
 //   1. A pre-registration phone number such as "(555) 123-4567" used to be
-//      stored garbled; it is now rebuilt from its digits as 555-123-4567.
+//      stored garbled; it is now rebuilt from its digits as 555-123-4567. One
+//      with a country code ("+1 (555) 222-0007") lost its first digit to the
+//      area code, and a seven-digit one got a dash in the wrong place; those
+//      come out 555-222-0007 and 222-0005 now, and a number that fits neither
+//      (an extension, too few digits) is kept as typed.
 //   2. Commandline's "required options" constructor threw a
 //      NullPointerException, instead of MissingCommandlineArgument, when a
 //      required option was left out.
@@ -71,7 +75,14 @@ public class TestDataQuirks {
          "paren@example.com,Pat,Paren,(555) 123-4567,Sam Master,Troop 1",
          "plain@example.com,Pia,Plain,5551234567,Sam Master,Troop 1",
          "dashed@example.com,Dee,Dashed,555-123-4567,Sam Master,Troop 1",
-         "dotted@example.com,Dot,Dotted,(555)123-4567,Sam Master,Troop 1");
+         "dotted@example.com,Dot,Dotted,(555)123-4567,Sam Master,Troop 1",
+         "dots@example.com,Dax,Dots,555.123.4567,Sam Master,Troop 1",
+         "plusone@example.com,Pru,Plusone,+1 (555) 222-0007,Sam Master,Troop 1",
+         "leadone@example.com,Leo,Leadone,1-555-222-0008,Sam Master,Troop 1",
+         "local@example.com,Lou,Local,222-0005,Sam Master,Troop 1",
+         "ext@example.com,Eve,Ext,555-123-4567 x12,Sam Master,Troop 1",
+         "short@example.com,Sho,Short,12345,Sam Master,Troop 1",
+         "eleven@example.com,Eli,Eleven,25551234567,Sam Master,Troop 1");
       File sheetFile = scratch.resolve("sheet.csv").toFile();
       Files.write(sheetFile.toPath(), sheet);
 
@@ -82,6 +93,14 @@ public class TestDataQuirks {
       check("phone: 5551234567 gets its dashes", "555-123-4567".equals(phoneOf(history, "plain@example.com")));
       check("phone: 555-123-4567 is kept as typed", "555-123-4567".equals(phoneOf(history, "dashed@example.com")));
       check("phone: (555)123-4567 is rebuilt from its digits", "555-123-4567".equals(phoneOf(history, "dotted@example.com")));
+      check("phone: 555.123.4567 gets dashes", "555-123-4567".equals(phoneOf(history, "dots@example.com")));
+      check("phone: a +1 country code is dropped", "555-222-0007".equals(phoneOf(history, "plusone@example.com")));
+      check("phone: a leading 1- is dropped", "555-222-0008".equals(phoneOf(history, "leadone@example.com")));
+      check("phone: seven digits are a local number", "222-0005".equals(phoneOf(history, "local@example.com")));
+      check("phone: an extension is kept as typed", "555-123-4567 x12".equals(phoneOf(history, "ext@example.com")));
+      check("phone: too few digits are kept as typed", "12345".equals(phoneOf(history, "short@example.com")));
+      check("phone: eleven digits not starting with 1 are kept as typed",
+         "25551234567".equals(phoneOf(history, "eleven@example.com")));
    }
 
    private static String phoneOf(DataRecordFile<AdultRecord> history, String email) {

@@ -357,7 +357,9 @@ for the class map.
 Three small bugs found while splitting it were fixed, each with a check in
 `scripts/test-data-quirks.java`: a pre-registered phone number written as
 `(555) 123-4567` was stored garbled (it is now rebuilt from its digits as
-`555-123-4567`); every record's timestamp came from one date formatter shared by
+`555-123-4567`, a leading country code `1` is dropped, a seven-digit number
+becomes `123-4567`, and anything else, such as a number with an extension, is
+kept as typed); every record's timestamp came from one date formatter shared by
 all the web server's threads, which is not safe (each use now has its own); and
 the command line's required-option check crashed instead of naming the missing
 option.

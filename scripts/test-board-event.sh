@@ -1444,6 +1444,12 @@ paren@example.org,Pat,Paren,(555) 123-4567,Sam Master,Troop 1
 plain@example.org,Pia,Plain,5551234567,Sam Master,Troop 1
 dashed@example.org,Dee,Dashed,555-123-4567,Sam Master,Troop 1
 tight@example.org,Tia,Tight,(555)123-4567,Sam Master,Troop 1
+dots@example.org,Dot,Dots,555.123.4567,Sam Master,Troop 1
+plusone@example.org,Pru,Plusone,+1 (555) 222-0007,Sam Master,Troop 1
+leadone@example.org,Leo,Leadone,1-555-222-0008,Sam Master,Troop 1
+local@example.org,Lou,Local,222-0005,Sam Master,Troop 1
+ext@example.org,Eve,Ext,555-123-4567 x12,Sam Master,Troop 1
+short@example.org,Sho,Short,12345,Sam Master,Troop 1
 SHEET
 
 PREREG_PORT=$((PORT + 1))
@@ -1466,6 +1472,16 @@ chk "(555) 123-4567 is stored as 555-123-4567"  "$(phone_of paren@example.org)" 
 chk "5551234567 is stored as 555-123-4567"      "$(phone_of plain@example.org)" "555-123-4567"
 chk "555-123-4567 is kept as typed"             "$(phone_of dashed@example.org)" "555-123-4567"
 chk "(555)123-4567 is stored as 555-123-4567"   "$(phone_of tight@example.org)" "555-123-4567"
+chk "555.123.4567 is stored as 555-123-4567"    "$(phone_of dots@example.org)" "555-123-4567"
+# A leading 1 is a country code, not part of the area code. Both of these used
+# to come out as 155-522-20007 and 155-522-20008.
+chk "+1 (555) 222-0007 is stored as 555-222-0007" "$(phone_of plusone@example.org)" "555-222-0007"
+chk "1-555-222-0008 is stored as 555-222-0008"  "$(phone_of leadone@example.org)" "555-222-0008"
+# Seven digits are a local number; it used to come out as 222-000-5.
+chk "222-0005 is stored as 222-0005"            "$(phone_of local@example.org)" "222-0005"
+# What cannot be told apart is kept as typed, not dashed into something else.
+chk "an extension is kept as typed"             "$(phone_of ext@example.org)" "555-123-4567 x12"
+chk "too few digits are kept as typed"          "$(phone_of short@example.org)" "12345"
 
 echo
 echo "== the event ends clean =="
