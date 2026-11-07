@@ -67,10 +67,10 @@ function introductionText(s_id, s_first) {
 
    function lines(adults) {
       return adults.map(function (a) {
-         return "<br/>&nbsp;&nbsp;<b>" + ebEscapeHtml(a.name) + "</b> — "
+         return "<br/>&nbsp;&nbsp;<b>" + ebEscapeHtml(a.name) + "</b> ("
             + (a.room === "" || a.room === "-" ? "main room"
                : a.room === "N/A" ? "marked as gone home"
-               : "on the board in room <b>" + ebEscapeHtml(a.room) + "</b>");
+               : "on the board in room <b>" + ebEscapeHtml(a.room) + "</b>") + ")";
       }).join("");
    }
 
