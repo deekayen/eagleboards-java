@@ -100,7 +100,48 @@ public class BoardCompositionChecker {
          return BoardComposition.refuse(chairRefusal);
       }
 
+      String unitRefusal = this.refusalForUnit(scout, members, boardRoom != null);
+      if (unitRefusal != null) {
+         return BoardComposition.refuse(unitRefusal);
+      }
+
       return BoardComposition.accepted(members, chair, memberNames.toString());
+   }
+
+   /**
+    * Why a board made only of the youth's own unit is refused, or {@code null}
+    * when someone on it is from outside the unit.
+    *
+    * <p>Guide to Advancement 8.0.3.0 #2 (SPEC.md D-4): the council's
+    * no-same-unit rule is only a warning the operator may override, but a board
+    * still needs one member who is not from the youth's unit. The Event page
+    * blocks it as the board is built ({@code hasNonUnitMember} in
+    * process_seat.js); this answers a request that never went through the
+    * page. The units are compared as the page compares them, by the stored
+    * {@code UnitName}, and a blank unit counts as outside: it is unknown, not
+    * proof of affiliation.
+    *
+    * @param changing true when the members of a seated board are being changed,
+    *                 so the refusal says who is left on the board
+    */
+   private String refusalForUnit(ScoutRecord scout, List<AdultRecord> members, boolean changing) {
+      String scoutUnit = scout.getValue("UnitName");
+
+      if (scoutUnit.isEmpty()) {
+         return null;
+      }
+
+      for (AdultRecord member : members) {
+         String memberUnit = member.getValue("UnitName");
+
+         if (memberUnit.isEmpty() || !memberUnit.equals(scoutUnit)) {
+            return null;
+         }
+      }
+
+      return "ERROR: Everyone " + (changing ? "left on" : "on") + " the board is from the youth's unit, "
+         + "and a board needs at least one member from outside it (Guide to Advancement 8.0.3.0). "
+         + "Add someone from another unit.";
    }
 
    /**

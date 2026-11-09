@@ -1483,6 +1483,55 @@ chk "222-0005 is stored as 222-0005"            "$(phone_of local@example.org)" 
 chk "an extension is kept as typed"             "$(phone_of ext@example.org)" "555-123-4567 x12"
 chk "too few digits are kept as typed"          "$(phone_of short@example.org)" "12345"
 
+# ---- 31. a board needs a member from outside the youth's unit (SPEC.md D-4)
+echo
+echo "== 31. a board of only the youth's own unit is refused =="
+
+# The council's same-unit rule is a warning the operator may override, but the
+# national floor of one member from outside the unit is absolute, and an
+# absolute rule is refused by the server, not only by the screen
+# (process_seat.js hasNonUnitMember). Windows and the Mac refuse it; this
+# server once did not, so a request that skipped the page seated it.
+uadult() { # <last> <first> <unit> <final-role>
+    post --data "Last=$1&First=$2&Email=u$1@example.org&UnitType=Troop&Unit=$3&UnitName=Troop$3&ProjectReview=Member&FinalBoard=$4" \
+        "$B/register-adult" || echo "seed failed: adult $1" >&2
+    echo "ADULT:$1:$2:$3"
+}
+post --data "!nativeeditor_status=inserted&gr_id=ROOM:301&Room=301&BoardType=Final" "$B/room-update" \
+    || echo "seed failed: room 301" >&2
+
+UNIT_Y=$(xscout Tarkington Ulysses 3701 Final)
+UNIT_C=$(uadult Pennywhistle Perpetua 3701 Chair)
+UNIT_M1=$(uadult Quackenbush Barnaby 3701 Member)
+UNIT_M2=$(uadult Rutherford Cordelia 3701 Member)
+UNIT_OUT=$(uadult Sandringham Leopold 3702 Member)
+
+out=$(seat 301 "$UNIT_Y" "$UNIT_C" "$UNIT_M1" "$UNIT_M2")
+refused "a board of three from the youth's own unit is refused" "$out"
+case "$out" in
+    *"Guide to Advancement 8.0.3.0"*) ok "the refusal names the Guide's rule" ;;
+    *) bad "the refusal does not name the Guide's rule: '${out#*|}'" ;;
+esac
+chk "the youth is still waiting" "$(status_of "$UNIT_Y")" "Registered"
+chk "none of the three was committed" \
+    "$(adult_room "$UNIT_C")|$(adult_room "$UNIT_M1")|$(adult_room "$UNIT_M2")" "||"
+
+accepted "one member from another unit is enough" \
+    "$(seat 301 "$UNIT_Y" "$UNIT_C" "$UNIT_M1" "$UNIT_OUT")"
+
+out=$(change "$UNIT_Y" "$UNIT_C" "$UNIT_C" "$UNIT_M1" "$UNIT_M2")
+refused "changing the members to only the youth's own unit is refused" "$out"
+case "$out" in
+    *"Guide to Advancement 8.0.3.0"*) ok "and that refusal names the Guide's rule" ;;
+    *) bad "that refusal does not name the Guide's rule: '${out#*|}'" ;;
+esac
+chk "the board was left as it was" \
+    "$(adult_room "$UNIT_M1")|$(adult_room "$UNIT_M2")|$(adult_room "$UNIT_OUT")" "301||301"
+
+start "$UNIT_Y" >/dev/null
+accepted "completing releases the board" "$(complete "$UNIT_Y" Approved)"
+chk "nobody committed after section 31" "$(busy_adults)" "0"
+
 echo
 echo "== the event ends clean =="
 chk "no board left convening"  "$(n_status Seated)" "0"

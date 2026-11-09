@@ -224,6 +224,55 @@ public class TestBoardComposition {
       check("refused board has no members", refused.getMembers().isEmpty());
       check("refused board has no chair", refused.getChair() == null);
 
+      // The national floor (Guide to Advancement 8.0.3.0 #2, SPEC.md D-4): one
+      // member must be from outside the youth's unit. The council's same-unit
+      // rule is only a warning, but this is refused whoever asks, and the
+      // Event page's hasNonUnitMember (process_seat.js) says the same.
+      String seatingRefusal = "ERROR: Everyone on the board is from the youth's unit, and a board needs "
+         + "at least one member from outside it (Guide to Advancement 8.0.3.0). Add someone from another unit.";
+      String changingRefusal = "ERROR: Everyone left on the board is from the youth's unit, and a board needs "
+         + "at least one member from outside it (Guide to Advancement 8.0.3.0). Add someone from another unit.";
+
+      ScoutRecord unitScout = newScout("Ulysses", "Unitscout", "Final", "30");
+      ScoutRecord unitProject = newScout("Una", "Unitproject", "Project", "30");
+      AdultRecord unitChair = newAdult("Pia", "Samechair", "Chair", "Chair", "30");
+      AdultRecord unitA = newAdult("Sal", "Samea", "Member", "Member", "30");
+      AdultRecord unitB = newAdult("Sue", "Sameb", "Member", "Member", "30");
+      AdultRecord outsider = newAdult("Olaf", "Outsider", "Member", "Member", "31");
+      AdultRecord otherUnitChair = newAdult("Cleo", "Outchair", "Chair", "Chair", "31");
+      AdultRecord longerUnit = newAdult("Lou", "Longerunit", "Member", "Member", "300");
+      AdultRecord noUnit = newAdult("Nia", "Nounit", "Member", "Member", null);
+      String ownUnit = ids(unitChair, unitA, unitB);
+
+      checkRefusal("a board of only the youth's own unit is refused",
+         checker.check(unitScout, unitChair.getID(), ownUnit, null), seatingRefusal);
+      checkRefusal("the same board is refused when its members are being changed",
+         checker.check(unitScout, unitChair.getID(), ownUnit, "Room 30"), changingRefusal);
+      checkRefusal("a project proposal of only the youth's own unit is refused too",
+         checker.check(unitProject, unitChair.getID(), ids(unitChair, unitA), null), seatingRefusal);
+      check("one member from another unit is enough",
+         !checker.check(unitScout, unitChair.getID(), ids(unitChair, unitA, outsider), null).isRefused());
+      check("one outside member is enough when changing members",
+         !checker.check(unitScout, unitChair.getID(), ids(unitChair, unitA, outsider), "Room 30").isRefused());
+      check("an outside chair is enough",
+         !checker.check(unitScout, otherUnitChair.getID(), ids(otherUnitChair, unitA, unitB), null).isRefused());
+      check("a unit that only starts the same way is another unit (Troop300 is not Troop30)",
+         !checker.check(unitScout, unitChair.getID(), ids(unitChair, unitA, longerUnit), null).isRefused());
+      check("a member with no unit counts as outside",
+         !checker.check(unitScout, unitChair.getID(), ids(unitChair, unitA, noUnit), null).isRefused());
+
+      ScoutRecord noUnitScout = newScout("Nils", "Noscoutunit", "Final", null);
+      check("a youth with no unit has no unit to be refused against",
+         !checker.check(noUnitScout, unitChair.getID(), ownUnit, null).isRefused());
+
+      // The order the checks run in: size and chair problems are reported first.
+      checkRefusal("size problems come before the unit rule",
+         checker.check(unitScout, unitChair.getID(), ids(unitChair, unitA), null),
+         "ERROR: Only 2 board member(s) selected; 3 required for Final boards");
+      checkRefusal("chair problems come before the unit rule",
+         checker.check(unitScout, unitA.getID(), ownUnit, null),
+         "ERROR: Sal Samea is not qualified to chair a Final board (role: Member)");
+
       // The published limits.
       check("minimum for a board of review is 3", BoardCompositionChecker.MIN_BOARD_OF_REVIEW_MEMBERS == 3);
       check("minimum for a project proposal is 2", BoardCompositionChecker.MIN_PROJECT_PROPOSAL_MEMBERS == 2);
@@ -393,11 +442,18 @@ public class TestBoardComposition {
 
    /** Adds a youth to scouts.csv. The ID becomes SCOUT:last:first:unit. */
    private static ScoutRecord newScout(String first, String last, String boardType) {
+      return newScout(first, last, boardType, "1");
+   }
+
+   /** Adds a youth in Troop {@code unit}; a null unit leaves the unit blank, so {@code UnitName} is blank. */
+   private static ScoutRecord newScout(String first, String last, String boardType, String unit) {
       Map<String, String> values = new HashMap<>();
       values.put("First", first);
       values.put("Last", last);
-      values.put("Unit", "1");
-      values.put("UnitType", "Troop");
+      if (unit != null) {
+         values.put("Unit", unit);
+         values.put("UnitType", "Troop");
+      }
       values.put("BoardType", boardType);
       ScoutRecord scout = new ScoutRecord(values);
       scouts.add(scout, false);
@@ -411,11 +467,18 @@ public class TestBoardComposition {
     * @param finalRole   their sign-in answer for a board of review
     */
    private static AdultRecord newAdult(String first, String last, String projectRole, String finalRole) {
+      return newAdult(first, last, projectRole, finalRole, "2");
+   }
+
+   /** Adds an adult in Troop {@code unit}; a null unit leaves the unit blank, so {@code UnitName} is blank. */
+   private static AdultRecord newAdult(String first, String last, String projectRole, String finalRole, String unit) {
       Map<String, String> values = new HashMap<>();
       values.put("First", first);
       values.put("Last", last);
-      values.put("Unit", "2");
-      values.put("UnitType", "Troop");
+      if (unit != null) {
+         values.put("Unit", unit);
+         values.put("UnitType", "Troop");
+      }
       values.put("ProjectReview", projectRole);
       values.put("FinalBoard", finalRole);
       AdultRecord adult = new AdultRecord(values);
