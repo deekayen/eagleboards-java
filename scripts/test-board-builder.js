@@ -113,6 +113,82 @@ check("a room that is taken goes, whoever chose it",
    seat.keepsRoom({ id: "R1", BoardType: "Final", free: false }, "Final", true), false);
 check("no room chosen: nothing to keep", seat.keepsRoom(null, "Final", false), false);
 
+console.log("");
+console.log("== an operator's board stays with its youth (SPEC.md D-12, amended 2026-11-08) ==");
+
+// A board being built, as boardBuilder in scheduler_event.js holds it.
+function building(scoutId, picked, chairId, proposed) {
+   return {
+      scoutId: scoutId, picked: picked, chairId: chairId, roomId: "R1", roomByOperator: false,
+      problems: ["a warning"], editing: false, needsProposal: false,
+      proposed: proposed === undefined ? { ids: ["chair", "m1", "m2"], chairId: "chair" } : proposed
+   };
+}
+var changed = building("A", ["chair", "m1", "m3"], "chair");
+var asProposedA = building("A", ["chair", "m1", "m2"], "chair");
+var waitingChanged = { waiting: true, untouched: false };
+
+var kept = {};
+check("a board the operator changed is kept", seat.keepBoard(kept, changed, waitingChanged), true);
+check("it is kept for its youth", Object.keys(kept), ["A"]);
+changed.picked.push("m4");
+changed.proposed.ids.push("m5");
+check("the kept board is a copy: later changes to the builder do not reach it",
+   [kept.A.picked, kept.A.proposed.ids], [["chair", "m1", "m3"], ["chair", "m1", "m2"]]);
+
+var none = {};
+check("an untouched proposal is not kept: it follows the event",
+   seat.keepBoard(none, asProposedA, { waiting: true, untouched: true }), false);
+check("nothing was proposed, so nothing was changed",
+   seat.keepBoard(none, building("A", ["m1"], null, null), waitingChanged), false);
+check("changing the members of a seated board is not kept",
+   seat.keepBoard(none, Object.assign(building("A", ["chair", "m1", "m3"], "chair"), { editing: true }), waitingChanged), false);
+check("a board still waiting for its proposal is not kept",
+   seat.keepBoard(none, Object.assign(building("A", [], null), { needsProposal: true }), waitingChanged), false);
+check("a youth no longer waiting has nothing to keep",
+   seat.keepBoard(none, building("A", ["chair", "m1", "m3"], "chair"), { waiting: false, untouched: false }), false);
+check("no youth, no board", seat.keepBoard(none, building(null, ["m1"], null), waitingChanged), false);
+check("none of those were kept", none, {});
+
+var back = seat.takeBoard(kept, "A");
+check("coming back takes the board as the operator left it",
+   [back.picked, back.chairId, back.roomId, back.problems], [["chair", "m1", "m3"], "chair", "R1", ["a warning"]]);
+check("a board taken back is no longer kept", kept, {});
+check("a youth with no kept board gets none", seat.takeBoard(kept, "A"), null);
+
+// The sequence from the bug: change A's board, open B, change B's, go back.
+var kept2 = {};
+var current = building("A", ["chair", "m1", "m3"], "chair");
+seat.keepBoard(kept2, current, waitingChanged);                          // leaving A, changed
+check("opening B: B has no kept board, so B is proposed afresh", seat.takeBoard(kept2, "B"), null);
+current = building("B", ["chair", "m1", "m2"], "chair");                   // B's proposal, untouched
+check("leaving B untouched keeps nothing of B's",
+   seat.keepBoard(kept2, current, { waiting: true, untouched: true }), false);
+var backToA = seat.takeBoard(kept2, "A");
+check("A comes back as the operator left it, with none of B's board in it",
+   [backToA.picked, backToA.chairId], [["chair", "m1", "m3"], "chair"]);
+current = building("A", backToA.picked, backToA.chairId);
+current.picked.push("m5");                                               // A changed again
+seat.keepBoard(kept2, current, waitingChanged);                          // leaving A for B
+current = building("B", ["chair", "m2", "m4"], "m2");                      // B changed too
+seat.keepBoard(kept2, current, waitingChanged);                          // leaving B for A
+check("both changed boards are kept, each for its own youth", Object.keys(kept2).sort(), ["A", "B"]);
+check("A's is A's", seat.takeBoard(kept2, "A").picked, ["chair", "m1", "m3", "m5"]);
+check("B's is B's", seat.takeBoard(kept2, "B").picked, ["chair", "m2", "m4"]);
+
+var stale = { A: seat.takeBoard({ A: changed }, "A"), B: building("B", ["chair", "m1"], "chair"), C: building("C", ["chair", "m1"], "chair") };
+seat.pruneBoards(stale, function (id) { return id !== "B" && id !== "C"; });
+check("a youth seated, finished, or deleted elsewhere keeps no board", Object.keys(stale), ["A"]);
+
+var revived = seat.revivedBoard(
+   { picked: ["chair", "m1", "m3"], chairId: "chair", roomId: "R1", roomByOperator: true, problems: [], proposed: null },
+   function (id) { return id !== "chair" && id !== "m3"; });
+check("an adult deleted meanwhile is no longer picked, and nor is a chair who went with them",
+   [revived.picked, revived.chairId, revived.roomByOperator], [["m1"], null, true]);
+check("a chair who is still here stays",
+   seat.revivedBoard({ picked: ["chair", "m1"], chairId: "chair", roomId: null, roomByOperator: false, problems: [], proposed: null },
+      function () { return true; }).chairId, "chair");
+
 if (failures > 0) {
    console.log("BOARD BUILDER: FAIL (" + failures + " of " + checks + " checks)");
    process.exit(1);

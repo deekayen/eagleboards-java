@@ -170,9 +170,32 @@ var boardBuilder = {
    // The board last proposed, { ids, chairId }: while the picks are still
    // that, the operator hasn't changed it, and it follows the event (D-12).
    proposed: null,
+   // The operator removed, added, filled, or changed the chair, or this board
+   // was kept as theirs and has come back: it is theirs until Start over or
+   // Seat board, however it compares with the proposal. Comparing the picks
+   // alone would read it as untouched again once an adult the operator
+   // removed was seated elsewhere (D-12, amended 2026-11-08).
+   changed: false,
+   // The boards the operator changed for the other waiting youth, by youth
+   // ID: this one's comes back when the youth is opened again (D-12,
+   // amended 2026-11-08). reset() leaves them alone; keepBoard, takeBoard,
+   // and pruneBoards (process_seat.js) decide what goes in and out.
+   kept: {},
 
    memberIds: function () {
       return this.picked.slice();
+   },
+
+   // Take a board kept for this youth back as the one being built.
+   restore: function (board) {
+      this.picked = board.picked;
+      this.chairId = board.chairId;
+      this.roomId = board.roomId;
+      this.roomByOperator = board.roomByOperator;
+      this.problems = board.problems;
+      this.proposed = board.proposed;
+      this.changed = true;
+      this.settleChair();
    },
 
    reset: function () {
@@ -183,13 +206,14 @@ var boardBuilder = {
       this.problems = [];
       this.editing = false;
       this.proposed = null;
+      this.changed = false;
    },
 
    // Still the board proposed: nobody added or removed, the chair not
    // changed. A proposed adult now on another board or gone home dropped
    // out on their own (proposalUntouched, process_seat.js).
    untouched: function () {
-      return !this.editing && proposalUntouched(this.proposed, this.picked, this.chairId, function (id) {
+      return !this.editing && !this.changed && proposalUntouched(this.proposed, this.picked, this.chairId, function (id) {
          var a = adultStore.get(id);
          return !!a && adultIsFreeRow(a);
       });
@@ -212,6 +236,7 @@ var boardBuilder = {
    },
 
    add: function (id) {
+      this.changed = true;
       if (this.picked.indexOf(id) < 0) {
          this.picked.push(id);
       }
@@ -219,6 +244,7 @@ var boardBuilder = {
    },
 
    remove: function (id) {
+      this.changed = true;
       this.picked = this.picked.filter(function (p) { return p !== id; });
       if (this.chairId === id) {
          this.chairId = null;
@@ -303,6 +329,7 @@ function proposeForBuilder() {
    boardBuilder.chairId = proposal.chairId;
    boardBuilder.problems = proposal.problems;
    boardBuilder.settleChair();
+   boardBuilder.changed = false;
    boardBuilder.proposed = { ids: boardBuilder.picked.slice(), chairId: boardBuilder.chairId };
    settleRoom(youthStore.getColumnValue(s_id, "BoardType"));
 }
@@ -316,11 +343,25 @@ function selectYouth(s_id) {
       return;
    }
    if (boardBuilder.scoutId !== s_id) {
+      // A board the operator changed stays with its youth while another is
+      // opened (D-12, amended 2026-11-08); an untouched proposal does not.
+      var leaving = boardBuilder.scoutId && youthStore.get(boardBuilder.scoutId);
+      keepBoard(boardBuilder.kept, boardBuilder, {
+         waiting: !!leaving && isWaiting(leaving.Status),
+         untouched: boardBuilder.untouched()
+      });
       boardBuilder.reset();
       boardBuilder.scoutId = s_id;
       boardBuilder.needsProposal = false;
       if (isWaiting(s.Status)) {
-         proposeForBuilder();
+         var kept = takeBoard(boardBuilder.kept, s_id);
+         if (kept) {
+            boardBuilder.restore(revivedBoard(kept, function (id) { return !!adultStore.get(id); }));
+            // Its room may have been taken since: propose another (D-24).
+            settleRoom(youthStore.getColumnValue(s_id, "BoardType"));
+         } else {
+            proposeForBuilder();
+         }
       }
    }
    selection.youthId = s_id;
@@ -459,6 +500,11 @@ function render() {
    if (selection.roomId && !roomStore.get(selection.roomId)) {
       selection.roomId = null;
    }
+   // A youth seated, finished, or deleted from another window has no kept board.
+   pruneBoards(boardBuilder.kept, function (id) {
+      var y = youthStore.get(id);
+      return !!y && isWaiting(y.Status);
+   });
    var s = selection.youthId && youthStore.get(selection.youthId);
    if (s && boardBuilder.scoutId === s.id) {
       if (isOnBoard(s.Status) && boardBuilder.editing) {
@@ -1557,6 +1603,7 @@ el("d-members").addEventListener("click", function (ev) {
 el("d-members").addEventListener("change", function (ev) {
    if (ev.target.name === "d-chair") {
       boardBuilder.chairId = ev.target.value;
+      boardBuilder.changed = true;
       render();
    }
 });

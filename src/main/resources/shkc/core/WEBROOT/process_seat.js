@@ -256,6 +256,69 @@ function proposalUntouched(proposal, picked, chairId, canPick) {
       && ((chairId || null) === chair || (chair !== null && !canPick(chair)));
 }
 
+// The boards the operator changed, kept for their youth (SPEC.md D-12,
+// amended 2026-11-08). Opening another youth shows that youth's own board;
+// coming back shows the changed one as it was left, until Start over or
+// Seat board. They are held by youth ID apart from the one board being
+// built (boardBuilder in scheduler_event.js), so a youth's board is either
+// being built or kept, never both. An untouched proposal is not kept: it
+// follows the event and is proposed again on return, as on the Mac.
+//   kept:     { youth ID: board }, changed in place
+//   builder:  the board being built, as boardBuilder holds it
+//   state:    { waiting: the builder's youth is still waiting,
+//               untouched: proposalUntouched for the builder }
+// Returns whether the builder's board was kept.
+function keepBoard(kept, builder, state) {
+   if (!builder.scoutId || !state.waiting || builder.editing || builder.needsProposal
+      || !builder.proposed || state.untouched) {
+      return false;
+   }
+   kept[builder.scoutId] = {
+      picked: builder.picked.slice(),
+      chairId: builder.chairId,
+      roomId: builder.roomId,
+      roomByOperator: builder.roomByOperator,
+      problems: builder.problems.slice(),
+      proposed: { ids: builder.proposed.ids.slice(), chairId: builder.proposed.chairId }
+   };
+   return true;
+}
+
+// The board kept for a youth, taken out of the kept boards, or null.
+function takeBoard(kept, youthId) {
+   var board = kept[youthId] || null;
+   delete kept[youthId];
+   return board;
+}
+
+// Forget the boards of youth who are no longer waiting: seated, finished, or
+// gone from the event. One seated from another window and then reset must
+// not get an old board back.
+//   isWaiting: function (youth ID) -> whether that youth is still waiting
+function pruneBoards(kept, isWaiting) {
+   Object.keys(kept).forEach(function (youthId) {
+      if (!isWaiting(youthId)) {
+         delete kept[youthId];
+      }
+   });
+}
+
+// A kept board as it comes back: whoever was deleted from the event while the
+// operator looked at another youth is no longer picked, and nor is a chair
+// who went with them.
+//   adultExists: function (adult ID) -> whether that adult is still here
+function revivedBoard(board, adultExists) {
+   var picked = board.picked.filter(adultExists);
+   return {
+      picked: picked,
+      chairId: picked.indexOf(board.chairId) >= 0 ? board.chairId : null,
+      roomId: board.roomId,
+      roomByOperator: board.roomByOperator,
+      problems: board.problems,
+      proposed: board.proposed
+   };
+}
+
 // Members besides the chair at the district's working size.
 function membersBesideChair(btype) {
    return (btype === "Project" ? PROJECT_MIN_MEMBERS : BOARD_MIN_MEMBERS) - 1;
@@ -589,6 +652,10 @@ if (typeof module !== "undefined" && module.exports) {
       withSupportLink: withSupportLink,
       introductionFor: introductionFor,
       proposalUntouched: proposalUntouched,
+      keepBoard: keepBoard,
+      takeBoard: takeBoard,
+      pruneBoards: pruneBoards,
+      revivedBoard: revivedBoard,
       freeSinceTimes: freeSinceTimes,
       findUnitConflicts: findUnitConflicts,
       hasNonUnitMember: hasNonUnitMember,

@@ -146,6 +146,9 @@ You can change any of it:
   have gone home, or don't serve on this kind of board.
 - **Fill the rest** completes the board around the people you chose.
   **Start over** proposes a whole new board.
+- **A board you have changed stays with its youth.** Open another youth, and
+  when you come back yours is as you left it, until you press **Start over**
+  or **Seat board**.
 - **The chair** is the member with **Chair** marked. Only adults who may chair
   this kind of board can be marked.
 - **A different room:** choose it under **Room**, or click a free room card.

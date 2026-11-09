@@ -188,9 +188,12 @@ silent on the check-in screen, which faces the youth signing in.
 
 **Smaller interface fixes**
 
-- **Chosen board members survive clicking around.** Selecting a youth used to
+- **A board assembled by hand stays with its youth.** Selecting a youth used to
   wipe every adult checkbox and throw away a board the operator had assembled by
-  hand. Only the Adult panel's Clear button empties them now.
+  hand. Now the board stays with its youth: open another youth, and the one you
+  changed is as you left it when you come back, until Start over or Seat board.
+  A board you have not changed is proposed again instead, so it follows who
+  signs in (SPEC.md D-12).
 - **Seating a board no longer leaves its members checked.** The server only
   ever set `Room` on a seated adult, not `Sel`, so their checkbox stayed on
   indefinitely, which made auto-select skip picking anyone new for the next
