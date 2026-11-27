@@ -39,24 +39,34 @@ public class SeatBoardHandler extends BoardHandler {
          Log.verbose("ScoutID: " + scoutId);
          Log.verbose("ChairID: " + chairId);
          Log.verbose("MemberIDs: " + memberIds);
+         Log.info("seat-board: attempt scout=" + Log.safeValue("ScoutID", scoutId) + " roomid=" + Log.safeValue("RoomID", roomId)
+            + " chair=" + Log.safeValue("ChairID", chairId) + " members=" + Log.clean(memberIds));
 
          RoomRecord room = this.data.getRooms().get(roomId);
          if (room == null) {
+            Log.info("seat-board: room card not found, roomid=" + Log.safeValue("RoomID", roomId)
+               + " rooms on file=" + this.data.getRooms().getRecords().size());
             this.sendError("ERROR: Invalid Room ID" + roomId, response);
             return;
          }
          if (room.getScout().length() > 0) {
+            Log.info("seat-board: room=" + room.getRoom() + " is occupied by scout='" + room.getScout()
+               + "' leaders='" + room.getLeaders() + "'");
             this.sendError("ERROR: Room " + room.getRoom() + "is already assigned to " + room.getScout(), response);
             return;
          }
 
          ScoutRecord scout = this.data.getScouts().get(scoutId);
          if (scout == null) {
+            Log.info("seat-board: scout not found, scout=" + Log.safeValue("ScoutID", scoutId) + " room=" + room.getRoom()
+               + " scouts on file=" + this.data.getScouts().getRecords().size());
             this.sendError("ERROR: Invalid Scout ID" + scoutId, response);
             return;
          }
          String scoutRefusal = this.refusalForScout(scout, room);
          if (scoutRefusal != null) {
+            Log.info("seat-board: scout=" + logScout(scout) + " type=" + scout.getBoardType() + " status=" + scout.getStatus()
+               + " scoutroom=" + scout.getRoom() + " wanted room=" + room.getRoom());
             this.sendError(scoutRefusal, response);
             return;
          }
@@ -153,5 +163,14 @@ public class SeatBoardHandler extends BoardHandler {
       this.data.getRooms().store();
       this.data.getAdults().store();
       undo.commit("Seat board for " + scout.getFullName());
+
+      boolean isProjectBoard = BoardType.PROJECT.equals(scout.getBoardType());
+      Log.info("seat-board: scout=" + logScout(scout) + " room=" + room.getRoom() + " type=" + scout.getBoardType()
+         + " (" + (isProjectBoard ? "project proposal" : "final board") + ")"
+         + " chair=" + (chair == null ? "(none)" : Log.clean(chair.getID())) + " members=" + logAdultIds(members)
+         + " -> seated: status " + oldScoutStatus + " -> " + scout.getStatus()
+         + ", scout room '" + oldScoutRoom + "' -> " + scout.getRoom()
+         + ", room " + room.getRoom() + ": " + (oldRoomScout.isEmpty() ? "free" : "held by '" + oldRoomScout + "'") + " -> occupied"
+         + ", committed " + members.size() + " adult(s) to the room");
    }
 }

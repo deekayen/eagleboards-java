@@ -46,6 +46,9 @@ public class UndoLog {
 
    /** Forgets the last action, as after a successful restore. */
    public void clear() {
+      if (this.fields != null) {
+         Log.info("undo-log: cleared '" + this.description + "' (" + this.fields.size() + " fields)");
+      }
       this.fields = null;
       this.description = null;
    }
@@ -75,6 +78,13 @@ public class UndoLog {
 
       /** Makes this the action Undo reverses, replacing whatever was there. */
       public void commit(String description) {
+         if (this.recorded.isEmpty()) {
+            Log.info("undo-log: '" + description + "' recorded no fields, so there is nothing for Undo to reverse");
+         }
+         if (UndoLog.this.fields != null && !UndoLog.this.fields.isEmpty()) {
+            Log.info("undo-log: '" + UndoLog.this.description + "' (" + UndoLog.this.fields.size() + " fields) can no longer be undone, replaced by '" + description + "'");
+         }
+         Log.info("undo-log: recorded '" + description + "' fields=" + this.recorded.size() + " (the one level of Undo)");
          UndoLog.this.description = description;
          UndoLog.this.fields = this.recorded;
       }

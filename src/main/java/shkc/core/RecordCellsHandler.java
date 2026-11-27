@@ -1,7 +1,10 @@
 package shkc.core;
 
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.Set;
 import java.util.StringTokenizer;
+import java.util.concurrent.ConcurrentHashMap;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -28,12 +31,27 @@ public class RecordCellsHandler<T extends DataRecord> implements WebServer.WebHa
    private static final String FORMAT_CSV = "csv";
    private static final String XML_DECLARATION = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>";
 
+   private static final String CELLS_SUFFIX = "CellsHandler";
+
+   /** The columns {@link DataRecord#getValue} works out itself, so a page may ask for them. */
+   private static final Set<String> COMPUTED_COLUMNS = Set.of("MinsSinceLastUpdate", "RegTimeHM");
+
+   /** Past this many noted oddities nothing more is noted, so a page that asks for endless made-up names cannot grow the set. */
+   private static final int MAX_NOTED = 500;
+
+   /** The oddities already logged since the program started: each is logged once, not on every read. */
+   private static final Set<String> NOTED = ConcurrentHashMap.newKeySet();
+
    private final EventData data;
    private final DataRecordFile<T> records;
+   private final String kind;
 
    public RecordCellsHandler(EventData data, DataRecordFile<T> records) {
       this.data = data;
       this.records = records;
+      String handlerName = this.getClass().getSimpleName();
+      this.kind = handlerName.endsWith(CELLS_SUFFIX) && handlerName.length() > CELLS_SUFFIX.length()
+         ? handlerName.substring(0, handlerName.length() - CELLS_SUFFIX.length()) : (handlerName.isEmpty() ? "record" : handlerName);
    }
 
    @Override
@@ -64,6 +82,7 @@ public class RecordCellsHandler<T extends DataRecord> implements WebServer.WebHa
          // SPEC.md D-8: a youth's phone number is kept and withheld the same
          // way. This handler serves the adult files too, and theirs go out.
          boolean youthFile = this.data.isYouthFile(this.records);
+         this.noteUnusualRequest(request.getParameter("filter"), filter, format, columns, extraColumns, youthFile);
          if (youthFile) {
             valueColumns = CheckInApi.withholdYouthPhone(valueColumns);
             valueExtraColumns = CheckInApi.withholdYouthPhone(valueExtraColumns);
@@ -89,15 +108,81 @@ public class RecordCellsHandler<T extends DataRecord> implements WebServer.WebHa
          }
 
          String body = out.toString();
-         response.setContentLength(body.length());
-         response.setContentType(contentType);
-         response.getOutputStream().write(body.getBytes());
+         ResponseText.write(response, contentType, body);
          response.setStatus(200);
       }
    }
 
    public DataRecordFile<T> getRecords() {
       return this.records;
+   }
+
+   /**
+    * Logs what is odd about this read, and nothing about an ordinary one: the
+    * pages call these endpoints after every change, so a line per read would
+    * bury the log. Each oddity is logged the first time it is seen since the
+    * program started. Nothing here changes what is served.
+    */
+   private void noteUnusualRequest(String filterParam, RowFilter filter, String format, String[] columns, String[] extraColumns, boolean youthFile) {
+      if (!FORMAT_ROWS.equals(format) && !FORMAT_DATA.equals(format) && !FORMAT_CSV.equals(format)) {
+         this.noteOnce("fmt:" + word(format), "cells: kind=" + this.kind + " fmt=" + word(format)
+            + " is not rows, data, or csv, so the rows format was served");
+      }
+      if (filterParam != null && !filterParam.isEmpty() && filter.column == null) {
+         int parts = new StringTokenizer(filterParam, "~#", false).countTokens();
+         this.noteOnce("filter-malformed", "cells: kind=" + this.kind + " filter " + Log.safeValue("filter", filterParam)
+            + " has " + parts + " part(s), not exactly Column and one value, so it was ignored and every row was served");
+      }
+      if (filter.column != null) {
+         String column = filter.column;
+         boolean withheld = !column.equals(withheldName(column, youthFile));
+         if (withheld) {
+            this.noteOnce("filter-withheld:" + word(column), "cells: kind=" + this.kind + " filter on " + word(column)
+               + ", a column that is never served, so no row can match it");
+         } else if (!this.servesColumn(column)) {
+            this.noteOnce("filter-unknown:" + word(column), "cells: kind=" + this.kind + " filter on " + word(column)
+               + ", which is not a column of this file, so no row matches");
+         }
+      }
+      this.noteColumns(columns, "cols", youthFile);
+      this.noteColumns(extraColumns, "data", youthFile);
+   }
+
+   private void noteColumns(String[] asked, String parameter, boolean youthFile) {
+      if (asked == null) {
+         return;
+      }
+      for (String column : asked) {
+         if (!column.equals(withheldName(column, youthFile))) {
+            this.noteOnce("withheld:" + word(column), "cells: kind=" + this.kind + " " + parameter + " asks for " + word(column)
+               + ", which is never served (SPEC.md D-7, D-8), so it came back empty");
+         } else if (!this.servesColumn(column)) {
+            this.noteOnce("unknown:" + word(column), "cells: kind=" + this.kind + " " + parameter + " asks for " + word(column)
+               + ", which is not a column of this file, so it came back empty");
+         }
+      }
+   }
+
+   /** What {@code column} is read as: itself, or the empty stand-in for a birthdate (and a youth's phone number). */
+   private static String withheldName(String column, boolean youthFile) {
+      String[] withheld = CheckInApi.withholdBirthdate(new String[]{column});
+      return (youthFile ? CheckInApi.withholdYouthPhone(withheld) : withheld)[0];
+   }
+
+   private boolean servesColumn(String column) {
+      return COMPUTED_COLUMNS.contains(column) || Arrays.asList(this.records.getColumns()).contains(column);
+   }
+
+   /** A page-supplied word, cut short and with control characters removed, safe to put in a line. */
+   private static String word(String text) {
+      String cleaned = Log.clean(text);
+      return cleaned.length() > 40 ? cleaned.substring(0, 40) + "..." : cleaned;
+   }
+
+   private void noteOnce(String key, String message) {
+      if (NOTED.size() < MAX_NOTED && NOTED.add(this.kind + "|" + key)) {
+         Log.info(message + " (logged once; it is not repeated on later reads)");
+      }
    }
 
    /** The {@code data} format: one {@code <data>} element holding every wanted record. */

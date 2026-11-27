@@ -55,7 +55,8 @@ public class FileLocator {
          LOG.finer("localGetInputStream: file=" + location);
       }
 
-      InputStream in = openAsUrl(location);
+      IOException[] urlFailure = new IOException[1];
+      InputStream in = openAsUrl(location, urlFailure);
 
       if (in == null) {
          try {
@@ -71,19 +72,27 @@ public class FileLocator {
       }
 
       if (in == null) {
-         throw new IOException("invalid location: " + location);
+         // When the name was a real web address that failed (offline, a 403), say why, as the cause.
+         throw new IOException("invalid location: " + location, urlFailure[0]);
       }
       return in;
    }
 
-   /** Opens {@code location} if it is a complete URL, or returns null when it is not one (or cannot be read). */
+   /**
+    * Opens {@code location} if it is a complete URL, or returns null when it is not one (or cannot be read).
+    * For a web address that failed, the failure is left in {@code failureOut[0]}.
+    */
    // new URL(String) is deprecated, but URI.create(...).toURL() throws an unchecked
    // error for names with spaces or backslashes, and here those must mean only "not a URL".
    @SuppressWarnings("deprecation")
-   private static InputStream openAsUrl(String location) {
+   private static InputStream openAsUrl(String location, IOException[] failureOut) {
       try {
          return new URL(location).openStream();
       } catch (IOException notAUrl) {
+         if (location.startsWith("http:") || location.startsWith("https:")) {
+            // A real web address that could not be read: keep why, for the caller's log.
+            failureOut[0] = notAUrl;
+         }
          return null;
       }
    }
@@ -135,6 +144,9 @@ public class FileLocator {
          }
       }
 
+      // No log line here on purpose: the web server asks twice for each static
+      // file under two names, so a miss is often followed by a hit, and only
+      // the server knows when the caller gave up (it answers 404).
       throw new IOException("no such resource ' " + location + "' in search path '" + this.searchPath + "'");
    }
 

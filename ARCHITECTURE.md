@@ -47,8 +47,10 @@ everything lives, opens each `DataRecordFile` into one `EventData`, lets
 `PreRegistrationLoader` import the pre-registrations, and has `EventRoutes`
 register every HTTP handler.
 
-Everything after startup is request-driven; there is no background thread other
-than Jetty's.
+Everything after startup is request-driven. The background threads besides
+Jetty's are two daemons that write to the event log: the `EventMonitor`
+heartbeat, a line of counts every five minutes, and the `StallWatchdog`, which
+looks at the requests being served once a second (see Logging below).
 
 ## Web layer
 
@@ -64,6 +66,10 @@ Two things worth knowing before you touch this:
   `WebServer.service`. A handler that throws logs a stack trace and returns a
   clean 500 for that one request instead of killing the server. Do not rely on
   it (null-guard your inputs), but know it is there.
+- **Every request is traced.** `service` gives each request a number (`r1`, `r2`,
+  and so on, counting from the start of the run), tags every log line the
+  request's thread writes with it, and writes one access line when the request
+  ends (see Logging below).
 - `-bind <ip-prefix>` pins the public connector to a single local address so the
   socket never appears on virtual or VPN adapters, and always adds a second
   connector on `127.0.0.1` so the admin machine keeps working.
@@ -160,6 +166,8 @@ A class's Javadoc says what it is for; this is the map.
 | `Commandline` | reads `-d`, `-p`, `-port`, and the other options |
 | `NetworkAddresses` | lists the URLs, shows the popup, applies `-bind` |
 | `EventFiles` | works out the data folder, adult history, and config file from the command line |
+| `EventMonitor` | the heartbeat: counts of the event's state in the log every five minutes, a warning when the clock moved or the program was not running for a while (the laptop slept), the boards in rooms at start and stop, and a check that the boards and rooms agree |
+| `StallWatchdog` | once a second, reports a request that has run 10 seconds with the stack of its thread, and a long garbage collection; never takes the data lock |
 | `PreRegistrationLoader` | imports a pre-registration CSV or SignUpGenius into the "scheduled" files |
 | `EventRoutes` | **the table of every URL and the class that answers it** |
 
@@ -189,8 +197,9 @@ A class's Javadoc says what it is for; this is the map.
 **Data and imports**: `DataRecordFile` with `RecordFileFormat` (`CsvRecordFormat`,
 `PropertiesRecordFormat`), `DataRecord` and its subclasses, `DataFileConverter`,
 `NegaPreRegScoutRecordConverter`, `NegaPreRegAdultRecordConverter`, `PreRegFieldConverters`,
-`SignUpGeniusClient` (the web calls), `SignUpGeniusPlugin` (the report into records). **Web**: `WebServer`, `FileLocator`, `ChangeFeed`.
-**Small helpers**: `Log`, `RequestFields`, `XmlText`, `NameUtil`.
+`SignUpGeniusClient` (the web calls), `SignUpGeniusPlugin` (the report into records). **Web**: `WebServer` (which also numbers and traces each request, and keeps the list of requests in flight for the watchdog), `FileLocator`, `ChangeFeed`.
+**Logging**: `Log` is the whole logging API, static, with no instances: the event log file (`eagleboards.log`, rolled by size), the levels (`info`, `warn`, `error`, and `verbose` for the console and `-debug`), `scrub`, the per-thread request context (`setContext`), and `safeParams`, `safeValue`, `redact`, and `clean` for making a value safe to write. `EventMonitor`, `StallWatchdog`, and the access line in `WebServer` are its other writers. `Log.registerSecret` (the SignUpGenius key is registered at startup) makes `redact` mask a value wherever it appears, and `Log.columnNames` is the one way the first line of a file reaches the log: it lists the cells only when the line is a heading row.
+**Small helpers**: `RequestFields`, `XmlText`, `NameUtil`.
 
 ### Adding an endpoint
 
@@ -268,12 +277,59 @@ Two behaviors that surprise people: the filter is by **calendar month**, not by
 day, so two events in one month both import; and a duplicate email in the
 adult history means that record is silently skipped entirely.
 
+## Logging
+
+The program keeps an event log so a bug found at an event can be diagnosed
+afterward. RUNNING.md describes it for the person reading one; this is how it is
+built.
+
+- **Always on, in the data folder.** `EagleBoardScheduler` calls `Log.attachFile`
+  as soon as `EventFiles` knows the event's folder. From then on every `INFO`,
+  `WARN`, and `ERROR` line is appended to `eagleboards.log` there and flushed at
+  once, so a crash loses nothing already logged. Lines logged before the folder is
+  known (the startup banner) are held, up to 1000, and written when it is. The
+  file rolls over by size (5 MB, five old files kept), and a restart appends to it.
+  A start that fails after the folder exists attaches the log in the failure path,
+  so the reason is in the file too.
+- **The console is unchanged.** `-verbose` still prints the verbose messages and
+  only prints them. `warn` and `error` also print one line to the console, and
+  `info` does not. `-debug` sends the verbose messages to the file as `DEBUG` too.
+- **One writer at a time, and never a failure.** The file is written under one
+  lock, and nothing in `Log` throws: a log line must not be the reason a request
+  fails. If the file cannot be opened, `Log` says so once on the console and
+  carries on without it. A write that fails later does not detach the file: the
+  newest 1000 lines are held and written, in order, once a write works, with a line
+  saying so. A rollover that fails is retried a minute later and the live file grows
+  meanwhile. Text is masked before it is cut to length, so an address that straddles
+  the cut is not left as a fragment.
+- **Each line names its request.** `WebServer.service` calls `Log.setContext` with
+  the request number and the client's address (one word, `r212/192.168.1.23`) for
+  the length of the request, and `Log` puts it in every line the thread writes. After the handler answers, one access line records the
+  method, path, status, time taken, client address, and the safe parameters. All
+  POSTs, every status of 400 or higher, and every request of 2 seconds or more are
+  written; a failed (500) or slow request is a `WARN`. Other GETs are `DEBUG`
+  only.
+- **The privacy rule.** The log is participant data. It may name a person by
+  record ID, and it never holds an email address, a phone number, a birthdate, a
+  free-text note, or the SignUpGenius key. `Log.safeParams` writes the value of a
+  fixed list of identifier, status, and setting parameters and only the length of
+  the rest. `Log.scrub` runs over every `INFO`, `WARN`, and `ERROR` line (and its
+  stack) as a backstop and replaces anything shaped like an email address, a
+  phone number, or a key. `DEBUG` lines are masked for secrets only. SECURITY.md
+  has the detail.
+- **A new handler logs like this.** One `INFO` line when it acts, naming the
+  action, the youth or adult by record ID, the room, and what changed (before and
+  after). A refusal goes through `sendError` (board steps) or `refusal` (table
+  edits), which log the `REFUSED` line, or says `REFUSED` itself with the rule. It
+  reads request values through `Log.safeValue` and never by concatenating a
+  parameter. CONTRIBUTING.md has the conventions in full.
+
 ## Output of an event
 
 A dated folder (`YYYY-MM-DD/`) holding `scouts.csv`, `adults.csv`, `rooms.csv`,
-and `scouts_scheduled.csv`, plus a board-results spreadsheet. These contain
-personal information about minors and are never committed; see
-[SECURITY.md](SECURITY.md).
+`scouts_scheduled.csv`, and the event log `eagleboards.log`, plus a board-results
+spreadsheet. These contain personal information about minors and are never
+committed; see [SECURITY.md](SECURITY.md).
 
 ## Reading order for a newcomer
 

@@ -90,7 +90,20 @@ public class NameUtil {
             }
          }
 
+         // Text the scanner was still holding when the template ended is dropped.
+         if (state == ScanState.IN_PLACEHOLDER) {
+            Log.info("path template " + Log.clean(template) + ": a ${ is never closed, so the text after it (" + placeholder.length()
+               + " chars) is dropped");
+         } else if (state == ScanState.AFTER_DOLLAR) {
+            Log.info("path template " + Log.clean(template) + ": a trailing $ is dropped");
+         }
+
          text = out.toString();
+      }
+
+      if (text.contains("${")) {
+         Log.info("path template " + Log.clean(template) + " still holds a ${...} placeholder after " + MAX_PASSES
+            + " passes (a placeholder that expands to itself?): " + Log.clean(text));
       }
 
       return text;
@@ -125,6 +138,8 @@ public class NameUtil {
             } else {
                out.append(newDefaultDateFormat().format(new Date()));
             }
+         } else {
+            Log.info("path placeholder ${" + Log.clean(expression) + "} has no closing parenthesis, so it expands to nothing");
          }
       } else {
          String propertyName = expression;
@@ -138,7 +153,11 @@ public class NameUtil {
          // Same story: the property-map lookup that used to come first could
          // never hit, so a name resolves from the system properties or falls
          // back to whatever followed the "=" in the expression.
-         out.append(System.getProperty(propertyName, defaultValue));
+         String resolved = System.getProperty(propertyName, defaultValue);
+         if (resolved.isEmpty()) {
+            Log.info("path placeholder ${" + Log.clean(expression) + "} is not a system property and has no default, so it expands to nothing");
+         }
+         out.append(resolved);
       }
    }
 
@@ -156,6 +175,7 @@ public class NameUtil {
             }
          }
       } else {
+         Log.info("path placeholder ${" + Log.clean(expression) + "} is not numeric(text), so it expands to the words \"bad format\"");
          out.append("bad format: numeric(string)");
       }
    }
@@ -172,7 +192,10 @@ public class NameUtil {
          String args = expression.substring(openParen + 1, closeParen);
          StringTokenizer tokens = new StringTokenizer(args, ",", false);
          if (tokens.countTokens() == 0) {
+            Log.info("path placeholder ${" + Log.clean(expression) + "} has no arguments, so it expands to the words \"bad format\"");
             out.append("bad format: convertDate(date,from-fmt[,to-fmt])");
+         } else if (tokens.countTokens() < 3) {
+            Log.info("path placeholder ${" + Log.clean(expression) + "} has fewer than three arguments, so it expands to nothing");
          } else if (tokens.countTokens() >= 3) {
             // Only three or more arguments are converted; one or two append
             // nothing at all, although the message above says the target
@@ -191,10 +214,12 @@ public class NameUtil {
                String formatted = toFormat.format(parsed);
                out.append(formatted);
             } catch (Exception failure) {
+               Log.warn("path placeholder ${" + Log.clean(expression) + "} could not convert the date, so the failure text is used in the path", failure);
                out.append(failure.toString());
             }
          }
       } else {
+         Log.info("path placeholder ${" + Log.clean(expression) + "} is not convertDate(...), so it expands to the words \"bad format\"");
          out.append("bad format: convertDate(date,from-fmt, to-fmt)");
       }
    }

@@ -24,6 +24,13 @@ public final class RequestFields {
             fields[i] = tokens.nextToken();
          }
 
+         if (fields.length == 0) {
+            // Not the defaults: a list made only of separators asks for no
+            // columns at all, and the caller then answers with empty rows.
+            Log.info("column list " + Log.clean(csvList.length() > 100 ? csvList.substring(0, 100) + "..." : csvList)
+               + " names no columns, so the answer has none (the defaults are used only when the list is missing or empty)");
+         }
+
          return fields;
       } else {
          return defaults;

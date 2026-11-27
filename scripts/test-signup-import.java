@@ -19,8 +19,11 @@
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
+import java.io.PrintStream;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Comparator;
@@ -88,7 +91,11 @@ public class TestSignUpImport {
          + "]}}";
       JsonNode parsed = new ObjectMapper().readTree(report);
 
-      new SignUpGeniusPlugin("test-key", "1", history, scheduled).importReport(parsed, "2026-11");
+      // WARN lines reach the console, so what the import says about a dropped RSVP can be read from it.
+      String firstImport = captureConsole(() -> new SignUpGeniusPlugin("test-key", "1", history, scheduled).importReport(parsed, "2026-11"));
+      check("youth: a different youth sharing an email is warned about as a lost RSVP, by both IDs",
+         firstImport.contains("WARN: signup import: youth SCOUT:Again:Ned:99 NOT added") && firstImport.contains("SCOUT:Scout:Ned:99")
+            && firstImport.contains("walk-in"));
 
       // Read back from disk, not from memory: what matters is what was saved.
       DataRecordFile<AdultRecord> savedHistory = new DataRecordFile<>(historyFile, new AdultRecord.Factory());
@@ -118,6 +125,29 @@ public class TestSignUpImport {
             && "Project".equals(savedScheduled.get("Email", "pia@example.org").get(0).getValue("BoardType"))
             && "Pack".equals(savedScheduled.get("Email", "pia@example.org").get(0).getValue("UnitType")));
       check("youth: a slot from another month is skipped", savedScheduled.get("Email", "old@example.org").isEmpty());
+
+      // Every restart reads the same report again: a youth already imported is not a lost RSVP.
+      String secondImport = captureConsole(() -> new SignUpGeniusPlugin("test-key", "1", history, scheduled).importReport(parsed, "2026-11"));
+      check("youth: importing the same report again does not warn about a youth who is already there",
+         !secondImport.contains("SCOUT:Scout:Ned:99 NOT added") && !secondImport.contains("SCOUT:Pia:"));
+      check("youth: the dropped sibling is still warned about on the second import", secondImport.contains("SCOUT:Again:Ned:99 NOT added"));
+   }
+
+   private interface Step {
+      void run() throws Exception;
+   }
+
+   /** What {@code step} printed on the console. */
+   private static String captureConsole(Step step) throws Exception {
+      PrintStream saved = System.out;
+      ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+      System.setOut(new PrintStream(buffer, true, StandardCharsets.UTF_8));
+      try {
+         step.run();
+      } finally {
+         System.setOut(saved);
+      }
+      return buffer.toString(StandardCharsets.UTF_8);
    }
 
    /** A slot whose custom questions went unanswered must still import, with blanks. */

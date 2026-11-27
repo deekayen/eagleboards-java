@@ -51,6 +51,12 @@ final class NetworkAddresses {
                }
 
                addressCount++;
+               Log.info("network: interface \"" + Log.clean(networkInterface.getDisplayName()) + "\" has " + address.getHostAddress()
+                  + ", offered as http://" + address.getHostAddress() + ":" + port);
+            } else if (bindPrefix != null && address instanceof Inet4Address && !address.getHostAddress().startsWith(LOOPBACK_PREFIX)) {
+               // The one reason an address is left out that an operator can fix.
+               Log.info("network: interface \"" + Log.clean(networkInterface.getDisplayName()) + "\" has " + address.getHostAddress()
+                  + ", left out because it does not start with -bind " + bindPrefix);
             }
          }
 
@@ -64,7 +70,9 @@ final class NetworkAddresses {
          }
       }
 
-      if (bindPrefix != null) {
+      if (bindPrefix == null) {
+         Log.info("network: no -bind, the server listens on every interface, port " + port);
+      } else {
          restrictServerTo(bindPrefix, boundAddress);
       }
    }
@@ -82,9 +90,12 @@ final class NetworkAddresses {
          // Don't strand the event if the wifi is down at startup: warn loudly
          // and fall back to the original listen-everywhere behavior.
          System.out.println("\n   WARNING: no active interface matches -bind " + bindPrefix + "; listening on all interfaces.\n");
+         Log.warn("network: no active interface has an address starting with -bind " + bindPrefix
+            + ", so the server listens on all interfaces (is the venue wifi connected?)");
       } else {
          WebServer.setBindHost(boundAddress);
          System.out.println("\n   binding to " + boundAddress + " and 127.0.0.1 (-bind " + bindPrefix + ")\n");
+         Log.info("network: -bind " + bindPrefix + " selected " + boundAddress + ", the server listens there and on 127.0.0.1");
       }
    }
 }

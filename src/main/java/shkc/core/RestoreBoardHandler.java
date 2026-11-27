@@ -28,6 +28,9 @@ import jakarta.servlet.http.HttpServletResponse;
 public class RestoreBoardHandler extends BoardHandler {
    private static final String CANNOT_UNDO_MESSAGE = "Board changed since -- cannot undo automatically.";
 
+   /** An action that changed more fields than this has the rest summarized in the log, not listed. */
+   private static final int MAX_FIELDS_LOGGED = 40;
+
    public RestoreBoardHandler(EventData data) {
       super(data);
    }
@@ -37,13 +40,17 @@ public class RestoreBoardHandler extends BoardHandler {
       synchronized (this.data.getLock()) {
          UndoLog undoLog = this.data.getUndoLog();
          List<UndoField> fields = undoLog.fields();
+         String description = undoLog.description();
          if (fields == null || fields.isEmpty()) {
+            Log.info("undo: REFUSED nothing to undo (no reversible action recorded, or the last one was already undone or replaced)");
             this.sendError("Nothing to undo.", response);
             return;
          }
 
+         Log.info("undo: reversing '" + description + "' fields=" + fields.size());
          Map<String, DataRecord> touched = this.findRecordsToRestore(fields);
          if (touched == null) {
+            Log.info("undo: REFUSED '" + description + "' not reversed, nothing was changed; the undo entry is kept");
             this.sendError(CANNOT_UNDO_MESSAGE, response);
             return;
          }
@@ -51,13 +58,23 @@ public class RestoreBoardHandler extends BoardHandler {
          // Nothing has been changed yet: every field passed its check above,
          // so putting the old values back cannot leave a board half-undone.
          Set<String> touchedRecordTypes = new HashSet<>();
+         int fieldsLogged = 0;
          for (UndoField field : fields) {
             DataRecord record = touched.get(recordKey(field));
             record.setValue(field.column(), field.oldValue());
             touchedRecordTypes.add(field.recordType());
+            if (fieldsLogged < MAX_FIELDS_LOGGED) {
+               Log.info("undo:   " + ownerOf(field) + " " + field.column() + " '"
+                  + Log.safeValue(field.column(), field.newValue()) + "' -> '" + Log.safeValue(field.column(), field.oldValue()) + "'");
+               fieldsLogged++;
+            }
+         }
+         if (fields.size() > fieldsLogged) {
+            Log.info("undo:   ... and " + (fields.size() - fieldsLogged) + " more fields restored");
          }
 
          this.storeFilesOf(touchedRecordTypes);
+         Log.info("undo: reversed '" + description + "' fields=" + fields.size() + " files=" + touchedRecordTypes + " -> restored");
          undoLog.clear();
          this.sendSuccess(response);
       }
@@ -77,6 +94,9 @@ public class RestoreBoardHandler extends BoardHandler {
          DataRecordFile<? extends DataRecord> file = this.data.recordsFor(field.recordType());
          DataRecord record = file == null ? null : file.get(field.id());
          if (record == null) {
+            Log.info("undo: " + ownerOf(field) + " "
+               + (file == null ? "is of a record type the undo log cannot restore" : "is no longer in its file (deleted or renamed since)")
+               + ", cannot restore its " + field.column());
             return null;
          }
 
@@ -86,12 +106,21 @@ public class RestoreBoardHandler extends BoardHandler {
          // change, so refuse the whole restore instead.
          String current = record.getValue(field.column());
          if (!Objects.equals(current, field.newValue())) {
+            Log.info("undo: " + ownerOf(field) + " " + field.column() + " is now '"
+               + Log.safeValue(field.column(), current) + "' but the action left '" + Log.safeValue(field.column(), field.newValue())
+               + "' (it would have been restored to '" + Log.safeValue(field.column(), field.oldValue()) + "'), so it changed since; stopped at the first such field");
             return null;
          }
 
          touched.put(recordKey(field), record);
       }
       return touched;
+   }
+
+   /** The record a field belongs to, as the log names it: its ID, with the file's type first when the ID does not already start with it. */
+   private static String ownerOf(UndoField field) {
+      String id = Log.clean(field.id());
+      return id.startsWith(field.recordType() + ":") ? id : field.recordType() + " " + id;
    }
 
    /** A key that tells apart records of different files that share an ID. */

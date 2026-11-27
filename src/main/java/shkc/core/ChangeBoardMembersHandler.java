@@ -39,6 +39,12 @@ public class ChangeBoardMembersHandler extends BoardHandler {
             return;
          }
 
+         Log.info("change-board-members: scout=" + EventData.scoutLabel(scout) + " status=" + scout.getStatus()
+            + " room=" + Log.safeValue("Room", scout.getRoom())
+            + " current chair=" + Log.safeValue("BoardChairID", scout.getValue("BoardChairID"))
+            + " members=[" + Log.safeValue("BoardMembersIDs", scout.getValue("BoardMembersIDs")) + "]"
+            + " requested chair=" + Log.safeValue("ChairID", chairId)
+            + " members=[" + Log.safeValue("MemberIDs", memberIds) + "]");
          if (!ScoutStatus.holdsRoom(scout.getStatus())) {
             this.sendError("ERROR: " + scout.getFullName() + " has no board seated or in review to change", response);
             return;
@@ -53,6 +59,10 @@ public class ChangeBoardMembersHandler extends BoardHandler {
          }
 
          String boardRoom = scout.getRoom();
+         if (!room.getRoom().equals(boardRoom)) {
+            Log.info("change-board-members: scout=" + EventData.scoutLabel(scout) + " holds room=" + Log.safeValue("Room", boardRoom)
+               + " but the card found by the scout's name is room=" + Log.safeValue("Room", room.getRoom()) + " (renamed under the board)");
+         }
          BoardComposition board = new BoardCompositionChecker(this.data.getAdults()).check(scout, chairId, memberIds, boardRoom);
          if (board.isRefused()) {
             this.sendError(board.getError(), response);
@@ -71,20 +81,24 @@ public class ChangeBoardMembersHandler extends BoardHandler {
     */
    private void changeMembers(ScoutRecord scout, RoomRecord room, String boardRoom, BoardComposition board) throws IOException {
       UndoLog.Builder undo = this.data.getUndoLog().begin();
+      StringBuilder leftIds = new StringBuilder();
       for (AdultRecord adult : this.data.getAdults().getRecords()) {
          if (adult.getRoom().equals(boardRoom) && !board.getMembers().contains(adult)) {
             String oldAdultRoom = adult.getRoom();
             adult.setRoom("");
             undo.field("Adult", adult, "Room", oldAdultRoom);
+            leftIds.append(leftIds.length() > 0 ? ", " : "").append(adult.getID());
          }
       }
 
       StringBuilder memberIdList = new StringBuilder();
+      StringBuilder joinedIds = new StringBuilder();
       for (AdultRecord member : board.getMembers()) {
          if (!boardRoom.equals(member.getRoom())) {
             String oldMemberRoom = member.getRoom();
             member.setRoom(boardRoom);
             undo.field("Adult", member, "Room", oldMemberRoom);
+            joinedIds.append(joinedIds.length() > 0 ? ", " : "").append(member.getID());
          }
          if (memberIdList.length() > 0) {
             memberIdList.append(",");
@@ -114,6 +128,11 @@ public class ChangeBoardMembersHandler extends BoardHandler {
       this.data.getScouts().store();
       this.data.getRooms().store();
       this.data.getAdults().store();
+      Log.info("change-board-members: scout=" + EventData.scoutLabel(scout) + " room=" + Log.safeValue("Room", boardRoom)
+         + " chair " + Log.safeValue("BoardChairID", oldBoardChairID) + " -> " + Log.safeValue("BoardChairID", board.getChair().getID())
+         + " members [" + Log.safeValue("BoardMembersIDs", oldBoardMemberIDs) + "] -> [" + Log.safeValue("BoardMembersIDs", memberIdList.toString()) + "]"
+         + " left=[" + leftIds + "] (room: freed) joined=[" + joinedIds + "] (room: " + Log.safeValue("Room", boardRoom) + ")"
+         + " timer=not restarted -> changed");
       undo.commit("Change board members for " + scout.getFullName());
    }
 }

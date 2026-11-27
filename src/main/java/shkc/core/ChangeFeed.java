@@ -83,7 +83,12 @@ public class ChangeFeed implements WebServer.WebHandler {
             }
          }
       } catch (IOException gone) {
-         // The page closed or lost its connection: the normal way this ends.
+         // The page closed or lost its connection: the normal way this ends. How it
+         // says so (reset, broken pipe, idle timeout) and the last change it was sent
+         // go on the line that records the close, to tell a page that left from one
+         // that stopped hearing.
+         request.setAttribute(WebServer.STREAM_END_ATTRIBUTE, Log.clean(gone.getClass().getSimpleName() + ": " + gone.getMessage())
+            + ", last change number sent " + lastSent);
       } catch (InterruptedException stopping) {
          Thread.currentThread().interrupt();
       }

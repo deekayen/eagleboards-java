@@ -135,6 +135,17 @@ jobs:
         run: |
           NEW_JAR=$(ls target/eagleboardscheduler-*.jar | grep -v original- | head -1)
           java -cp "$NEW_JAR" scripts/test-data-quirks.java
+      - name: Event log (unit tests, no server)
+        shell: bash
+        # Log is how an event's problems get diagnosed, and it is participant
+        # data: this pins the line format, the held-lines cap, restart
+        # appending, rollover by size, what is masked (emails, phone numbers,
+        # keys) and what must not be (counts, timestamps, IDs), that an
+        # unwritable folder never throws, and that 8 threads do not interleave
+        # lines. It writes about 35 MB to a temporary folder to roll the file.
+        run: |
+          NEW_JAR=$(ls target/eagleboardscheduler-*.jar | grep -v original- | head -1)
+          java -cp "$NEW_JAR" scripts/test-logging.java
       - name: SignUpGenius import and file formats (no network)
         shell: bash
         # Hands the importer a canned SignUpGenius report, so no key or network
@@ -252,6 +263,19 @@ jobs:
         # the program must start a new, empty one, and a start that fails
         # must end the process with a non-zero code.
         run: bash scripts/test-first-run.sh
+      - name: Event log (a whole event, and nothing personal in it)
+        shell: bash
+        # Works a small event through the jar (sign-in, a board seated,
+        # started and completed, refusals, an Admin edit, an Undo, a Settings
+        # save, a 404, an event stream opened and dropped, a restart) and
+        # reads eagleboards.log: the banner, a line for every step naming the
+        # scout and room, REFUSED with its reason, an access line per POST, a
+        # shutdown line. Canary strings for an email address, a phone number,
+        # a birthdate, a note, and the SignUpGenius key must appear nowhere in
+        # the file or its rollovers. The shutdown line is skipped on the
+        # Windows leg, where Git Bash cannot stop Java gracefully. Kept apart
+        # from test-board-event.sh, which the Windows version runs unchanged.
+        run: bash scripts/test-logging.sh
       - name: Windows launcher (run.bat picks the newest jar, warns on shadowed WEBROOT, starts quiet)
         if: matrix.os == 'windows-latest'
         shell: cmd

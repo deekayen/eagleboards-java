@@ -146,11 +146,15 @@ public class EventData {
     *
     * @param boardRoom   the room name the scout holds
     * @param undoOrNull  where to record each change for Undo, or {@code null} for an action (Reset) that offers no Undo
+    * @return how many adults were freed
     */
-   public void releaseAdultsFromRoom(String boardRoom, UndoLog.Builder undoOrNull) {
+   public int releaseAdultsFromRoom(String boardRoom, UndoLog.Builder undoOrNull) {
       if (boardRoom.length() == 0 || RoomMarker.NO_ROOM.equals(boardRoom)) {
-         return;
+         Log.info("release-adults: room=" + Log.safeValue("Room", boardRoom) + " is never a board's room -> released nobody");
+         return 0;
       }
+      int released = 0;
+      StringBuilder releasedIds = new StringBuilder();
       for (AdultRecord adult : this.adults.getRecords()) {
          if (adult.getRoom().equals(boardRoom)) {
             String oldAdultRoom = adult.getRoom();
@@ -158,7 +162,27 @@ public class EventData {
             if (undoOrNull != null) {
                undoOrNull.field("Adult", adult, "Room", oldAdultRoom);
             }
+            released++;
+            releasedIds.append(released > 1 ? ", " : "").append(adult.getID());
          }
       }
+      if (released == 0) {
+         Log.info("release-adults: room=" + Log.safeValue("Room", boardRoom) + " released=0 (no adult was committed to that room name)"
+            + " undoable=" + (undoOrNull != null));
+      } else {
+         Log.info("release-adults: room=" + Log.safeValue("Room", boardRoom) + " released=" + released + " adults=[" + releasedIds + "]"
+            + " (room: free again) undoable=" + (undoOrNull != null));
+      }
+      return released;
+   }
+
+   /**
+    * A youth as the event log names one: the record ID, then the registration
+    * number in parentheses (for example {@code Scout:Doe:Jane:123 (P3)}). Both
+    * are identifiers, never contact details.
+    */
+   static String scoutLabel(ScoutRecord scout) {
+      String regNum = scout.getRegNum();
+      return Log.clean(scout.getID()) + (regNum == null || regNum.isEmpty() ? "" : " (" + Log.clean(regNum) + ")");
    }
 }

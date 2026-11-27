@@ -1,5 +1,7 @@
 package shkc.core;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -63,6 +65,49 @@ public class ConfigRecord extends DataRecord {
 
    public String getName() {
       return this.getValue("Name");
+   }
+
+   /** The timer settings, in minutes. A page falls back to its own default for one that is not a whole number of 1 or more. */
+   private static final String[] MINUTE_SETTINGS = {
+      "ConveneRedMins", "ProjectYellowMins", "ProjectRedMins", "FinalYellowMins", "FinalRedMins"};
+
+   /**
+    * What is odd about the timer settings, for the event log: a value that is
+    * not a whole number of minutes (the page then uses its own default, so
+    * the card colors do not match what the operator typed), and a yellow stage
+    * that does not come before its red one. Nothing is refused or changed; the
+    * operator may mean it, and the log is where "the colors look wrong" is
+    * first looked at. Empty when the settings are plausible.
+    */
+   public List<String> implausibleSettings() {
+      List<String> problems = new ArrayList<>();
+      for (String column : MINUTE_SETTINGS) {
+         if (minutes(column) < 1) {
+            problems.add(column + " is " + Log.safeValue(column, this.getValue(column))
+               + ", not a whole number of minutes of 1 or more, so the page uses its own default for it");
+         }
+      }
+      checkYellowBeforeRed("Project", problems);
+      checkYellowBeforeRed("Final", problems);
+      return problems;
+   }
+
+   private void checkYellowBeforeRed(String boardType, List<String> problems) {
+      int yellow = minutes(boardType + "YellowMins");
+      int red = minutes(boardType + "RedMins");
+      if (yellow >= 1 && red >= 1 && yellow >= red) {
+         problems.add(boardType + "YellowMins " + yellow + " is not below " + boardType + "RedMins " + red
+            + ", so a " + boardType.toLowerCase() + " board's card never shows yellow");
+      }
+   }
+
+   /** The setting as whole minutes, or 0 when it is empty, not a number or negative. */
+   private int minutes(String column) {
+      try {
+         return Math.max(0, Integer.parseInt(this.getValue(column).trim()));
+      } catch (NumberFormatException notANumber) {
+         return 0;
+      }
    }
 
    public static class Factory implements DataRecord.Factory {

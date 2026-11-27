@@ -1,6 +1,8 @@
 package shkc.core;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -41,6 +43,9 @@ public class CompleteBoardHandler extends BoardHandler {
          Log.verbose("ProjectCost: " + cost);
          Log.verbose("BSA Hours: " + bsaHours);
          Log.verbose("Other Hours: " + otherHours);
+         Log.info("complete-board: attempt scout=" + Log.safeValue("ScoutID", scoutId) + " result=" + Log.safeValue("Result", result)
+            + " notes=" + logSupplied(notes) + " cost=" + logSupplied(cost)
+            + " bsahours=" + logSupplied(bsaHours) + " otherhours=" + logSupplied(otherHours));
 
          // Exactly the three results the Complete dialog offers. This used
          // to accept any string of five or more characters, so a typo or a
@@ -52,6 +57,8 @@ public class CompleteBoardHandler extends BoardHandler {
 
          ScoutRecord scout = this.data.getScouts().get(scoutId);
          if (scout == null) {
+            Log.info("complete-board: scout not found, scout=" + Log.safeValue("ScoutID", scoutId)
+               + " scouts on file=" + this.data.getScouts().getRecords().size());
             this.sendError("Invalid Scout ID" + scoutId, response);
             return;
          }
@@ -64,6 +71,10 @@ public class CompleteBoardHandler extends BoardHandler {
          // for a review that never happened. The error message already
          // said "expected 'InProgress'"; the check now matches it.
          if (!ScoutStatus.IN_PROGRESS.equals(scout.getStatus())) {
+            RoomRecord cardNow = this.data.findRoomOfBoard(scout);
+            Log.info("complete-board: scout=" + logScout(scout) + " type=" + scout.getBoardType() + " status=" + scout.getStatus()
+               + " scoutroom=" + scout.getRoom() + " existing result=" + Log.safeValue("Result", scout.getValue("Result"))
+               + " room card=" + (cardNow == null ? "(none found)" : cardNow.getRoom() + " holding '" + cardNow.getScout() + "'"));
             this.sendError("Invalid Scout Status '" + scout.getStatus() + "' expected '" + ScoutStatus.IN_PROGRESS + "'", response);
             return;
          }
@@ -114,6 +125,15 @@ public class CompleteBoardHandler extends BoardHandler {
       // renamed or deleted on the Admin page while the board sat in it, the
       // review still happened and must still be recorded.
       UndoLog.Builder undo = this.data.getUndoLog().begin();
+      List<AdultRecord> releasedAdults = new ArrayList<>();
+      String boardRoomName = scout.getRoom();
+      if (!boardRoomName.isEmpty() && !RoomMarker.NO_ROOM.equals(boardRoomName)) {
+         for (AdultRecord adult : this.data.getAdults().getRecords()) {
+            if (adult.getRoom().equals(boardRoomName)) {
+               releasedAdults.add(adult);
+            }
+         }
+      }
       this.data.releaseAdultsFromRoom(scout.getRoom(), undo);
 
       String oldScoutStatus = scout.getStatus();
@@ -142,5 +162,24 @@ public class CompleteBoardHandler extends BoardHandler {
       this.data.getRooms().store();
       this.data.getAdults().store();
       undo.commit("Complete board for " + scout.getFullName());
+
+      boolean isProjectBoard = BoardType.PROJECT.equals(scout.getBoardType());
+      String roomNote;
+      if (room == null) {
+         roomNote = "WARNING: no room card found for room '" + oldScoutRoom + "', adults were released by room name";
+      } else if (!room.getRoom().equals(oldScoutRoom)) {
+         roomNote = "room card " + room.getRoom() + " found by the scout's name (the scout held '" + oldScoutRoom
+            + "', the room was renamed or edited): occupied -> free";
+      } else {
+         roomNote = "room " + room.getRoom() + ": occupied -> free";
+      }
+      Log.info("complete-board: scout=" + logScout(scout) + " type=" + scout.getBoardType()
+         + " (" + (isProjectBoard ? "project proposal" : "final board") + ")"
+         + " result=" + Log.safeValue("Result", result)
+         + " -> completed: status " + oldScoutStatus + " -> " + scout.getStatus()
+         + ", scout room '" + oldScoutRoom + "' -> " + scout.getRoom() + ", " + roomNote
+         + ", released " + releasedAdults.size() + " adult(s) (listed by the release-adults line above)"
+         + ", notes " + logSupplied(notes) + ", previous notes " + Log.safeValue("Notes", oldScoutNotes)
+         + (oldScoutResult.isEmpty() ? "" : ", previous result " + Log.safeValue("Result", oldScoutResult) + " overwritten"));
    }
 }

@@ -28,13 +28,20 @@ public class InProgressBoardHandler extends BoardHandler {
          this.logRequest(request);
          String scoutId = request.getParameter("ScoutID");
          Log.verbose("ScoutID: " + scoutId);
+         Log.info("start-review: attempt scout=" + Log.safeValue("ScoutID", scoutId));
 
          ScoutRecord scout = this.data.getScouts().get(scoutId);
          if (scout == null) {
+            Log.info("start-review: scout not found, scout=" + Log.safeValue("ScoutID", scoutId)
+               + " scouts on file=" + this.data.getScouts().getRecords().size());
             this.sendError("ERROR: Invalid Scout ID" + scoutId, response);
             return;
          }
          if (!ScoutStatus.SEATED.equals(scout.getStatus())) {
+            RoomRecord cardNow = this.data.findRoomOfBoard(scout);
+            Log.info("start-review: scout=" + logScout(scout) + " type=" + scout.getBoardType() + " status=" + scout.getStatus()
+               + " scoutroom=" + scout.getRoom() + " room card="
+               + (cardNow == null ? "(none found)" : cardNow.getRoom() + " holding '" + cardNow.getScout() + "'"));
             this.sendError("ERROR: Invalid Status '" + scout.getStatus() + "', expected '" + ScoutStatus.SEATED + "'", response);
             return;
          }
@@ -46,6 +53,13 @@ public class InProgressBoardHandler extends BoardHandler {
          scout.updateFields(true);
          this.data.getScouts().store();
          undo.commit("Start review for " + scout.getFullName());
+
+         RoomRecord card = this.data.findRoomOfBoard(scout);
+         Log.info("start-review: scout=" + logScout(scout) + " room=" + scout.getRoom() + " type=" + scout.getBoardType()
+            + " chair=" + Log.safeValue("BoardChairID", scout.getValue("BoardChairID"))
+            + " members=" + Log.clean(scout.getValue("BoardMembersIDs"))
+            + " -> started: status " + oldScoutStatus + " -> " + scout.getStatus() + ", room timer restarted"
+            + (card == null ? ", WARNING: no room card found for this board" : ""));
          this.sendSuccess(response);
       }
    }

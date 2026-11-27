@@ -100,6 +100,7 @@ public class Commandline {
 
          if (!parsingOptions) {
             extraParams.add(arg);
+            warnIgnored(args, argIndex);
          } else if (arg.equalsIgnoreCase("--")) {
             parsingOptions = false;
          } else if (arg.length() > 2 && arg.charAt(0) == '-' && takesValue.containsKey(arg.substring(1))) {
@@ -107,17 +108,24 @@ public class Commandline {
             argIndex += this.recordOption(arg.substring(1), takesValue, args, argIndex, 0);
          } else if (!looksLikeOptionList(arg)) {
             extraParams.add(arg);
+            warnIgnored(args, argIndex);
          } else {
             // One or more single-letter options run together, such as -vw or -d.
             int valuesConsumed = 0;
+            boolean hasUnknownLetter = false;
 
             for (int charIndex = 1; charIndex < arg.length(); charIndex++) {
                String optionName = String.valueOf(arg.charAt(charIndex));
                if (takesValue.containsKey(optionName)) {
                   valuesConsumed += this.recordOption(optionName, takesValue, args, argIndex, valuesConsumed);
                } else {
-                  unknownNames.add(optionName);
+                  hasUnknownLetter = true;
                }
+            }
+            if (hasUnknownLetter) {
+               // The whole argument, not its letters: spelled out one by one, a mistyped
+               // -sugkey=KEY would print the key. It is shown masked, which also reads better.
+               unknownNames.add(Log.redactArg(arg));
             }
 
             argIndex += valuesConsumed;
@@ -175,7 +183,24 @@ public class Commandline {
 
       String value = valueFollowing(args, argIndex, valuesAlreadyUsed + 1);
       this.setOption(name, value);
+      if (value.equals("")) {
+         // The option is kept with an empty value, which the program then treats as if it were not given.
+         Log.warn("command line: option -" + name + " takes a value but none followed it, so it has no effect");
+      }
       return value.equals("") ? 0 : 1;
+   }
+
+   /**
+    * An argument that is not an option is kept in {@link #params}, and the
+    * scheduler reads none of them, so it does nothing. That usually means a
+    * mistyped option or a value left over from one, so say so. The value
+    * after {@code -sugkey} is the SignUpGenius key and is never shown.
+    */
+   private static void warnIgnored(String[] args, int argIndex) {
+      String previous = argIndex > 0 ? args[argIndex - 1] : "";
+      boolean afterKeyOption = "-sugkey".equals(previous) || "--sugkey".equals(previous);
+      Log.warn("command line: argument " + (argIndex + 1) + " \"" + (afterKeyOption ? "***" : Log.redactArg(args[argIndex]))
+         + "\" is not an option, so it is ignored (is an option mistyped or missing its dash?)");
    }
 
    /**

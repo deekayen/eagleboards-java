@@ -2,10 +2,6 @@ package shkc.core;
 
 import java.io.IOException;
 import java.time.LocalDate;
-import java.util.logging.FileHandler;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-import java.util.logging.SimpleFormatter;
 
 /**
  * The program's starting point: reads the command line, tells the operator
@@ -21,13 +17,11 @@ public class EagleBoardScheduler {
    /** The port used when {@code -port} is not given. */
    private static final int DEFAULT_PORT = 8080;
 
-   private static final String DEBUG_LOG_FILE = "eagle-board-scheduler.log";
-
-   // Strong reference so the -debug logger configuration survives GC
-   // (java.util.logging holds loggers weakly).
-   private static Logger debugLogger = null;
-
    private final WebServer server;
+   private final EventMonitor monitor;
+
+   /** The running program's monitor, for the line the shutdown hook writes. Null until the data is loaded. */
+   private static volatile EventMonitor runningMonitor = null;
 
    static {
       System.setProperty("java.awt.headless", "false");
@@ -36,16 +30,15 @@ public class EagleBoardScheduler {
    public static void main(String[] args) throws Exception {
       Commandline cmdline = parseCommandLine(args);
 
-      if (cmdline.hasFlag("debug")) {
-         enableDebugLog();
-      }
-
       if (cmdline.hasFlag("?:help")) {
          usage();
          System.exit(1);
       }
 
       Log.setVerbose(cmdline.hasFlag("v:verbose"));
+      Log.setDebugToFile(cmdline.hasFlag("debug"));
+      installCrashLogging();
+      logStartup(args, cmdline);
 
       String today = LocalDate.now().toString();
       String dataDir = cmdline.getOption("d:dir", today);
@@ -55,6 +48,9 @@ public class EagleBoardScheduler {
       int port = cmdline.getIntOption("port", DEFAULT_PORT);
       String sugKey = cmdline.getOption("sugkey", null);
       String sugId = cmdline.getOption("sugid", null);
+      // From here the key is masked wherever it appears in the log or on the console,
+      // whatever the text around it looks like (a service's error message, say).
+      Log.registerSecret(sugKey);
       // -bind <ip-prefix>: restrict the listener and the advertised URLs to the
       // single interface we actually serve from (e.g. "192.168." for the venue
       // wifi), so virtual adapters don't each pop their own dialog. When absent,
@@ -69,12 +65,38 @@ public class EagleBoardScheduler {
          EagleBoardScheduler scheduler = new EagleBoardScheduler(port, dataDir, preregFile, adultsFile, configFile, sugKey, sugId);
          scheduler.run();
       } catch (Exception startupFailure) {
-         startupFailure.printStackTrace();
+         // A failure before the log was attached (a mistyped -c, say) would otherwise be
+         // on the console only, and the folder is usually fine: write it where the log goes.
+         attachLogIfFolderExists(dataDir);
+         Log.error("the program could not start: " + startupFailure.getMessage()
+            + (hasCause(startupFailure, java.net.BindException.class)
+               ? " (port " + port + " is in use: is another Eagle Boards still running, or use -port to pick another)" : ""), startupFailure);
          System.err.println("\n\n  ERROR: " + startupFailure.getMessage() + "\n\n");
          // SPEC.md D-9: end the process, so a script sees the failure and the
          // -w window listing URLs for a server that never started goes with it.
          System.exit(1);
       }
+   }
+
+   /** Starts the event log in {@code dataDir} if none is open yet and the folder is there. Never creates the folder. */
+   private static void attachLogIfFolderExists(String dataDir) {
+      try {
+         java.io.File folder = new java.io.File(dataDir);
+         if (Log.getLogFile() == null && folder.isDirectory()) {
+            Log.attachFile(folder);
+         }
+      } catch (RuntimeException ignored) {
+         // The failure being reported matters more than where it is written.
+      }
+   }
+
+   private static boolean hasCause(Throwable failure, Class<? extends Throwable> kind) {
+      for (Throwable cause = failure; cause != null; cause = cause.getCause()) {
+         if (kind.isInstance(cause)) {
+            return true;
+         }
+      }
+      return false;
    }
 
    /** Reads the arguments, or prints what was wrong with them and exits. */
@@ -93,15 +115,70 @@ public class EagleBoardScheduler {
       }
    }
 
-   /** {@code -debug}: send everything the program logs to a file as well. */
-   private static void enableDebugLog() throws IOException {
-      FileHandler logFile = new FileHandler(DEBUG_LOG_FILE);
-      logFile.setFormatter(new SimpleFormatter());
-      logFile.setLevel(Level.ALL);
-      debugLogger = Logger.getLogger("shkc");
-      debugLogger.setLevel(Level.ALL);
-      debugLogger.addHandler(logFile);
-      System.out.println("DEBUGGING ENABLED");
+   /**
+    * Makes sure a thread that dies from an exception nobody caught, and the
+    * program being stopped, each leave a line in the event log. A log that
+    * simply ends, with no shutdown line, means the process was killed or the
+    * power went.
+    */
+   private static void installCrashLogging() {
+      Thread.setDefaultUncaughtExceptionHandler((thread, failure) ->
+         Log.error("uncaught exception in thread " + thread.getName(), failure));
+      long startedMillis = System.currentTimeMillis();
+      Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+         // The last counts, taken on another thread and waited for only briefly: a request
+         // stuck holding the data lock must not keep the program from stopping.
+         EventMonitor monitor = runningMonitor;
+         if (monitor != null) {
+            Thread closing = new Thread(() -> monitor.logBoards("closing"), "closing-snapshot");
+            closing.setDaemon(true);
+            closing.start();
+            try {
+               closing.join(1000L);
+            } catch (InterruptedException interrupted) {
+               Thread.currentThread().interrupt();
+            }
+         }
+         Log.info("=== shutting down after " + (System.currentTimeMillis() - startedMillis) / 1000L + " s ===");
+      }, "shutdown"));
+   }
+
+   /**
+    * The first lines of every run in the event log: which build, on what
+    * machine, started how. These answer the questions asked first about any
+    * report ("which version was that?", "was the clock right?").
+    */
+   private static void logStartup(String[] args, Commandline cmdline) {
+      Log.info("=== Eagle Boards starting ===");
+      Log.info("version " + versionText() + ", jar " + jarText());
+      Log.info("java " + System.getProperty("java.version") + " (" + System.getProperty("java.vendor") + "), "
+         + System.getProperty("os.name") + " " + System.getProperty("os.version") + " " + System.getProperty("os.arch")
+         + ", " + Runtime.getRuntime().availableProcessors() + " cpus, max heap "
+         + Runtime.getRuntime().maxMemory() / (1024L * 1024L) + " MB");
+      Log.info("clock " + java.time.ZonedDateTime.now() + ", working directory " + new java.io.File("").getAbsolutePath());
+      Log.info("arguments: " + Log.redactArgs(args));
+      if (cmdline.hasFlag("debug")) {
+         Log.info("DEBUG detail is on: the log also holds what -verbose prints, which includes personal details");
+      }
+   }
+
+   /** The version the jar was built as, or {@code unknown (not run from a built jar)}. */
+   private static String versionText() {
+      String version = EagleBoardScheduler.class.getPackage().getImplementationVersion();
+      return version != null ? version : "unknown (not run from a built jar)";
+   }
+
+   /** The path, size and date of the jar being run, since an older jar left in target/ looks identical. */
+   private static String jarText() {
+      try {
+         java.io.File jar = new java.io.File(EagleBoardScheduler.class.getProtectionDomain().getCodeSource().getLocation().toURI());
+         if (jar.isFile()) {
+            return jar.getAbsolutePath() + " (" + jar.length() + " bytes, built " + java.time.Instant.ofEpochMilli(jar.lastModified()) + ")";
+         }
+         return jar.getAbsolutePath() + " (a class folder, not a jar)";
+      } catch (Exception unknown) {
+         return "unknown";
+      }
    }
 
    public static void usage() {
@@ -139,18 +216,51 @@ public class EagleBoardScheduler {
     */
    public EagleBoardScheduler(int port, String dataDir, String preregFile, String adultHistoryPath, String configFileName, String sugKey, String sugId) throws Exception {
       EventFiles files = EventFiles.resolve(dataDir, adultHistoryPath, configFileName);
+      // From here on the event log is a file in the data folder; what was
+      // logged before this point (the startup lines) is written to it now.
+      Log.attachFile(files.dataRoot());
+      Log.info("event log: " + Log.getLogFile());
+      if (Log.getLogFile() != null) {
+         // The first question after a problem at an event is where the log is.
+         System.out.println("\n   Event log: " + Log.getLogFile().getAbsolutePath() + "\n");
+      }
+      Log.info("data folder " + files.dataRoot().getAbsolutePath() + ", adult history " + files.adultHistory().getAbsolutePath()
+         + (files.adultHistoryIsNew() ? " (new)" : "") + ", settings " + files.config().getAbsolutePath() + ", port " + port
+         + ", bind " + (WebServer.getBindHost() == null ? "every interface" : WebServer.getBindHost()));
 
       this.server = new WebServer("WEBROOT");
       this.server.setPort(port);
 
       EventData data = openEventData(files);
+      this.monitor = new EventMonitor(data);
+      runningMonitor = this.monitor;
+      this.monitor.logSnapshot("loaded");
+      this.monitor.logBoards("loaded");
+      logImplausibleSettings(data);
       new PreRegistrationLoader(data.getScoutsScheduled(), data.getAdultHistory()).load(preregFile, sugKey, sugId);
+      // The counts again: "loaded" is before the import, and the first heartbeat is minutes away.
+      this.monitor.logSnapshot("ready");
       EventRoutes.register(this.server, data);
    }
 
    /** Starts the web server and blocks until it stops. */
    public void run() throws Exception {
+      this.monitor.start();
+      new StallWatchdog(this.server).start();
+      // "listening" is logged by the server once the port is bound.
       this.server.start();
+   }
+
+   /** One warning for each setting that cannot give the timers the operator probably meant. */
+   private static void logImplausibleSettings(EventData data) {
+      synchronized (data.getLock()) {
+         ConfigRecord config = data.getConfig().get("DEFAULT");
+         if (config != null) {
+            for (String problem : config.implausibleSettings()) {
+               Log.warn("settings: " + problem);
+            }
+         }
+      }
    }
 
    /** Loads the six record files, starting any that are missing. */

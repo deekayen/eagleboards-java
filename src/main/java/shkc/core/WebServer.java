@@ -9,10 +9,17 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import org.eclipse.jetty.ee11.servlet.ServletContextHandler;
 import org.eclipse.jetty.ee11.servlet.ServletHolder;
+import org.eclipse.jetty.server.Request;
+import org.eclipse.jetty.server.Response;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.ServerConnector;
 
@@ -66,6 +73,26 @@ public class WebServer {
    // original Jetty behavior of accepting connections on every interface.
    private static String bindHost = null;
 
+   /** The path of the change feed, whose requests stay open for as long as a page does. */
+   private static final String EVENT_STREAM_PATH = "/events";
+
+   /** A request slower than this is logged as a warning: an operator waiting on it noticed. */
+   private static final long SLOW_REQUEST_MILLIS = 2000L;
+
+   /** Stops the set of client addresses seen growing without bound on a hostile network. */
+   private static final int MAX_CLIENTS_REMEMBERED = 500;
+
+   /** Set on a request once it has reached {@link LocalDefaultHandler}, so the server's own request log can tell the ones that never did. */
+   private static final String REACHED_ATTRIBUTE = "eagleboards.reached";
+
+   /** Set by {@link ChangeFeed} on an event stream's request to say how the stream ended. */
+   static final String STREAM_END_ATTRIBUTE = "eagleboards.streamEnd";
+
+   private final AtomicLong requestCounter = new AtomicLong();
+   private final Map<String, InFlight> requestsInFlight = new ConcurrentHashMap<>();
+   private final AtomicInteger openStreams = new AtomicInteger();
+   private final Map<String, Boolean> clientsSeen = new ConcurrentHashMap<>();
+
    private int port = 8080;
    private final String htmlDirectory;
    private final Map<String, WebHandler> handlersByPath = new ConcurrentHashMap<>();
@@ -100,6 +127,54 @@ public class WebServer {
    /** The single address the server was limited to, or null when it listens on every interface. */
    public static String getBindHost() {
       return bindHost;
+   }
+
+   /** The requests being served now, except the long-lived event streams. For the stall watchdog. */
+   List<InFlight> requestsInFlight() {
+      return new ArrayList<>(this.requestsInFlight.values());
+   }
+
+   /** A request being served: what the stall watchdog needs to say which one is stuck and where. */
+   static final class InFlight {
+      private final String id;
+      private final String method;
+      private final String target;
+      private final long startedNanos;
+      private final Thread thread;
+      private final AtomicBoolean reported = new AtomicBoolean();
+
+      InFlight(String id, String method, String target, long startedNanos, Thread thread) {
+         this.id = id;
+         this.method = method;
+         this.target = target;
+         this.startedNanos = startedNanos;
+         this.thread = thread;
+      }
+
+      String id() {
+         return this.id;
+      }
+
+      String method() {
+         return this.method;
+      }
+
+      String target() {
+         return this.target;
+      }
+
+      long startedNanos() {
+         return this.startedNanos;
+      }
+
+      Thread thread() {
+         return this.thread;
+      }
+
+      /** True the first time only, so a stall is reported once. */
+      boolean markReported() {
+         return this.reported.compareAndSet(false, true);
+      }
    }
 
    /** Sets who is told after each POST that a handler answered. */
@@ -137,8 +212,33 @@ public class WebServer {
       contextHandler.setContextPath("/");
       contextHandler.addServlet(new ServletHolder(new LocalDefaultHandler()), "/*");
       server.setHandler(contextHandler);
+      server.setRequestLog(WebServer::logRequestNeverServed);
       server.start();
+      // After start(): that is when the port is bound, so this line is only written if it is.
+      Log.info("listening on port " + this.getPort() + (bindHost == null ? ", every interface" : ", bound to " + bindHost));
       server.join();
+   }
+
+   /**
+    * Jetty's own log of a request, called when any request ends. A request that
+    * never reached {@link LocalDefaultHandler} (a tablet that typed https:// at
+    * this plain port, a malformed request line, one Jetty refused as too large) is
+    * otherwise written nowhere, and "the iPad can't connect" would leave no trace.
+    * Requests the servlet served already have their line, so they are skipped.
+    */
+   private static void logRequestNeverServed(Request request, Response response) {
+      try {
+         if (request.getAttribute(REACHED_ATTRIBUTE) != null) {
+            return;
+         }
+         String address = Request.getRemoteAddr(request);
+         String uri = String.valueOf(request.getHttpURI());
+         Log.warn("request never reached the app: " + Log.clean(request.getMethod()) + " "
+            + Log.clean(uri.length() > 200 ? uri.substring(0, 200) : uri) + " -> " + response.getStatus() + " from " + Log.clean(address)
+            + " (a malformed request, https:// typed at this plain http port, or one the server refused)");
+      } catch (RuntimeException loggingFailure) {
+         // Logging a request must never fail it.
+      }
    }
 
    /** Builds the Jetty server, listening on every interface or only on the {@code -bind} address. */
@@ -188,6 +288,7 @@ public class WebServer {
          try {
             return this.sendResponseFile(fileName, new FileInputStream(file), response);
          } catch (Exception openFailure) {
+            Log.warn("cannot open the file " + file.getPath() + " to serve it", openFailure);
             response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
             return true;
          }
@@ -247,9 +348,21 @@ public class WebServer {
          String contentType = getContentType(extensionOf(fileName));
          response.setContentType(contentType);
          Log.verbose("content-type:" + contentType);
-         response.getOutputStream().write(body);
+         try {
+            response.getOutputStream().write(body);
+         } catch (IOException clientGone) {
+            // Only the browser or the connection can fail the write itself, and how it says so
+            // differs by system ("Broken pipe", "Connection reset by peer", "An established
+            // connection was aborted"), so this is decided by where the failure happened, not
+            // by its wording. A tablet that leaves the page mid-download is not a fault.
+            Log.verbose("the client went away while " + fileName + " was being sent: " + clientGone);
+            return true;
+         }
          response.setStatus(HttpServletResponse.SC_OK);
       } catch (Exception failure) {
+         // Reading the file (the disk or the jar) failed: that is a fault.
+         Log.verbose("could not send " + fileName + ": " + failure);
+         Log.warn("could not send the file " + fileName, failure);
          response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
       }
 
@@ -281,7 +394,83 @@ public class WebServer {
 
       @Override
       protected void service(HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException {
+         // Every line logged while this request runs carries its number, so what
+         // one tablet did can be followed through the event log.
          String target = request.getRequestURI();
+         String requestId = "r" + requestCounter.incrementAndGet();
+         long startedNanos = System.nanoTime();
+         // The address follows the number as one word, so a line can be tied to the tablet
+         // that sent it even when it is an ordinary read, which has no access line.
+         Log.setContext(requestId + "/" + Log.clean(request.getRemoteAddr()));
+         request.setAttribute(REACHED_ATTRIBUTE, Boolean.TRUE);
+         boolean isStream = EVENT_STREAM_PATH.equals(target);
+         if (!isStream) {
+            requestsInFlight.put(requestId, new InFlight(requestId, request.getMethod(), target, startedNanos, Thread.currentThread()));
+         }
+         try {
+            noteClient(request);
+            if (isStream) {
+               Log.info("event stream opened by " + request.getRemoteAddr() + " (" + openStreams.incrementAndGet() + " open)");
+            }
+            dispatch(target, request, response);
+         } finally {
+            requestsInFlight.remove(requestId);
+            long millis = (System.nanoTime() - startedNanos) / 1_000_000L;
+            if (isStream) {
+               Object endedBecause = request.getAttribute(STREAM_END_ATTRIBUTE);
+               Log.info("event stream closed after " + millis / 1000L + " s (" + openStreams.decrementAndGet() + " open)"
+                  + (endedBecause == null ? "" : ": " + endedBecause));
+            } else {
+               logAccess(target, request, response, millis);
+            }
+            Log.clearContext();
+         }
+      }
+
+      /** Logs the first request from each address with the browser it came from, for "it only fails on that tablet". */
+      private void noteClient(HttpServletRequest request) {
+         String address = request.getRemoteAddr();
+         if (address != null && clientsSeen.size() < MAX_CLIENTS_REMEMBERED && clientsSeen.putIfAbsent(address, Boolean.TRUE) == null) {
+            String agent = request.getHeader("User-Agent");
+            Log.info("new client " + address + ", browser: " + (agent == null ? "(none sent)" : Log.clean(agent.length() > 200 ? agent.substring(0, 200) : agent)));
+         }
+      }
+
+      /**
+       * Writes the one line that says how a request ended. Every POST, and any
+       * request that failed or ran slowly, is in the event log; an ordinary
+       * page or data read is not, since the pages re-read after every change and
+       * would bury the lines that matter (they are in the file with -debug).
+       */
+      private void logAccess(String target, HttpServletRequest request, HttpServletResponse response, long millis) {
+         try {
+            int status = response.getStatus();
+            String method = request.getMethod();
+            boolean isPost = "POST".equalsIgnoreCase(method);
+            boolean isApi = target.startsWith("/api/");
+            // The check-in pages' /api/ calls carry email addresses, so only the path is written.
+            String line = method + " " + target + " -> " + status + " (" + millis + " ms) from " + request.getRemoteAddr()
+               + (isApi ? "" : paramsSuffix(request));
+            if (status >= 500) {
+               Log.warn("failed: " + line);
+            } else if (millis >= SLOW_REQUEST_MILLIS) {
+               Log.warn("slow: " + line);
+            } else if (isPost || status >= 400) {
+               Log.info(line);
+            } else if (Log.isDebugToFile()) {
+               Log.verbose(line);
+            }
+         } catch (RuntimeException loggingFailure) {
+            // Logging a request must never fail it.
+         }
+      }
+
+      private String paramsSuffix(HttpServletRequest request) {
+         String params = Log.safeParams(request);
+         return params.isEmpty() ? "" : " [" + params + "]";
+      }
+
+      private void dispatch(String target, HttpServletRequest request, HttpServletResponse response) throws IOException {
          Log.verbose("LocalDefaultHandler: target=" + target);
          Log.verbose("context-path=" + request.getContextPath());
          WebHandler handler = null;
@@ -325,8 +514,8 @@ public class WebServer {
                response.sendError(HttpServletResponse.SC_NOT_FOUND);
             }
          } catch (Throwable failure) {
-            System.out.println("ERROR handling request " + target + ": " + failure);
-            failure.printStackTrace(System.out);
+            Log.error("unhandled failure in " + request.getMethod() + " " + target + " from " + request.getRemoteAddr()
+               + (target.startsWith("/api/") ? "" : paramsSuffix(request)), failure);
             if (!response.isCommitted()) {
                response.reset();
                response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);

@@ -203,6 +203,16 @@ push be the verification.
   `Throwable` safety net in `WebServer.service` that logs a stack trace and
   returns a clean 500 for that one request. Still, null-guard handler inputs
   (`getParameter` can be null; `new StringTokenizer(null,…)` throws).
+- **A handler logs what it did, and never a person's contact details.** The
+  event log (`eagleboards.log` in the data folder, always on) is how an event's
+  bugs get diagnosed, and it is participant data. One `Log.info` line per action
+  (record IDs, the room, before and after), `REFUSED` and the reason on a
+  refusal, request values only through `Log.safeValue` or `Log.safeParams`, and
+  no email, phone, birthdate, note, or key. The first line of a file goes through
+  `Log.columnNames` (it may be a person's record), and a new secret through
+  `Log.registerSecret`. Rules in CONTRIBUTING "Logging
+  conventions". Test the log in Java-only scripts: `test-board-event.sh` is run
+  unchanged by the Windows port, which has no such file.
 - **Board lifecycle:** Registered → Seated → InProgress → Completed /
   Postponed (`Verified` survives on legacy records only; nothing sets it).
   Seating and starting are **two steps again**, after a period when they were

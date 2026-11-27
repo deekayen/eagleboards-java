@@ -42,6 +42,16 @@ public class DataFileConverter<T extends DataRecord> {
    private final DataRecordFile<T> dataFile;
    private final String[] expectedColumns;
 
+   /** In a reject reason, what comes before the offending cell's text (which is never logged). */
+   private static final String REJECT_VALUE_MARKER = " with value = ";
+
+   // What the last convert() did, for its summary line.
+   private int rowsRead;
+   private int rowsRejected;
+   private int recordsAdded;
+   private int recordsUpdated;
+   private int recordsSkipped;
+
    /**
     * @param dataFile the file the converted records are added to
     * @param columnMap renames headings of the incoming file to the record's
@@ -113,7 +123,7 @@ public class DataFileConverter<T extends DataRecord> {
          // A line that cannot be parsed (a null line is the only way) is
          // reported like a line with no columns: the caller rejects that row
          // instead of stopping the whole import.
-         failure.printStackTrace();
+         Log.warn("convert: a line could not be split into fields, so its row is rejected", failure);
          return null;
       }
    }
@@ -150,20 +160,29 @@ public class DataFileConverter<T extends DataRecord> {
    /**
     * Reads a whole file, converting each row after the heading line and
     * passing every accepted one to {@link #processNewRecord}. Rejected rows
-    * are skipped and mentioned in the verbose log.
+    * are skipped and mentioned in the event log (without their content) and,
+    * in full, in the verbose log.
     *
     * @throws IOException if the file cannot be read, or if its heading line
     *                     lacks one of the expected columns
     */
    public void convert(File file) throws IOException {
+      this.rowsRead = 0;
+      this.rowsRejected = 0;
+      this.recordsAdded = 0;
+      this.recordsUpdated = 0;
+      this.recordsSkipped = 0;
       try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
          String line = reader.readLine();
          if (line == null) {
+            Log.warn("convert: file=" + file.getName() + " is empty (no heading line), nothing to import");
             return;
          }
 
          String[] headings = this.parseLine(line, null, DELIMITER);
          this.requireExpectedColumns(file, headings);
+         Log.info("convert: file=" + file.getName() + " into " + this.dataFile.getFileName()
+            + ", " + headings.length + " headings");
 
          int lineNumber = 1;
          while ((line = reader.readLine()) != null) {
@@ -171,6 +190,9 @@ public class DataFileConverter<T extends DataRecord> {
             lineNumber++;
          }
       }
+      Log.info("convert: file=" + file.getName() + " into " + this.dataFile.getFileName() + " rows=" + this.rowsRead
+         + " rejected=" + this.rowsRejected + " added=" + this.recordsAdded + " updated=" + this.recordsUpdated
+         + " skipped=" + this.recordsSkipped);
    }
 
    private void requireExpectedColumns(File file, String[] headings) throws IOException {
@@ -180,9 +202,27 @@ public class DataFileConverter<T extends DataRecord> {
 
       for (String expected : this.expectedColumns) {
          if (!contains(headings, expected)) {
+            // The first line is only assumed to be headings: a file with no heading row, or the
+            // wrong file, has a person's record there. Log.columnNames lists the cells only when
+            // some cell is a column this converter knows, and otherwise says how many there are.
+            Log.warn("convert: file=" + file.getName() + " REFUSED: expected column '" + expected
+               + "' is not among the headings: " + Log.columnNames(headings, this.knownHeadings())
+               + " (headings are matched exactly, including capitals)");
             throw new IOException("error: '" + file.getAbsolutePath() + "'. Invalid file format: expected column: " + expected);
          }
       }
+   }
+
+   /** Every heading this converter would recognize: the expected ones, the renamed ones and the record's own columns. */
+   private java.util.Set<String> knownHeadings() {
+      java.util.Set<String> known = new java.util.LinkedHashSet<>();
+      if (this.expectedColumns != null) {
+         known.addAll(java.util.Arrays.asList(this.expectedColumns));
+      }
+      known.addAll(this.columnMap.keySet());
+      known.addAll(this.converterMap.keySet());
+      known.addAll(java.util.Arrays.asList(this.dataFile.getColumns()));
+      return known;
    }
 
    private static boolean contains(String[] values, String wanted) {
@@ -199,11 +239,25 @@ public class DataFileConverter<T extends DataRecord> {
       T record = this.dataFile.createNew();
       String[] fields = this.parseLine(line, headings, DELIMITER);
       String rejectReason = this.fillRecord(record, headings, fields);
+      this.rowsRead++;
       if (rejectReason == null) {
          record.postLoadUpdate();
          this.processNewRecord(record);
       } else {
+         this.rowsRejected++;
          Log.verbose(" rejected [" + file.getName() + ":" + lineNumber + "]:" + rejectReason + " (" + line + ")");
+         // The row is never logged, nor the cell that failed: either can be an
+         // email address or a name. The heading and the line are enough to find it.
+         // lineNumber counts data rows from 1, the file's own line numbers start at the heading.
+         int valueAt = rejectReason.indexOf(REJECT_VALUE_MARKER);
+         String loggableReason = valueAt < 0 ? rejectReason : rejectReason.substring(0, valueAt);
+         String rejectLine = "convert: file=" + file.getName() + " line=" + (lineNumber + 1) + " REJECTED: " + loggableReason;
+         if (rejectReason.startsWith("invalid col")) {
+            // A cancelled signup, or an item that is not a review, is an ordinary reason to skip a row.
+            Log.info(rejectLine);
+         } else {
+            Log.warn(rejectLine);
+         }
       }
    }
 
@@ -227,7 +281,7 @@ public class DataFileConverter<T extends DataRecord> {
          FieldConverter converter = this.getConverter(heading);
          if (converter != null) {
             if (!converter.convert(record, heading, value)) {
-               return "invalid col '" + heading + "' with value = '" + value + "'";
+               return "invalid col '" + heading + "'" + REJECT_VALUE_MARKER + "'" + value + "'";
             }
          } else {
             String fieldName = this.getFieldName(heading);
@@ -247,7 +301,25 @@ public class DataFileConverter<T extends DataRecord> {
       DataRecord existing = this.dataFile.get(record.getID());
       if (existing == null) {
          this.dataFile.add(record, false);
+         this.recordsAdded++;
+         Log.info("convert: added " + record.getID() + " to " + this.dataFile.getFileName());
+      } else {
+         this.recordsSkipped++;
+         Log.info("convert: skipped " + record.getID() + ", already in " + this.dataFile.getFileName());
       }
+   }
+
+   /** Subclasses that merge instead of adding count what they did here, so the summary line is right. */
+   protected final void countAdded() {
+      this.recordsAdded++;
+   }
+
+   protected final void countUpdated() {
+      this.recordsUpdated++;
+   }
+
+   protected final void countSkipped() {
+      this.recordsSkipped++;
    }
 
    /** The file that converted records are added to. */

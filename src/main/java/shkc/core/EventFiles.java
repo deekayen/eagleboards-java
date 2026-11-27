@@ -35,8 +35,13 @@ record EventFiles(File dataRoot, File scouts, File adults, File rooms, File scou
     */
    static EventFiles resolve(String dataDir, String adultHistoryPath, String configFileName) throws Exception {
       File dataRoot = new File(dataDir);
-      if (!dataRoot.exists() && !dataRoot.mkdir()) {
-         throw new IOException("cannot create data directory: " + dataRoot.getAbsolutePath());
+      if (!dataRoot.exists()) {
+         if (!dataRoot.mkdir()) {
+            Log.warn("data folder " + dataRoot.getAbsolutePath() + " REFUSED: it does not exist and could not be created"
+               + " (its parent folder must exist and be writable)");
+            throw new IOException("cannot create data directory: " + dataRoot.getAbsolutePath());
+         }
+         Log.info("data folder " + dataRoot.getAbsolutePath() + " did not exist and was created, so this is a fresh event with no records");
       }
 
       File adultHistory = adultHistoryPath != null ? new File(adultHistoryPath) : new File(dataRoot, ADULT_HISTORY_FILE_NAME);
@@ -46,8 +51,13 @@ record EventFiles(File dataRoot, File scouts, File adults, File rooms, File scou
       // empty, not refused. The full path is printed, so a
       // mistyped -a shows up as a new history in an unexpected place.
       boolean adultHistoryIsNew = !adultHistory.exists();
+      if (adultHistoryIsNew) {
+         Log.info("adult history " + adultHistory.getAbsolutePath() + " does not exist, so a new empty one is started"
+            + (adultHistoryPath != null ? " (-a was given: check it is not a mistyped path)" : ""));
+      }
 
       if (configFileName != null && !new File(configFileName).exists()) {
+         Log.warn("config file " + new File(configFileName).getAbsolutePath() + " (-c) REFUSED: it does not exist");
          throw new Exception("error: config  file '" + configFileName + "' does not exist.");
       }
 
@@ -67,6 +77,17 @@ record EventFiles(File dataRoot, File scouts, File adults, File rooms, File scou
    private static File findConfig(File dataRoot, String configFileName) {
       String name = configFileName != null ? configFileName : CONFIG_FILE_NAME;
       File inDataRoot = new File(dataRoot, name);
-      return inDataRoot.exists() ? inDataRoot : new File(CONFIG_FILE_NAME);
+      if (inDataRoot.exists()) {
+         Log.info("config file: " + inDataRoot.getAbsolutePath() + " (in the data folder)");
+         return inDataRoot;
+      }
+      File inCurrentDirectory = new File(CONFIG_FILE_NAME);
+      if (inCurrentDirectory.exists()) {
+         Log.info("config file: " + inCurrentDirectory.getAbsolutePath() + " (not in the data folder, so the current directory's is used)");
+      } else {
+         Log.warn("config file: neither " + inDataRoot.getAbsolutePath() + " nor " + inCurrentDirectory.getAbsolutePath()
+            + " exists, so an empty one is created there and every setting uses its default");
+      }
+      return inCurrentDirectory;
    }
 }

@@ -60,6 +60,9 @@ public class RoomChangeHandler extends BoardHandler {
 
          List<ScoutRecord> scoutsInRoom1 = this.data.getScouts().get(COLUMN_ROOM, room1.getRoom());
          List<ScoutRecord> scoutsInRoom2 = this.data.getScouts().get(COLUMN_ROOM, room2.getRoom());
+         Log.info("room-change: room1=" + Log.safeValue("Room", room1.getRoom()) + " (" + this.describeBoards(scoutsInRoom1) + ")"
+            + " room2=" + Log.safeValue("Room", room2.getRoom()) + " (" + this.describeBoards(scoutsInRoom2) + ")"
+            + (room1 == room2 ? " (the same room named twice)" : ""));
          if (scoutsInRoom1.size() > 1) {
             this.sendError("ERROR: Room assigned to multiple scouts: " + room1.getRoom(), response);
             return;
@@ -123,6 +126,38 @@ public class RoomChangeHandler extends BoardHandler {
       this.data.getRooms().store();
       this.data.getScouts().store();
       this.data.getAdults().store();
+      Log.info("room-change: swapped room " + Log.safeValue("Room", room1Name) + " <-> " + Log.safeValue("Room", room2Name)
+         + ": room " + Log.safeValue("Room", room1Name) + " " + occupancy(scout1) + " -> " + occupancy(scout2)
+         + ", room " + Log.safeValue("Room", room2Name) + " " + occupancy(scout2) + " -> " + occupancy(scout1)
+         + ", youth moved " + scoutsInRoom1.size() + " to room 2 and " + scoutsInRoom2.size() + " to room 1"
+         + ", adults moved to room 2 [" + idsOf(adultsInRoom1) + "] and to room 1 [" + idsOf(adultsInRoom2) + "]"
+         + ", leaders and scout on the cards traded -> swapped");
       undo.commit("Change room " + room1Name + " <-> " + room2Name);
+   }
+
+   /** The youth a room holds, as the log names them: ID, registration number, and status. */
+   private String describeBoards(List<ScoutRecord> scoutsInRoom) {
+      if (scoutsInRoom.isEmpty()) {
+         return "empty";
+      }
+      StringBuilder described = new StringBuilder();
+      for (ScoutRecord scout : scoutsInRoom) {
+         described.append(described.length() > 0 ? ", " : "").append(EventData.scoutLabel(scout)).append(' ').append(scout.getStatus());
+      }
+      return described.toString();
+   }
+
+   /** The IDs of {@code adults}, comma separated. */
+   private static String idsOf(List<AdultRecord> adults) {
+      StringBuilder ids = new StringBuilder();
+      for (AdultRecord adult : adults) {
+         ids.append(ids.length() > 0 ? ", " : "").append(adult.getID());
+      }
+      return ids.toString();
+   }
+
+   /** Whether a room card whose Scout column holds {@code cardScout} is taken, in the words the log uses. */
+   private static String occupancy(String cardScout) {
+      return cardScout == null || cardScout.isEmpty() ? "free" : "occupied";
    }
 }

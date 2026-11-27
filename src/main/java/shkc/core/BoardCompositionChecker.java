@@ -53,9 +53,17 @@ public class BoardCompositionChecker {
     * @return the accepted board, or a refusal carrying the message to show
     */
    public BoardComposition check(ScoutRecord scout, String chairId, String memberIds, String boardRoom) {
+      // Every line this check logs starts the same way, so one board's
+      // decision can be found by its scout. The scout's ID names the person,
+      // as the event log allows; nothing else about them is written.
+      String context = "board-check: scout=" + scoutLabel(scout) + " type=" + scout.getBoardType()
+         + (boardRoom == null ? " seating a new board" : " changing the board in room " + boardRoom)
+         + " chair=" + Log.safeValue("ChairID", chairId);
+
       if (memberIds == null || memberIds.trim().length() == 0) {
          // No board members: reject cleanly instead of crashing on
          // StringTokenizer(null) or silently seating an empty board.
+         Log.info(context + " rule=members REFUSED: no member IDs were sent");
          return BoardComposition.refuse("ERROR: No board members selected");
       }
 
@@ -68,10 +76,12 @@ public class BoardCompositionChecker {
          String memberId = memberIdTokens.nextToken().trim();
          AdultRecord member = this.adults.get(memberId);
          if (member == null) {
+            Log.info(context + " rule=members REFUSED: no adult has the ID '" + Log.clean(memberId)
+               + "' (accepted " + members.size() + " member(s) before it)");
             return BoardComposition.refuse("ERROR: Invalid Member ID " + memberId);
          }
 
-         String memberRefusal = this.refusalForMember(member, scout, boardRoom, members);
+         String memberRefusal = this.refusalForMember(member, scout, boardRoom, members, context);
          if (memberRefusal != null) {
             return BoardComposition.refuse(memberRefusal);
          }
@@ -90,22 +100,41 @@ public class BoardCompositionChecker {
 
       boolean isProjectBoard = BoardType.PROJECT.equals(scout.getBoardType());
 
-      String sizeRefusal = this.refusalForSize(members.size(), isProjectBoard, scout.getBoardType());
+      String sizeRefusal = this.refusalForSize(members.size(), isProjectBoard, scout.getBoardType(), context);
       if (sizeRefusal != null) {
          return BoardComposition.refuse(sizeRefusal);
       }
 
-      String chairRefusal = this.refusalForChair(chair, chairId, members, isProjectBoard, scout.getBoardType());
+      String chairRefusal = this.refusalForChair(chair, chairId, members, isProjectBoard, scout.getBoardType(), context);
       if (chairRefusal != null) {
          return BoardComposition.refuse(chairRefusal);
       }
 
-      String unitRefusal = this.refusalForUnit(scout, members, boardRoom != null);
+      String unitRefusal = this.refusalForUnit(scout, members, boardRoom != null, context);
       if (unitRefusal != null) {
          return BoardComposition.refuse(unitRefusal);
       }
 
+      // Same unit is only a warning on the Event page, so a board that has
+      // members from the youth's own unit gets through here. Count them, so
+      // that log shows whether the operator overrode the warning.
+      String scoutUnit = scout.getValue("UnitName");
+      int sameUnitMembers = 0;
+      for (AdultRecord member : members) {
+         if (!scoutUnit.isEmpty() && scoutUnit.equals(member.getValue("UnitName"))) {
+            sameUnitMembers++;
+         }
+      }
+      Log.info(context + " size=" + members.size() + " chairrole=" + roleForBoard(chair, isProjectBoard)
+         + " same-unit members=" + sameUnitMembers + " of " + members.size() + " -> accepted");
+
       return BoardComposition.accepted(members, chair, memberNames.toString());
+   }
+
+   /** A youth as the event log names them: the record ID and the registration number, nothing else. */
+   private static String scoutLabel(ScoutRecord scout) {
+      String regNum = scout.getRegNum();
+      return Log.clean(scout.getID()) + (regNum == null || regNum.isEmpty() ? "" : " (" + Log.clean(regNum) + ")");
    }
 
    /**
@@ -124,7 +153,7 @@ public class BoardCompositionChecker {
     * @param changing true when the members of a seated board are being changed,
     *                 so the refusal says who is left on the board
     */
-   private String refusalForUnit(ScoutRecord scout, List<AdultRecord> members, boolean changing) {
+   private String refusalForUnit(ScoutRecord scout, List<AdultRecord> members, boolean changing, String context) {
       String scoutUnit = scout.getValue("UnitName");
 
       if (scoutUnit.isEmpty()) {
@@ -139,6 +168,8 @@ public class BoardCompositionChecker {
          }
       }
 
+      Log.info(context + " rule=same-unit REFUSED: all " + members.size() + " member(s) are from the youth's unit '"
+         + Log.clean(scoutUnit) + "', none from outside it");
       return "ERROR: Everyone " + (changing ? "left on" : "on") + " the board is from the youth's unit, "
          + "and a board needs at least one member from outside it (Guide to Advancement 8.0.3.0). "
          + "Add someone from another unit.";
@@ -149,15 +180,20 @@ public class BoardCompositionChecker {
     *
     * @param listedSoFar the members already accepted for this board
     */
-   private String refusalForMember(AdultRecord member, ScoutRecord scout, String boardRoom, List<AdultRecord> listedSoFar) {
+   private String refusalForMember(AdultRecord member, ScoutRecord scout, String boardRoom, List<AdultRecord> listedSoFar,
+      String context) {
       // "N/A" is the Disable button's marker for an adult who
       // has gone home, not a room anyone can be sent to, so it
       // gets its own wording instead of "in room N/A".
       if (RoomMarker.NO_ROOM.equals(member.getRoom())) {
+         Log.info(context + " rule=one-board-at-a-time REFUSED: member=" + Log.clean(member.getID())
+            + " is disabled for today (room " + RoomMarker.NO_ROOM + ")");
          return "ERROR: Member " + member.getFullName() + " has been disabled for today";
       }
 
       if (member.getRoom().length() > 0 && !member.getRoom().equals(boardRoom)) {
+         Log.info(context + " rule=one-board-at-a-time REFUSED: member=" + Log.clean(member.getID())
+            + " is already committed to room " + member.getRoom());
          return "ERROR: Member " + member.getFullName() + " already assigned to a board in room " + member.getRoom();
       }
 
@@ -166,6 +202,8 @@ public class BoardCompositionChecker {
       // a hand-picked or hand-built board must not seat them either.
       boolean isProjectBoard = BoardType.PROJECT.equals(scout.getBoardType());
       if (AdultRole.UNAVAILABLE.equals(roleForBoard(member, isProjectBoard))) {
+         Log.info(context + " rule=unavailable REFUSED: member=" + Log.clean(member.getID())
+            + " said no thanks to " + scout.getBoardType() + " boards at sign-in");
          return "ERROR: Member " + member.getFullName() + " is Unavailable for " + scout.getBoardType() + " boards";
       }
 
@@ -174,6 +212,7 @@ public class BoardCompositionChecker {
       // three. The UI's checkboxes cannot produce this; a
       // hand-built or replayed request can.
       if (listedSoFar.contains(member)) {
+         Log.info(context + " rule=duplicate-member REFUSED: member=" + Log.clean(member.getID()) + " was listed more than once");
          return "ERROR: Member " + member.getFullName() + " is listed more than once";
       }
       return null;
@@ -187,15 +226,17 @@ public class BoardCompositionChecker {
     * review (GTA 9.0.2.4) and this district runs it with two, under the same
     * ceiling.
     */
-   private String refusalForSize(int memberCount, boolean isProjectBoard, String boardType) {
+   private String refusalForSize(int memberCount, boolean isProjectBoard, String boardType, String context) {
       int minMembers = isProjectBoard ? MIN_PROJECT_PROPOSAL_MEMBERS : MIN_BOARD_OF_REVIEW_MEMBERS;
 
       if (memberCount < minMembers) {
+         Log.info(context + " rule=size REFUSED: " + memberCount + " member(s), needs at least " + minMembers);
          return "ERROR: Only " + memberCount + " board member(s) selected; "
             + minMembers + " required for " + boardType + " boards";
       }
 
       if (memberCount > MAX_BOARD_MEMBERS) {
+         Log.info(context + " rule=size REFUSED: " + memberCount + " member(s), no more than " + MAX_BOARD_MEMBERS + " allowed");
          return "ERROR: " + memberCount
             + " board members selected; no more than " + MAX_BOARD_MEMBERS + " permitted (Guide to Advancement 8.0.0.3)";
       }
@@ -211,8 +252,9 @@ public class BoardCompositionChecker {
     * because the qualified chairs were all busy.
     */
    private String refusalForChair(AdultRecord chair, String chairId, List<AdultRecord> members, boolean isProjectBoard,
-      String boardType) {
+      String boardType, String context) {
       if (chair == null) {
+         Log.info(context + " rule=chair REFUSED: no adult has the chair ID");
          return "ERROR: Invalid Chair ID " + chairId;
       }
 
@@ -226,12 +268,15 @@ public class BoardCompositionChecker {
       }
 
       if (!chairIsMember) {
+         Log.info(context + " rule=chair REFUSED: the chair is not among the " + members.size() + " member(s) sent");
          return "ERROR: Chair " + chair.getFullName() + " is not one of the board members";
       }
 
       String chairRole = roleForBoard(chair, isProjectBoard);
 
       if (!AdultRole.CHAIR.equals(chairRole)) {
+         Log.info(context + " rule=chair REFUSED: chair role for " + boardType + " boards is "
+            + (chairRole == null || chairRole.length() == 0 ? "none" : Log.clean(chairRole)) + ", not " + AdultRole.CHAIR);
          return "ERROR: " + chair.getFullName() + " is not qualified to chair a "
             + boardType + " board (role: "
             + (chairRole == null || chairRole.length() == 0 ? "none" : chairRole) + ")";

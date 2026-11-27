@@ -69,6 +69,11 @@ public class ApprovedProposalsCellsHandler implements WebServer.WebHandler {
    public void handle(String target, HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException {
       File root = this.data.getDataRoot().getAbsoluteFile().getParentFile();
       EarlierEvents earlier = this.collectApprovals(root, this.readEarlierEventFolders(root));
+      if (!earlier.read.isEmpty()) {
+         Log.info("approved-proposals: read " + earlier.read.size() + " earlier event folder(s), " + earlier.read.get(0) + " to "
+            + earlier.read.get(earlier.read.size() - 1) + ", " + earlier.approvals.size() + " approved project proposal(s)"
+            + (earlier.unreadable.isEmpty() ? "" : ", " + earlier.unreadable.size() + " folder(s) unreadable"));
+      }
       // By last name, then first, then the oldest approval first.
       earlier.approvals.sort((a, b) -> {
          int last = a.cells()[LAST_COLUMN].compareToIgnoreCase(b.cells()[LAST_COLUMN]);
@@ -96,6 +101,10 @@ public class ApprovedProposalsCellsHandler implements WebServer.WebHandler {
       }
       List<String> events = new ArrayList<>();
       File[] folders = root == null ? null : root.listFiles();
+      if (folders == null) {
+         Log.warn("approved-proposals: cannot list the folders beside this event's (" + (root == null ? "no parent folder" : root.getPath())
+            + "), so no earlier approvals are offered");
+      }
       for (File folder : folders == null ? new File[0] : folders) {
          if (folder.isDirectory() && EVENT_FOLDER_NAME.matcher(folder.getName()).matches() && folder.getName().compareTo(thisEvent) < 0) {
             events.add(folder.getName());
@@ -122,9 +131,25 @@ public class ApprovedProposalsCellsHandler implements WebServer.WebHandler {
             earlier.read.add(event);
          } catch (IOException | RuntimeException cannotRead) {
             earlier.unreadable.add(event + ": " + cannotRead.getMessage());
+            Log.warn("approved-proposals: cannot read " + YOUTH_FILE_NAME + " in event folder " + event
+               + ", so its approvals are missing from the list", this.withoutMessage(cannotRead));
          }
       }
       return earlier;
+   }
+
+   /**
+    * The exception without its message, which can quote a line of the youth
+    * file, with the stack kept. An IOException's message is about the file,
+    * not its contents, and is kept.
+    */
+   private Throwable withoutMessage(Exception cannotRead) {
+      if (cannotRead instanceof IOException) {
+         return cannotRead;
+      }
+      Throwable stripped = new RuntimeException(cannotRead.getClass().getName());
+      stripped.setStackTrace(cannotRead.getStackTrace());
+      return stripped;
    }
 
    private Approval approvalOf(ScoutRecord youth, String event) {

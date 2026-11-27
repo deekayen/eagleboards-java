@@ -2,6 +2,8 @@ package shkc.core;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -32,6 +34,14 @@ public class RecordUpdateHandler<T extends DataRecord> implements WebServer.WebH
 
    private static final String EDIT_INVALID = "invalid";
 
+   /** Every line this handler writes to the event log starts with this, so one grep finds the Admin edits. */
+   private static final String LOG_OPERATION = "admin-edit";
+
+   private static final String HANDLER_SUFFIX = "UpdateHandler";
+
+   /** The record kind in log lines: the handler's name without "UpdateHandler" (Scout, Adult, Room...). */
+   private final String kind;
+
    private final EventData data;
    private final DataRecordFile<T> records;
    // Non-null only for the handlers O-2 covers (adult field edits,
@@ -54,6 +64,16 @@ public class RecordUpdateHandler<T extends DataRecord> implements WebServer.WebH
       this.data = data;
       this.records = records;
       this.undoRecordType = undoRecordType;
+      this.kind = kindOf(this.getClass());
+   }
+
+   private static String kindOf(Class<?> handlerClass) {
+      String name = handlerClass.getSimpleName();
+      if (name.isEmpty()) {
+         return "record";
+      }
+      return name.endsWith(HANDLER_SUFFIX) && name.length() > HANDLER_SUFFIX.length()
+         ? name.substring(0, name.length() - HANDLER_SUFFIX.length()) : name;
    }
 
    @Override
@@ -63,6 +83,7 @@ public class RecordUpdateHandler<T extends DataRecord> implements WebServer.WebH
          String status = request.getParameter("!nativeeditor_status");
          String rowId = request.getParameter("gr_id");
          if (rowId == null) {
+            Log.info(this.describe(status, rowId) + " REFUSED: the request has no gr_id (the row's ID)");
             this.sendResponse(EDIT_INVALID, rowId, response);
             return;
          }
@@ -79,26 +100,127 @@ public class RecordUpdateHandler<T extends DataRecord> implements WebServer.WebH
                this.records.remove(rowId);
             }
             Log.verbose("refused: " + refused);
+            Log.info(this.describe(status, rowId) + holding(record) + " REFUSED: " + Log.clean(refused)
+               + (EDIT_INSERTED.equals(status) ? " (the new row was discarded)" : ""));
             this.sendResponse(EDIT_INVALID, rowId, response, refused);
             return;
          }
 
          UndoLog.Builder undo = this.data.getUndoLog().begin();
+         String changes = "";
+         String heldBeforeDelete = "";
+         // What a room card held before the edit: its Scout column is free text in the log, so the
+         // occupant's ID is what says whose board an edit or a delete touched.
+         String heldBeforeEdit = record instanceof RoomRecord && !EDIT_INSERTED.equals(status) ? holding(record) : "";
          if (EDIT_DELETED.equals(status)) {
+            heldBeforeDelete = holding(record);
             this.records.remove(rowId);
          } else {
             boolean isEdit = this.undoRecordType != null && !EDIT_INSERTED.equals(status);
-            this.copyColumnsFromRequest(record, request, undo, isEdit);
+            changes = this.copyColumnsFromRequest(record, request, undo, isEdit);
          }
 
          record.updateFields(false);
          this.records.store();
+         boolean onUndoStack = this.undoRecordType != null && !EDIT_INSERTED.equals(status) && !EDIT_DELETED.equals(status) && !undo.isEmpty();
+         this.logApplied(status, rowId, record, changes, heldBeforeDelete, heldBeforeEdit, onUndoStack);
          this.afterEdit(record, request, status);
-         if (this.undoRecordType != null && !EDIT_INSERTED.equals(status) && !EDIT_DELETED.equals(status) && !undo.isEmpty()) {
+         if (onUndoStack) {
             undo.commit(this.undoRecordType + " " + rowId + " updated");
          }
          this.sendResponse(status, rowId, response);
       }
+   }
+
+   /** The start of every log line about this edit: what kind of record, which action, which row. */
+   private String describe(String status, String rowId) {
+      return LOG_OPERATION + ": kind=" + this.kind + " action=" + Log.safeValue("!nativeeditor_status", status)
+         + " id=" + Log.safeValue("ID", rowId);
+   }
+
+   /**
+    * A record's status and room, for the kinds that have them, as {@code " status=Seated room=101"}.
+    * A room card also says whether a board is in it and whose, by ID, since an Admin edit or delete
+    * of an occupied card is how a board gets stranded.
+    */
+   private String holding(DataRecord record) {
+      StringBuilder held = new StringBuilder();
+      if (record.isColumn("Status")) {
+         held.append(" status=").append(shown("Status", record.getValue("Status")));
+      }
+      if (record.isColumn("Room")) {
+         held.append(" room=").append(shown("Room", record.getValue("Room")));
+      }
+      if (record instanceof RoomRecord) {
+         RoomRecord card = (RoomRecord) record;
+         held.append(card.getScout().isEmpty() ? " occupied=no" : " occupied=yes by " + this.occupantOf(card));
+      }
+      return held.toString();
+   }
+
+   /**
+    * The ID of the scout whose board sits in this room card, found by the room's name and then by the name on
+    * the card; "unknown" when no board matches and "ambiguous" when several do, so the log never guesses.
+    */
+   private String occupantOf(RoomRecord card) {
+      List<String> byRoom = new ArrayList<>();
+      List<String> byName = new ArrayList<>();
+      for (ScoutRecord scout : this.data.getScouts().getRecords()) {
+         if (!ScoutStatus.holdsRoom(scout.getStatus())) {
+            continue;
+         }
+         if (scout.getRoom().equals(card.getRoom())) {
+            byRoom.add(Log.clean(scout.getID()));
+         } else if (!card.getScout().isEmpty() && card.getScout().equals(scout.getFullName())) {
+            byName.add(Log.clean(scout.getID()));
+         }
+      }
+      List<String> matches = byRoom.isEmpty() ? byName : byRoom;
+      if (matches.isEmpty()) {
+         return "unknown (no seated board names this room or this card's scout)";
+      }
+      return matches.size() == 1 ? matches.get(0) : "ambiguous " + matches;
+   }
+
+   /**
+    * A column value as it may be logged: {@link Log#safeValue} (an identifier or
+    * state in full, free text as its length), never empty text, and the
+    * {@code Sel} checkbox's 0 or 1 in full since it holds nothing personal.
+    */
+   private static String shown(String column, String value) {
+      if ("Sel".equals(column) && value != null && value.length() <= 8) {
+         return value.isEmpty() ? "<empty>" : Log.clean(value);
+      }
+      String safe = Log.safeValue(column, value);
+      return safe.isEmpty() ? "<empty>" : safe;
+   }
+
+   /** One line saying what an accepted edit did, after it has been saved. */
+   private void logApplied(String status, String rowId, DataRecord record, String changes, String heldBeforeDelete, String heldBeforeEdit, boolean onUndoStack) {
+      int rows = this.records.getRecords().size();
+      StringBuilder line = new StringBuilder(this.describe(status, rowId));
+      if (EDIT_DELETED.equals(status)) {
+         line.append(heldBeforeDelete).append(" -> deleted (rows now ").append(rows).append(")");
+      } else if (EDIT_INSERTED.equals(status)) {
+         line.append(" set: ").append(changes.isEmpty() ? "(no columns sent)" : changes)
+            .append(" -> inserted (rows now ").append(rows).append(")");
+      } else {
+         line.append(changes.isEmpty() ? " no column changed" : " " + changes).append(" -> updated");
+         if (!heldBeforeEdit.isEmpty()) {
+            line.append(" (before the edit:").append(heldBeforeEdit).append(")");
+         }
+         if (!EDIT_UPDATED.equals(status)) {
+            line.append(" (the action is not inserted, updated, or deleted, so it was applied as an update)");
+         }
+         if (this.undoRecordType != null) {
+            line.append(onUndoStack ? " (on the Undo stack)" : " (not on the Undo stack)");
+         }
+      }
+      if (!EDIT_DELETED.equals(status) && !rowId.equals(record.getID())) {
+         line.append(" WARNING: the record's ID column is now ").append(Log.safeValue("ID", record.getID()))
+            .append(" but the row is still filed under ").append(Log.safeValue("ID", rowId));
+      }
+      Log.info(line.toString());
    }
 
    /**
@@ -112,12 +234,14 @@ public class RecordUpdateHandler<T extends DataRecord> implements WebServer.WebH
       if (record == null) {
          if (!EDIT_INSERTED.equals(status)) {
             Log.verbose("no such record: " + rowId);
+            Log.info(this.describe(status, rowId) + " REFUSED: no such record (the row is not in the file, so the table may be out of date)");
             return null;
          }
 
          return this.records.addNew(rowId, false);
       } else if (EDIT_INSERTED.equals(status)) {
          Log.verbose("record already exists: " + rowId);
+         Log.info(this.describe(status, rowId) + holding(record) + " REFUSED: a record with this ID already exists");
          return null;
       }
       return record;
@@ -126,14 +250,24 @@ public class RecordUpdateHandler<T extends DataRecord> implements WebServer.WebH
    /**
     * Copies each column the request carries onto the record, noting the old
     * value for Undo when the edit is one Undo covers.
+    *
+    * @return the columns whose value changed, written {@code Column old -> new}
+    *         and separated by commas, for the log; empty when none changed
     */
-   private void copyColumnsFromRequest(DataRecord record, HttpServletRequest request, UndoLog.Builder undo, boolean isEdit) {
+   private String copyColumnsFromRequest(DataRecord record, HttpServletRequest request, UndoLog.Builder undo, boolean isEdit) {
+      StringBuilder changes = new StringBuilder();
       for (String column : this.records.getColumns()) {
          String value = request.getParameter(column);
          Log.verbose("CHECKING: " + column + " => " + value);
          if (value != null) {
             String oldValue = record.getValue(column);
             Log.verbose("UPDATING: " + column + " => " + value);
+            if (!value.equals(oldValue)) {
+               if (changes.length() > 0) {
+                  changes.append(", ");
+               }
+               changes.append(column).append(' ').append(shown(column, oldValue)).append(" -> ").append(shown(column, value));
+            }
             record.put(column, value);
             // "Sel" is the operator's in-progress checkbox pick,
             // saved on every click (including auto-select's own
@@ -147,6 +281,7 @@ public class RecordUpdateHandler<T extends DataRecord> implements WebServer.WebH
             }
          }
       }
+      return changes.toString();
    }
 
    /** Why this edit is refused, in words for the operator; null to allow it. */

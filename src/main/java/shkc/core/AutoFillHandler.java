@@ -64,17 +64,22 @@ public class AutoFillHandler<T extends DataRecord> implements WebServer.WebHandl
       if ("list".equals(op) || lookupValue == null) {
          contentType = CONTENT_TYPE_JSON;
          body = this.listOfValues();
+         if (!this.listsValues) {
+            // The happy path for a form is a lookup, so a list request here is
+            // either an old page or a lookup that never sent its value.
+            Log.info(target + ": REFUSED to list " + this.lookupField + " values from " + this.records.getFileName() + " ("
+               + (lookupValue == null ? "no " + this.lookupField + " parameter was sent" : "op=list was asked for")
+               + "), answered with an empty list");
+         }
       } else if ("json".equals(format)) {
          contentType = CONTENT_TYPE_JSON;
-         body = this.recordAsJson(lookupValue);
+         body = this.recordAsJson(target, lookupValue);
       } else {
          contentType = CONTENT_TYPE_XML;
-         body = this.recordAsXml(lookupValue);
+         body = this.recordAsXml(target, lookupValue);
       }
 
-      response.setContentLength(body.length());
-      response.setContentType(contentType);
-      response.getOutputStream().write(body.getBytes());
+      ResponseText.write(response, contentType, body);
       response.setStatus(200);
    }
 
@@ -110,11 +115,28 @@ public class AutoFillHandler<T extends DataRecord> implements WebServer.WebHandl
       return out.toString();
    }
 
+   /**
+    * Logs a lookup that found nothing, or found more than one record (the first
+    * is served). A lookup that finds exactly one is the normal case and is not
+    * logged. The value is written only if its field is a safe one, so an email
+    * address appears as a length.
+    */
+   private void logUnusualMatch(String target, String lookupValue, List<T> matches) {
+      if (matches.isEmpty()) {
+         Log.info(target + ": " + this.lookupField + "=" + Log.safeValue(this.lookupField, lookupValue) + " not found in "
+            + this.records.getFileName() + " -> empty answer");
+      } else if (matches.size() > 1) {
+         Log.info(target + ": " + this.lookupField + "=" + Log.safeValue(this.lookupField, lookupValue) + " matches "
+            + matches.size() + " records in " + this.records.getFileName() + ", the first (" + matches.get(0).getID() + ") is served");
+      }
+   }
+
    /** The first matching record as a JSON object, or nothing at all when none matches. */
-   private String recordAsJson(String lookupValue) {
+   private String recordAsJson(String target, String lookupValue) {
       // DataRecord.toJSON wants a StringBuffer.
       StringBuffer out = new StringBuffer();
       List<T> matches = this.records.get(this.lookupField, lookupValue);
+      this.logUnusualMatch(target, lookupValue, matches);
       if (matches.size() > 0) {
          matches.get(0).toJSON(out, this.servedColumns());
       }
@@ -122,10 +144,11 @@ public class AutoFillHandler<T extends DataRecord> implements WebServer.WebHandl
    }
 
    /** The first matching record as a {@code <data>} element (empty when none matches). */
-   private String recordAsXml(String lookupValue) {
+   private String recordAsXml(String target, String lookupValue) {
       StringBuilder out = new StringBuilder();
       out.append("<data>");
       List<T> matches = this.records.get(this.lookupField, lookupValue);
+      this.logUnusualMatch(target, lookupValue, matches);
       if (matches.size() > 0) {
          T record = matches.get(0);
          boolean firstColumn = true;

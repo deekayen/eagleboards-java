@@ -41,8 +41,10 @@ public final class CheckInAddress {
       String bindHost = WebServer.getBindHost();
       if (bindHost != null && !bindHost.startsWith(WebServer.LOOPBACK_PREFIX)) {
          urls.add(urlFor(bindHost, port));
+         noteOffered(urls, "the -bind address", null);
          return urls;
       }
+      IOException interfaceFailure = null;
       try {
          Enumeration<NetworkInterface> interfaces = NetworkInterface.getNetworkInterfaces();
          while (interfaces != null && interfaces.hasMoreElements()) {
@@ -60,8 +62,31 @@ public final class CheckInAddress {
          }
       } catch (IOException noInterfaces) {
          // No network at all: an empty list, which the page explains.
+         interfaceFailure = noInterfaces;
       }
+      noteOffered(urls, "the network interfaces that are up", interfaceFailure);
       return urls;
+   }
+
+   /** What was last written to the log, so the page asking on every load adds a line only when the answer changes. */
+   private static volatile String lastOffered = null;
+
+   /**
+    * Logs the addresses the page is being offered, when they differ from the
+    * last time. "The tablet could not reach the scheduler" often starts with
+    * the laptop having moved to another wifi, which this shows.
+    */
+   private static void noteOffered(List<String> urls, String source, IOException failure) {
+      String summary = urls + " from " + source + (failure == null ? "" : ", reading the interfaces failed: " + failure);
+      if (summary.equals(lastOffered)) {
+         return;
+      }
+      lastOffered = summary;
+      if (urls.isEmpty()) {
+         Log.warn("check-in addresses: none to offer, the Event page shows no QR code (" + summary + ")");
+      } else {
+         Log.info("check-in addresses offered to the Event page: " + summary);
+      }
    }
 
    private static String urlFor(String host, int port) {
@@ -98,6 +123,7 @@ public final class CheckInAddress {
       public void handle(String target, HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException {
          String url = request.getParameter("url");
          if (url == null || !urls(request.getLocalPort()).contains(url)) {
+            Log.info("checkin-qr: REFUSED, url " + Log.safeValue("url", url) + " is not one of the addresses offered");
             response.sendError(HttpServletResponse.SC_NOT_FOUND);
             return;
          }

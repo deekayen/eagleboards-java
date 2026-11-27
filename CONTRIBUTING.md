@@ -178,7 +178,8 @@ java -jar target/eagleboardscheduler-*.jar \
   -port 18080 -d /tmp/eb/data
 ```
 
-Then open `http://127.0.0.1:18080/` (check-in), `/admin`, or `/scheduler`.
+Then open `http://127.0.0.1:18080/` (check-in), `/admin`, or `/scheduler`. The
+event log is `/tmp/eb/data/eagleboards.log`; the console prints its path.
 Omit `-sugkey` unless you are specifically testing the SignUpGenius import;
 with it, the app pulls **real registrant names and emails** from the live API.
 
@@ -198,6 +199,9 @@ java -cp target/eagleboardscheduler-*.jar scripts/test-board-composition.java
                                         # BoardCompositionChecker, UndoLog, EventData: no server
 java -cp target/eagleboardscheduler-*.jar scripts/test-signup-import.java
                                         # SignUpGenius import (canned report) and the file formats
+java -cp target/eagleboardscheduler-*.jar scripts/test-logging.java
+                                        # the event log (Log): format, rollover, masking; no server
+bash scripts/test-logging.sh            # what a real event writes to eagleboards.log, and that no canary leaks
 ```
 
 The rule, auto-select, and fill-the-rest cases in `scripts/cases/` are shared by
@@ -319,6 +323,65 @@ fixed colors that `scripts/check-contrast.js` in that repository measures in
 light and dark. Change them there, run that script and an axe scan, then copy
 all five files here and update the lock.
 
+## Logging conventions
+
+The event log is how a bug found at an event gets diagnosed, usually by someone
+who was not there and has only the file. [RUNNING.md](RUNNING.md#the-event-log)
+describes what the log looks like; this is what a change to the code owes it.
+[ARCHITECTURE.md](ARCHITECTURE.md#logging) describes how it is built.
+
+- **Log what a handler did, once.** A handler that changes something writes one
+  `Log.info` line when it acts. The line starts with the action, named as its URL
+  is (`seat-board:`, `start-review:`), then `key=value` pairs, then `->` and the
+  outcome: the youth or adult by record ID (`Log.clean(record.getID())`), the room,
+  and the before and after of anything that changed (`status Registered -> Seated`).
+  Read an existing handler (`SeatBoardHandler`) and match it. Someone reading only
+  that line should be able to say what happened without the CSVs.
+- **Log a refusal with the word `REFUSED` and the reason.** People search for it.
+  Board steps get this from `BoardHandler.sendError`, table edits from
+  `RecordUpdateHandler`'s `refusal` hook, and board composition from
+  `BoardCompositionChecker`, which names the rule (`rule=chair REFUSED: ...`). Use
+  those instead of writing the line again, and if a new place refuses, write
+  `REFUSED` and say which rule or reason. Log it once, at the place that decides.
+- **Pick the level by who has to act.** `info` is something that happened.
+  `warn` is unexpected but recovered from, and also prints on the console. `error`
+  is a failure nothing recovered from, and also prints. Both take the exception as
+  a second argument (`Log.error(message, exception)`), which puts the stack in the
+  file. `verbose`
+  is chatty detail for the console and `-debug`; never make it the only record of
+  something that matters.
+- **Never log personal data.** The log may name a person by record ID and must
+  never hold an email address, a phone number, a birthdate, a free-text note, or
+  the SignUpGenius key. Do not put a request parameter into a message by hand.
+  Read it through `Log.safeValue(name, value)`, which writes the value only for a
+  name on the safe list in `Log` and its length otherwise, or log all the
+  parameters with `Log.safeParams`. Add a name to that list only if its value is
+  an identifier, a state, or a setting, never contact details or text someone
+  typed. Pass anything that might hold a URL or a key through `Log.redact`.
+  `Log.scrub` catches email, phone, and key shapes as a backstop; it does not
+  recognize a name or a note, so it is not a reason to be careless. This is the
+  same rule as for the CSV files: SECURITY.md has the detail.
+- **Say a count or an ID, not the data.** Log `youth 3 of 14` or the record ID,
+  not a row. Do not log a whole record: its `toString` holds the email and phone.
+  The first line of a file is not safe to log as "the headings": a file with no
+  heading row has a person's record there. Pass it through `Log.columnNames`,
+  which lists the cells only when one is a column the program knows.
+- **A secret is registered, not only matched.** `Log.redact` masks `key=...`, but a
+  service's error message can quote the key in any shape. A new secret goes through
+  `Log.registerSecret` as soon as it is known.
+- **Keep it to a line.** Do not log inside a loop over records (build one line
+  after it, as `EventData` does for the adults it releases), and while holding the
+  event lock log no more than the one line, since every other request waits on it.
+  A value that came from a person can hold a line break; `Log.clean` replaces it
+  so one value cannot forge a second entry.
+- **A new setting or option that changes behavior says so at startup.** The
+  startup lines are what a reader checks first (version, arguments, folder). If a
+  flag changes what the program does, log that it is on, as `-debug` does.
+- **Test the log where it is Java.** A change that adds a line worth asserting goes
+  in a Java-only test script, not in `scripts/test-board-event.sh`: the Windows
+  port (`eagleboards-windows`) runs that script unchanged against its own server,
+  which has no `eagleboards.log`.
+
 ## Never commit data or secrets
 
 The app's working files contain personal information about adults **and
@@ -326,7 +389,8 @@ minors**. They are never committed. Guards, in order:
 
 1. `.gitignore` excludes all CSV/spreadsheet formats, dated `YYYY-MM-DD/` run
    folders, `Master_AdultHistory*`, `*Board_Results*`, `LOGIN_INFO*`, the legacy
-   `RunScheduler.*` scripts (they embed an API key), `original/`, and `.env`.
+   `RunScheduler.*` scripts (they embed an API key), `original/`, `.env`, and
+   every `*.log` file (the event log names people).
 2. `scripts/hooks/pre-commit` hard-fails any commit that stages one of those or
    a literal API key.
 

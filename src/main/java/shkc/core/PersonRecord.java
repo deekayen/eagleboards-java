@@ -53,7 +53,17 @@ public class PersonRecord extends DataRecord {
 
    @Override
    public void postLoadUpdate() {
+      String before = this.getID();
       this.populateID();
+      // An ID that was there and is now different (a hand-edited file, or one from a version
+      // that built IDs another way) breaks every room, board and Undo entry that names the old
+      // one, which shows up later as a person who "vanished". A blank one being filled in is
+      // ordinary (a new record, a file with no ID column), so it is not reported.
+      String placeholder = this.getType() + ":::";
+      if (!before.isEmpty() && !before.equals(placeholder) && !before.equals(this.getID())) {
+         Log.warn("load: ID " + Log.clean(before) + " was replaced by " + Log.clean(this.getID())
+            + ", so anything that refers to the old ID no longer finds this record");
+      }
       this.updateFields(false);
    }
 

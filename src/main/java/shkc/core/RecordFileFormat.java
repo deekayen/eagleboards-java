@@ -29,10 +29,21 @@ interface RecordFileFormat {
       return isProperties ? new PropertiesRecordFormat() : new CsvRecordFormat();
    }
 
-   /** Replaces the file's contents with {@code text}. */
+   /**
+    * Replaces the file's contents with {@code text}. The file is opened for
+    * writing (which empties it) before anything is written, and a
+    * {@link PrintStream} never throws, so a write that fails part way (disk
+    * full, say) leaves a short or empty file and no exception. The error flag
+    * is checked afterward so that case at least reaches the log.
+    */
    static void writeText(File file, CharSequence text) throws IOException {
       try (PrintStream writer = new PrintStream(new FileOutputStream(file))) {
          writer.print(text);
+         if (writer.checkError()) {
+            Log.error("write error: file=" + file.getName() + " chars=" + text.length()
+               + " -> the file on disk may be short or empty, check the disk space and the file's permissions",
+               new IOException("PrintStream reported a write error"));
+         }
       }
    }
 }

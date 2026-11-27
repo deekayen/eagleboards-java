@@ -43,6 +43,8 @@ public class RenameRoomHandler extends BoardHandler {
          }
 
          newName = newName == null ? "" : newName.trim();
+         Log.info("rename-room: id=" + Log.safeValue("RoomID", roomId) + " name " + Log.safeValue("Room", room.getRoom())
+            + " -> " + Log.safeValue("Room", newName));
          String badName = this.refusalForNameItself(newName);
          if (badName != null) {
             this.sendError(badName, response);
@@ -51,6 +53,8 @@ public class RenameRoomHandler extends BoardHandler {
 
          String oldName = room.getRoom();
          if (newName.equals(oldName)) {
+            Log.info("rename-room: id=" + Log.safeValue("RoomID", roomId) + " already named " + Log.safeValue("Room", oldName)
+               + " -> nothing changed, nothing recorded for Undo");
             this.sendSuccess(response);
             return;
          }
@@ -100,18 +104,24 @@ public class RenameRoomHandler extends BoardHandler {
       UndoLog.Builder undo = this.data.getUndoLog().begin();
       room.setValue(COLUMN_ROOM, newName);
       undo.field(UNDO_ROOM, room, COLUMN_ROOM, oldName);
+      StringBuilder movedScouts = new StringBuilder();
       for (ScoutRecord scout : this.data.getScouts().get(COLUMN_ROOM, oldName)) {
          scout.setRoom(newName);
          undo.field(UNDO_SCOUT, scout, COLUMN_ROOM, oldName);
+         movedScouts.append(movedScouts.length() > 0 ? ", " : "").append(EventData.scoutLabel(scout));
       }
+      StringBuilder movedAdults = new StringBuilder();
       for (AdultRecord adult : this.data.getAdults().get(COLUMN_ROOM, oldName)) {
          adult.setRoom(newName);
          undo.field(UNDO_ADULT, adult, COLUMN_ROOM, oldName);
+         movedAdults.append(movedAdults.length() > 0 ? ", " : "").append(adult.getID());
       }
 
       this.data.getRooms().store();
       this.data.getScouts().store();
       this.data.getAdults().store();
+      Log.info("rename-room: room " + Log.safeValue("Room", oldName) + " -> " + Log.safeValue("Room", newName)
+         + ", youth moved with it [" + movedScouts + "], adults moved with it [" + movedAdults + "]");
       undo.commit("Rename room " + oldName + " to " + newName);
    }
 }

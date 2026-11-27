@@ -58,6 +58,10 @@ public class CheckInApi {
    private final DataRecordFile<AdultRecord> adultHistory;
    private final DataRecordFile<ConfigRecord> config;
    private final ObjectMapper json = new ObjectMapper();
+   /** The last unreadable refresh setting that was logged, so a bad value is reported once, not on every page open. Guarded by {@link #lock}. */
+   private String reportedRefreshValue = null;
+   /** Whether a missing configuration record was logged. Guarded by {@link #lock}. */
+   private boolean reportedMissingConfig = false;
 
    /**
     * @param lock the lock every handler that touches the data files holds
@@ -82,9 +86,9 @@ public class CheckInApi {
       server.addHandler("/api/checked-in", (target, request, response) -> this.send(response, this.checkedIn()));
       server.addHandler("/api/scout-choices", (target, request, response) -> this.send(response, this.scoutChoices()));
       server.addHandler("/api/youth-lookup", (target, request, response) ->
-         this.send(response, this.lookUp(this.scoutsScheduled, request.getParameter("email"), YOUTH_PREFILL)));
+         this.send(response, this.lookUp("youth-lookup", "scouts_scheduled", this.scoutsScheduled, request.getParameter("email"), YOUTH_PREFILL)));
       server.addHandler("/api/adult-lookup", (target, request, response) ->
-         this.send(response, this.lookUp(this.adultHistory, request.getParameter("email"), ADULT_PREFILL)));
+         this.send(response, this.lookUp("adult-lookup", "adult history", this.adultHistory, request.getParameter("email"), ADULT_PREFILL)));
    }
 
    // A birthdate already on file is kept (SPEC.md O-5) but never served
@@ -156,11 +160,22 @@ public class CheckInApi {
    private int refreshSeconds() {
       ConfigRecord configRecord = this.config.get(CONFIG_ID);
       if (configRecord != null) {
+         String configured = configRecord.getValue("RefreshTimeSecs");
          try {
-            return Integer.parseInt(configRecord.getValue("RefreshTimeSecs").trim());
+            return Integer.parseInt(configured.trim());
          } catch (NumberFormatException notANumber) {
-            // fall through to the default
+            // fall through to the default, saying so once per distinct bad value
+            // (the page asks again each time it opens)
+            if (!configured.equals(this.reportedRefreshValue)) {
+               this.reportedRefreshValue = configured;
+               Log.warn("checked-in: RefreshTimeSecs is " + Log.safeValue("RefreshTimeSecs", configured)
+                  + ", not a number, so the page is told " + DEFAULT_REFRESH_SECONDS + " seconds (reported once per value)");
+            }
          }
+      } else if (!this.reportedMissingConfig) {
+         this.reportedMissingConfig = true;
+         Log.info("checked-in: the configuration record " + CONFIG_ID + " is missing, so the page is told "
+            + DEFAULT_REFRESH_SECONDS + " seconds (reported once)");
       }
       return DEFAULT_REFRESH_SECONDS;
    }
@@ -204,18 +219,32 @@ public class CheckInApi {
          List<ScoutRecord> everyone = new ArrayList<>(this.scoutsScheduled.getRecords());
          everyone.addAll(this.scouts.getRecords());
          Map<String, ScoutRecord> byId = new LinkedHashMap<>();
+         int withoutLastName = 0;
+         int leftOutAsFinished = 0;
          for (ScoutRecord scout : everyone) {
-            if (!scout.getLast().isEmpty() && !finishedIds.contains(scout.getID())) {
+            if (scout.getLast().isEmpty()) {
+               withoutLastName++;
+            } else if (finishedIds.contains(scout.getID())) {
+               leftOutAsFinished++;
+            } else {
                byId.put(scout.getID(), scout);
             }
          }
 
          List<ScoutRecord> candidates = new ArrayList<>();
+         int leftOutAsProject = 0;
          for (ScoutRecord scout : byId.values()) {
             if (!BoardType.PROJECT.equals(scout.getBoardType())) {
                candidates.add(scout);
+            } else {
+               leftOutAsProject++;
             }
          }
+         // One line each time an adult's form opens, so "a scout is missing from
+         // the list" can be told apart: finished, a project proposal, or no name.
+         Log.info("scout-choices: " + candidates.size() + " choices offered from " + this.scoutsScheduled.getRecords().size()
+            + " RSVPs and " + this.scouts.getRecords().size() + " sign-ins; left out: " + leftOutAsFinished
+            + " finished (Completed or Postponed), " + leftOutAsProject + " project proposal, " + withoutLastName + " with no last name");
          candidates.sort((a, b) -> {
             int byLast = a.getLast().compareToIgnoreCase(b.getLast());
             return byLast != 0 ? byLast : a.getFirst().compareToIgnoreCase(b.getFirst());
@@ -250,21 +279,45 @@ public class CheckInApi {
    /**
     * The first record whose email matches, as a map of just the requested
     * columns; an empty map if the email is blank, "none" or matches nobody.
+    * The outcome goes to the event log (never the email itself), because "the
+    * form did not fill in" is the report this answers.
+    *
+    * @param operation the name used in the log line
+    * @param source the file searched, as the log line names it
     */
-   private <T extends DataRecord> Map<String, String> lookUp(DataRecordFile<T> records, String email, String[] columns) {
+   private <T extends DataRecord> Map<String, String> lookUp(String operation, String source, DataRecordFile<T> records,
+         String email, String[] columns) {
       Map<String, String> found = new LinkedHashMap<>();
       String wanted = matchable(email);
       if (wanted == null) {
+         String why = email == null ? "no email parameter was sent" : email.trim().isEmpty() ? "the email was blank" : "the email was \"none\"";
+         Log.info(operation + ": nothing looked up, " + why + " -> empty answer");
          return found;
       }
       synchronized (this.lock) {
+         T first = null;
+         int matches = 0;
+         int searched = 0;
          for (T record : records.getRecords()) {
+            searched++;
             if (wanted.equals(matchable(record.getValue("Email")))) {
-               for (String column : columns) {
-                  found.put(column, record.getValue(column));
+               if (first == null) {
+                  first = record;
                }
-               break;
+               matches++;
             }
+         }
+         if (first == null) {
+            Log.info(operation + ": email=" + Log.safeValue("email", wanted) + " not found in " + source + " (" + searched + " records searched) -> empty answer");
+         } else {
+            for (String column : columns) {
+               found.put(column, first.getValue(column));
+            }
+            String shared = matches > 1
+               ? " NOTE " + matches + " records share this email, the first one in the file was used"
+               : "";
+            Log.info(operation + ": email=" + Log.safeValue("email", wanted) + " found in " + source + " id=" + first.getID()
+               + " (" + found.size() + " columns answered)" + shared);
          }
       }
       return found;

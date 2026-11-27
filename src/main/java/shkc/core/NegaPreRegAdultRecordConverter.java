@@ -54,6 +54,8 @@ public class NegaPreRegAdultRecordConverter extends DataFileConverter<AdultRecor
       if (existing != null) {
          Log.verbose("UPDATING PREREG ADULT RECORD[2]: " + existing);
          existing.updateFrom(incoming, COLUMNS_UPDATED_BY_ID_MATCH);
+         this.countUpdated();
+         Log.info("convert: adult " + incoming.getID() + " already in the history, Phone and Email refreshed from the sheet");
          return;
       }
 
@@ -61,9 +63,18 @@ public class NegaPreRegAdultRecordConverter extends DataFileConverter<AdultRecor
       if (sameEmail.isEmpty()) {
          Log.verbose("ADDING NEW PREREG ADULT RECORD: " + incoming);
          dataFile.add(incoming, false);
+         this.countAdded();
+         Log.info("convert: adult " + incoming.getID() + " added to the history");
       } else if (sameEmail.size() == 1) {
          Log.verbose("UPDATING PREREG ADULT RECORD[1]: " + sameEmail.get(0));
          sameEmail.get(0).updateFrom(incoming, COLUMNS_UPDATED_BY_EMAIL_MATCH);
+         this.countUpdated();
+         Log.info("convert: adult " + incoming.getID() + " matched " + sameEmail.get(0).getID()
+            + " by email, Phone refreshed from the sheet, no new record");
+      } else {
+         this.countSkipped();
+         Log.warn("convert: adult " + incoming.getID() + " SKIPPED: " + sameEmail.size()
+            + " adults in the history share the sheet row's email, so none was guessed");
       }
    }
 }

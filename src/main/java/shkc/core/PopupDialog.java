@@ -62,6 +62,15 @@ public class PopupDialog extends JFrame {
       this.growToMinimumSizeAndCenter();
    }
 
+   /** Shows or hides the window, and says in the event log that the operator was shown the addresses. */
+   @Override
+   public void setVisible(boolean visible) {
+      super.setVisible(visible);
+      if (visible) {
+         Log.info("popup: address window opened (closing it ends the program)");
+      }
+   }
+
    /** Makes the window at least the minimum size, then puts it in the middle of the screen. */
    private void growToMinimumSizeAndCenter() {
       Dimension packedSize = this.getSize();
@@ -97,11 +106,14 @@ public class PopupDialog extends JFrame {
       try {
          if (Desktop.isDesktopSupported() && Desktop.getDesktop().isSupported(Desktop.Action.BROWSE)) {
             Desktop.getDesktop().browse(new URI(url));
+            Log.info("popup: opened " + url + " in the default browser");
          } else {
             System.out.println("no browser support available for " + url);
+            Log.warn("popup: could not open " + url + ", this computer has no default browser support for Java (open the address by hand)");
          }
       } catch (Exception failure) {
          System.out.println("could not open browser for " + url + ": " + failure.getMessage());
+         Log.warn("popup: could not open " + url + " in the browser", failure);
       }
    }
 }

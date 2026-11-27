@@ -13,6 +13,13 @@
 20??-??-??/
 *Board_Results*
 Master_AdultHistory*
+# The event log (eagleboards.log, rolled to eagleboards.log.1 to .5) names
+# people by record ID. It sits in the event's data folder, and -d can point at
+# a folder that is not dated, so the dated-folder rule above does not cover it.
+# No log file is committed anywhere in this repository.
+eagleboards.log*
+*.log
+*.log.[0-9]*
 
 # ============================================================
 # Secrets: NEVER commit.

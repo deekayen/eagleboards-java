@@ -23,6 +23,10 @@ import java.util.Map;
  * @param <T> the kind of record in the file
  */
 public class DataRecordFile<T extends DataRecord> {
+   /** A save slower than this is a warning: it holds up every request. */
+   private static final long SLOW_STORE_MILLIS = 500L;
+   private static final long NANOS_PER_MILLI = 1_000_000L;
+
    private final File file;
    private final DataRecord.Factory factory;
    private final RecordFileFormat format;
@@ -77,7 +81,8 @@ public class DataRecordFile<T extends DataRecord> {
          try {
             this.store();
          } catch (Exception storeFailure) {
-            Log.error("\n\n   ERROR: exception in storing file: " + this.file.getAbsolutePath());
+            Log.error("add: exception in storing file: " + this.file.getAbsolutePath()
+               + " (the record is in memory but not on disk: id=" + record.getID() + ")", storeFailure);
          }
       }
    }
@@ -100,6 +105,11 @@ public class DataRecordFile<T extends DataRecord> {
       return matches;
    }
 
+   /** The name of the file on disk, without its folder, for log lines. */
+   public String getFileName() {
+      return this.file.getName();
+   }
+
    public String[] getColumns() {
       return this.factory.getColumns();
    }
@@ -118,15 +128,59 @@ public class DataRecordFile<T extends DataRecord> {
 
    /** Writes every record to the file, replacing its contents. */
    public synchronized void store() throws IOException {
-      this.format.write(this.file, this.factory, this.records);
+      long startedNanos = System.nanoTime();
+      try {
+         this.format.write(this.file, this.factory, this.records);
+      } catch (IOException | RuntimeException storeFailure) {
+         // The callers decide what to do about it; this line says which file, and why.
+         Log.error("store FAILED: file=" + this.file.getName() + " records=" + this.records.size()
+            + " path=" + this.file.getAbsolutePath() + " cause=" + storeFailure, null);
+         throw storeFailure;
+      }
+      long elapsedMillis = (System.nanoTime() - startedNanos) / NANOS_PER_MILLI;
+      if (elapsedMillis > SLOW_STORE_MILLIS) {
+         Log.warn("store SLOW: file=" + this.file.getName() + " records=" + this.records.size() + " took " + elapsedMillis
+            + " ms, and every request waits for it (a slow disk, a virus scanner, or a synced folder)");
+      } else {
+         Log.verbose("stored " + this.file.getName() + ": " + this.records.size() + " records, " + elapsedMillis + " ms");
+      }
    }
 
    /** Reads the file and adds its records to this object's list. */
    public synchronized void load() throws IOException {
-      this.format.read(this.file, this.factory, record -> {
-         this.add(this.castToFileKind(record), false);
-         Log.verbose("LOADED: " + record);
-      });
+      int[] loadedCount = {0};
+      try {
+         this.format.read(this.file, this.factory, record -> {
+            loadedCount[0]++;
+            this.warnIfIdIsOddOnLoad(record, loadedCount[0]);
+            this.add(this.castToFileKind(record), false);
+            Log.verbose("LOADED: " + record);
+         });
+      } catch (IOException | RuntimeException loadFailure) {
+         Log.error("load FAILED: file=" + this.file.getName() + " after " + loadedCount[0] + " records path="
+            + this.file.getAbsolutePath() + " cause=" + loadFailure, null);
+         throw loadFailure;
+      }
+      Log.info("loaded " + this.file.getName() + ": " + loadedCount[0] + " records");
+   }
+
+   /**
+    * A record with no ID cannot be looked up, and a second record with an ID
+    * already loaded hides the first from {@link #get(String)} while both stay
+    * in {@link #getRecords}; either one explains a person who "vanished" or
+    * appears twice. Both are still loaded, as they always were. (A person's
+    * blank ID is filled in while the line is read, before this runs, so "no
+    * ID" can only be seen here for a room or a setting; an ID that was
+    * replaced is reported by {@link PersonRecord#postLoadUpdate}.)
+    */
+   private void warnIfIdIsOddOnLoad(DataRecord record, int recordNumber) {
+      String id = record.getID();
+      if (id == null || id.isEmpty()) {
+         Log.warn("load: file=" + this.file.getName() + " record #" + recordNumber + " has no ID, it cannot be looked up");
+      } else if (this.recordsById.containsKey(id)) {
+         Log.warn("load: file=" + this.file.getName() + " record #" + recordNumber + " repeats the ID " + id
+            + ", lookups find only the later one");
+      }
    }
 
    @SuppressWarnings("unchecked")

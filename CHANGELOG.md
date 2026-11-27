@@ -31,6 +31,8 @@ Releases are versioned by date (e.g. `2026.07.31`). For commit-level detail,
 - Every bundled library was **replaced or upgraded**; the original shipped a
   2013 web server and a 2012 JSON parser.
 - A **live API key** that was baked into the original jar is gone.
+- The program now keeps an **event log** that says what happened at an event, so a
+  bug found there can be diagnosed afterward.
 
 ---
 
@@ -149,6 +151,11 @@ whole event against those rules. Both run in CI on all three platforms.
   clock on a solid pink-red fill overdue. The original told statuses apart by
   row color alone, and its pink (registered) and green (in progress) rows lose
   most of their difference to the most common color blindness.
+- **Fixed:** a refusal that named someone with an accented letter (a surname such as
+  Muñoz inside "Chair ... is not one of the board members") failed with a 500 and
+  showed the operator a Java exception instead of the reason. The reply's length was
+  counted in characters, not bytes. Board steps, the table downloads, and the
+  autofill answers now send UTF-8 with the true length.
 
 ---
 
@@ -313,7 +320,7 @@ silent on the check-in screen, which faces the youth signing in.
 | Servlet API | `javax.servlet` 3.0 | `jakarta.servlet` (Jetty EE11) |
 | Browser UI toolkit | dhtmlxSuite 4.1.2 (GPL, unmaintained) | Tabulator 6.5.2 (MIT) |
 | JSON parsing | json-simple 1.1, vendored and repackaged as `shkc.json.simple` | Jackson Databind 2.22.1 |
-| Logging | `monfox.log`, a vendored ~2010 library | `java.util.logging` (JDK built-in) |
+| Logging | `monfox.log`, a vendored ~2010 library | The program's own `Log` class, writing an event log file (see "Diagnosing a problem" below) |
 | Bytecode | Java 7 (class major version 51) | targets Java 21, built on JDK 25 |
 | Build | none; only the compiled jar was received | Maven, single self-contained jar |
 
@@ -333,6 +340,47 @@ tested on 64-bit Linux, Windows, and ARM Linux.
   day a sign-up began, today counted as before it and the import found
   nothing: January's board night, for a sign-up that runs the year. Only the
   dates are compared now.
+
+### Diagnosing a problem
+
+**The program keeps an event log.** It used to print to its console and, with
+`-debug`, write an `eagle-board-scheduler.log` that held only the file-lookup
+messages of one internal class: nothing about boards, sign-ins, or refusals, so
+there was little to diagnose an event's bug from. Every run now writes
+`eagleboards.log` in the event's data folder, whatever flags it was started with,
+and prints its path at startup.
+
+- **What is in it.** The build, Java, operating system, clock, and arguments at
+  each start; every POST with its safe parameters, status, and time; every board
+  step with the before and after; every refusal, marked `REFUSED` with the rule
+  behind it; Admin edits and Undo; sign-ins; the SignUpGenius import; the first
+  request from each tablet with its browser; requests that failed or took 2
+  seconds or more; and a line of counts every 5 minutes. A gap in those lines, or
+  a warning that the program was not running, shows a laptop that went to sleep.
+- **Each line says which request it belongs to**, and the address of the device
+  that sent it, so one tablet's tap can be followed through the file.
+- **It notices a stuck program while it is stuck.** A request running past 10
+  seconds is reported with the stack of its thread, and so is a long garbage
+  collection; the heartbeat also warns when the clock moved or the computer slept,
+  lists the boards in rooms at start and stop, and warns when a board and a room
+  disagree.
+- **It survives its own trouble.** A failed write or rollover no longer ends the
+  log for the run, a start that fails still leaves its reason in the data folder,
+  and a data file whose first line is a person's record is not echoed.
+- **It is flushed after every line and rolls over by size** (5 MB, five old files
+  kept), so a crash or a pulled cable loses nothing already logged and a long event
+  cannot fill the disk. A restart appends to the same file.
+- **It is participant data.** It names people by record ID and never holds an
+  email address, phone number, birthdate, free-text note, or the SignUpGenius key.
+  It is excluded by `.gitignore` and the pre-commit hook.
+- **`-debug` changed.** It now writes the `-verbose` messages into the event
+  log, marked `DEBUG`, and does not create `eagle-board-scheduler.log`. Those lines
+  can hold personal details.
+- **The console is unchanged**, except that warnings and errors now print one line
+  each.
+
+RUNNING.md says how to read the log and what to do when something goes wrong at an
+event.
 
 ### Readable code
 
@@ -431,6 +479,11 @@ still compared against the original.
   device on the network. They now list none. The sign-in pages fill a form in
   from the one address typed (`/api/youth-lookup`, `/api/adult-lookup`), from
   any station, as before.
+- **`-verbose` no longer prints the SignUpGenius key.** It printed the request
+  URL, and the URL carries the key as a query parameter. The value of a `key=`,
+  `user_key=`, or `token=` parameter is now masked there and in connection
+  errors, and the event log masks it too. SECURITY.md lists exactly what is
+  masked and what is not.
 - **Participant data cannot be committed by accident.** All CSV/XLS files, dated
   folders, and adult-history files are ignored by git and blocked by a
   pre-commit hook. The only configuration committed is `config.properties`,

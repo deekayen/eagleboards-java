@@ -35,6 +35,10 @@ public class ResetBoardHandler extends BoardHandler {
             return;
          }
          String status = scout.getStatus();
+         String boardRoom = scout.getRoom();
+         Log.info("reset-board: scout=" + EventData.scoutLabel(scout) + " status=" + status + " room=" + Log.safeValue("Room", boardRoom)
+            + " chair=" + Log.safeValue("BoardChairID", scout.getValue("BoardChairID"))
+            + " members=[" + Log.safeValue("BoardMembersIDs", scout.getValue("BoardMembersIDs")) + "]");
          if (!ScoutStatus.IN_PROGRESS.equals(status) && !ScoutStatus.SEATED.equals(status) && !ScoutStatus.VERIFIED.equals(status)) {
             this.sendError("Invalid Scout Status '" + status + "' expected 'Verified', 'InProgress' or 'Seated' '", response);
             return;
@@ -43,12 +47,19 @@ public class ResetBoardHandler extends BoardHandler {
          // By name, or (for a room renamed under the board) the card
          // that still names the scout.
          RoomRecord room = this.data.findRoomOfBoard(scout);
+         if (room == null) {
+            Log.info("reset-board: scout=" + EventData.scoutLabel(scout) + " no room card matches room=" + Log.safeValue("Room", boardRoom)
+               + " (deleted or renamed on the Admin page); freeing the members by room name anyway");
+         } else if (!room.getRoom().equals(boardRoom)) {
+            Log.info("reset-board: scout=" + EventData.scoutLabel(scout) + " holds room=" + Log.safeValue("Room", boardRoom)
+               + " but the card found by the scout's name is room=" + Log.safeValue("Room", room.getRoom()) + " (renamed under the board)");
+         }
 
          // Released by the scout's room name, as in CompleteBoardHandler:
          // a room renamed or deleted under a board must not strand its
          // members, who would otherwise stay committed to it for the rest of the
          // event. Reset offers no Undo, so no undo builder is passed.
-         this.data.releaseAdultsFromRoom(scout.getRoom(), null);
+         int adultsReleased = this.data.releaseAdultsFromRoom(boardRoom, null);
 
          if (room != null) {
             room.setScout("");
@@ -65,6 +76,11 @@ public class ResetBoardHandler extends BoardHandler {
          this.data.getScouts().store();
          this.data.getRooms().store();
          this.data.getAdults().store();
+         Log.info("reset-board: scout=" + EventData.scoutLabel(scout) + " status " + status + " -> " + ScoutStatus.REGISTERED
+            + ", room " + (room == null ? Log.safeValue("Room", boardRoom) + " (no card)" : Log.safeValue("Room", room.getRoom()) + ": occupied -> free")
+            + ", adults_released=" + adultsReleased + ", chair and members cleared, no Undo recorded"
+            + (this.data.getUndoLog().isEmpty() ? "" : " (Undo still holds '" + this.data.getUndoLog().description() + "', which may now be stale)")
+            + " -> reset");
          this.sendSuccess(response);
       }
    }

@@ -76,6 +76,11 @@
               <transformers>
                 <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
                   <mainClass>shkc.core.EagleBoardScheduler</mainClass>
+                  <!-- Writes Implementation-Version, which the event log's first
+                       lines report so a log says which build produced it. -->
+                  <manifestEntries>
+                    <Implementation-Version>${project.version}</Implementation-Version>
+                  </manifestEntries>
                 </transformer>
               </transformers>
               <filters>

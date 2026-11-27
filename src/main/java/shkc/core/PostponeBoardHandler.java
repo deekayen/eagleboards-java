@@ -27,21 +27,30 @@ public class PostponeBoardHandler extends BoardHandler {
          this.logRequest(request);
          String scoutId = request.getParameter("ScoutID");
          Log.verbose("ScoutID: " + scoutId);
+         Log.info("postpone-board: attempt scout=" + Log.safeValue("ScoutID", scoutId));
 
          ScoutRecord scout = this.data.getScouts().get(scoutId);
          if (scout == null) {
+            Log.info("postpone-board: scout not found, scout=" + Log.safeValue("ScoutID", scoutId)
+               + " scouts on file=" + this.data.getScouts().getRecords().size());
             this.sendError("ERROR: Invalid Scout ID" + scoutId, response);
             return;
          }
          if (!ScoutStatus.REGISTERED.equals(scout.getStatus()) && !ScoutStatus.VERIFIED.equals(scout.getStatus())) {
+            Log.info("postpone-board: scout=" + logScout(scout) + " type=" + scout.getBoardType() + " status=" + scout.getStatus()
+               + " scoutroom=" + scout.getRoom() + " (a board is already seated or finished; only a Registered scout can be postponed)");
             this.sendError("ERROR: Invalid Status '" + scout.getStatus() + "', expected '"
                + ScoutStatus.REGISTERED + " | " + ScoutStatus.VERIFIED + "'", response);
             return;
          }
 
+         String oldScoutStatus = scout.getStatus();
          scout.setStatus(ScoutStatus.POSTPONED);
          scout.updateFields(true);
          this.data.getScouts().store();
+         Log.info("postpone-board: scout=" + logScout(scout) + " type=" + scout.getBoardType()
+            + " -> postponed: status " + oldScoutStatus + " -> " + scout.getStatus()
+            + ", scout room '" + scout.getRoom() + "' unchanged, no board was seated, not recorded in the Undo log");
          this.sendSuccess(response);
       }
    }

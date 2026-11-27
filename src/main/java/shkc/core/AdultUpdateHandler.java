@@ -63,13 +63,36 @@ public class AdultUpdateHandler extends RecordUpdateHandler<AdultRecord> {
          factChanged |= request.getParameter(column) != null;
       }
       AdultRecord historyRecord = adultHistory.get(edited.getID());
-      if (!factChanged || historyRecord == null) {
+      if (!factChanged) {
          return;
       }
+      if (historyRecord == null) {
+         Log.info("share-adult-facts: adult=" + Log.safeValue("ID", edited.getID())
+            + " is not in the adult history, so nothing was copied there (their next sign-in will not carry this edit)");
+         return;
+      }
+      StringBuilder historyChanges = new StringBuilder();
       for (String column : RegistrationFields.ADULT_FIELDS) {
-         historyRecord.put(column, edited.getValue(column));
+         String oldValue = historyRecord.getValue(column);
+         String newValue = edited.getValue(column);
+         if (!newValue.equals(oldValue)) {
+            if (historyChanges.length() > 0) {
+               historyChanges.append(", ");
+            }
+            historyChanges.append(column).append(' ').append(shownFact(column, oldValue)).append(" -> ").append(shownFact(column, newValue));
+         }
+         historyRecord.put(column, newValue);
       }
       historyRecord.updateFields(false);
       adultHistory.store();
+      Log.info("share-adult-facts: adult=" + Log.safeValue("ID", edited.getID()) + " history record "
+         + (historyChanges.length() == 0 ? "already matched, nothing changed" : "changed: " + historyChanges)
+         + " -> saved");
+   }
+
+   /** A sign-in fact as it may be logged: an identifier or role in full, free text or contact details as a length. */
+   private static String shownFact(String column, String value) {
+      String safe = Log.safeValue(column, value);
+      return safe.isEmpty() ? "<empty>" : safe;
    }
 }
